@@ -28,6 +28,7 @@ const CreateInvoice = () => {
   };
 
   const handleInvoiceComplete = (invoiceId: string) => {
+    // Navigate to the invoice detail page instead of trying to navigate to a non-existent route
     navigate(`/invoices/${invoiceId}`);
   };
 
@@ -43,11 +44,11 @@ const CreateInvoice = () => {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => navigate('/dashboard')}
+            onClick={() => navigate('/invoices')}
             className="flex items-center"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Dashboard
+            Back to Invoices
           </Button>
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Create New Invoice</h1>

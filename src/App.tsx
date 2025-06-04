@@ -8,6 +8,8 @@ import Index from "./pages/Index";
 import Login from "./pages/auth/Login";
 import Dashboard from "./pages/dashboard/Dashboard";
 import CreateInvoice from "./pages/invoices/CreateInvoice";
+import InvoicesList from "./pages/invoices/InvoicesList";
+import InvoiceDetail from "./pages/invoices/InvoiceDetail";
 import AppLayout from "./components/layout/AppLayout";
 import NotFound from "./pages/NotFound";
 
@@ -26,8 +28,10 @@ const App = () => (
           {/* Protected Routes with Layout */}
           <Route path="/" element={<AppLayout />}>
             <Route path="dashboard" element={<Dashboard />} />
-            <Route path="invoices" element={<div className="p-8 text-center">Invoices list coming soon...</div>} />
+            <Route path="invoices" element={<InvoicesList />} />
             <Route path="invoices/new" element={<CreateInvoice />} />
+            <Route path="invoices/:id" element={<InvoiceDetail />} />
+            <Route path="invoices/:id/edit" element={<div className="p-8 text-center">Invoice editing coming soon...</div>} />
             <Route path="inventory" element={<div className="p-8 text-center">Inventory page coming soon...</div>} />
             <Route path="customers" element={<div className="p-8 text-center">Customers page coming soon...</div>} />
             <Route path="settings" element={<div className="p-8 text-center">Settings page coming soon...</div>} />

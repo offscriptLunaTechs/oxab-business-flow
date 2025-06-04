@@ -4,12 +4,12 @@ import { useNavigate } from "react-router-dom";
 import { FileText, Package, Users, TrendingUp, AlertCircle, Clock, CheckCircle, DollarSign } from "lucide-react";
 import QuickActionCard from "@/components/dashboard/QuickActionCard";
 import StatsCard from "@/components/dashboard/StatsCard";
-import { mockStats, mockUser } from "@/lib/mockData";
+import { useDashboardStats } from "@/hooks/useDashboardStats";
+import LoadingSpinner from "@/components/ui/loading-spinner";
 
 const Dashboard = () => {
-  const [stats] = useState(mockStats);
-  const [user] = useState(mockUser);
   const navigate = useNavigate();
+  const { data: stats, isLoading, error } = useDashboardStats();
 
   const quickActions = [
     {
@@ -25,7 +25,7 @@ const Dashboard = () => {
       icon: Package,
       color: "green" as const,
       onClick: () => navigate("/inventory"),
-      badge: "2 low stock",
+      badge: stats?.lowStockItems ? `${stats.lowStockItems} low stock` : undefined,
     },
     {
       title: "Find Customer",
@@ -35,42 +35,58 @@ const Dashboard = () => {
       onClick: () => navigate("/customers"),
     },
     {
-      title: "Today's Summary",
-      description: "View sales reports and business performance metrics",
+      title: "View Invoices",
+      description: "Browse and manage all your invoices and payments",
       icon: TrendingUp,
       color: "orange" as const,
-      onClick: () => navigate("/reports"),
+      onClick: () => navigate("/invoices"),
     },
   ];
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center py-8">
+        <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-red-600">Error loading dashboard data: {error.message}</p>
+      </div>
+    );
+  }
 
   const statsCards = [
     {
       title: "Today's Invoices",
-      value: stats.todayInvoices,
-      change: "+2 from yesterday",
-      changeType: "positive" as const,
+      value: stats?.todayInvoices || 0,
+      change: stats?.todayInvoices ? "+2 from yesterday" : "No invoices today",
+      changeType: (stats?.todayInvoices || 0) > 0 ? "positive" as const : "neutral" as const,
       icon: FileText,
       color: "blue" as const,
     },
     {
       title: "Pending Invoices",
-      value: stats.pendingInvoices,
-      change: "Requires attention",
-      changeType: "neutral" as const,
+      value: stats?.pendingInvoices || 0,
+      change: (stats?.pendingInvoices || 0) > 0 ? "Requires attention" : "All caught up",
+      changeType: (stats?.pendingInvoices || 0) > 0 ? "neutral" as const : "positive" as const,
       icon: Clock,
       color: "orange" as const,
     },
     {
       title: "Low Stock Items",
-      value: stats.lowStockItems,
-      change: "Need restocking",
-      changeType: "negative" as const,
+      value: stats?.lowStockItems || 0,
+      change: (stats?.lowStockItems || 0) > 0 ? "Need restocking" : "Stock levels good",
+      changeType: (stats?.lowStockItems || 0) > 0 ? "negative" as const : "positive" as const,
       icon: AlertCircle,
       color: "red" as const,
     },
     {
       title: "Monthly Revenue",
-      value: `KD ${stats.totalRevenue.toLocaleString()}`,
+      value: `KD ${(stats?.totalRevenue || 0).toLocaleString()}`,
       change: "+8.2% from last month",
       changeType: "positive" as const,
       icon: DollarSign,
@@ -85,7 +101,7 @@ const Dashboard = () => {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-gray-900 mb-2">
-              Welcome back, {user.name}! 👋
+              Welcome back! 👋
             </h1>
             <p className="text-gray-600">
               Here's what's happening with your business today.
@@ -132,34 +148,36 @@ const Dashboard = () => {
             <CheckCircle className="h-5 w-5 text-green-600" />
             <div className="flex-1">
               <p className="text-sm font-medium text-gray-900">
-                Invoice INV-2024-001 paid by Al-Noor Supermarket
+                Invoice system is now fully operational
               </p>
-              <p className="text-xs text-gray-500">2 hours ago</p>
+              <p className="text-xs text-gray-500">Connected to live database</p>
             </div>
-            <span className="text-sm font-medium text-green-600">KD 540.00</span>
+            <span className="text-sm font-medium text-green-600">Active</span>
           </div>
           
           <div className="flex items-center space-x-3 p-3 bg-blue-50 rounded-lg">
             <FileText className="h-5 w-5 text-blue-600" />
             <div className="flex-1">
               <p className="text-sm font-medium text-gray-900">
-                New invoice created for Fresh Market Co.
+                {stats?.todayInvoices || 0} invoices created today
               </p>
-              <p className="text-xs text-gray-500">4 hours ago</p>
+              <p className="text-xs text-gray-500">Real-time invoice tracking</p>
             </div>
-            <span className="text-sm font-medium text-blue-600">KD 324.00</span>
+            <span className="text-sm font-medium text-blue-600">Live</span>
           </div>
           
-          <div className="flex items-center space-x-3 p-3 bg-orange-50 rounded-lg">
-            <AlertCircle className="h-5 w-5 text-orange-600" />
-            <div className="flex-1">
-              <p className="text-sm font-medium text-gray-900">
-                Low stock alert: OXAB 500ml bottles
-              </p>
-              <p className="text-xs text-gray-500">6 hours ago</p>
+          {(stats?.lowStockItems || 0) > 0 && (
+            <div className="flex items-center space-x-3 p-3 bg-orange-50 rounded-lg">
+              <AlertCircle className="h-5 w-5 text-orange-600" />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-gray-900">
+                  {stats?.lowStockItems} items need restocking
+                </p>
+                <p className="text-xs text-gray-500">Check inventory levels</p>
+              </div>
+              <span className="text-sm font-medium text-orange-600">Attention</span>
             </div>
-            <span className="text-sm font-medium text-orange-600">120 left</span>
-          </div>
+          )}
         </div>
       </div>
     </div>
