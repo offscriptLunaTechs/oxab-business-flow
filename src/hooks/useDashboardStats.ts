@@ -39,31 +39,22 @@ export const useDashboardStats = () => {
         throw pendingError;
       }
 
-      // Get low stock items - fix the query to use proper integer comparison
-      const { data: lowStockData, error: lowStockError } = await supabase
+      // Get low stock items - use a simple query and filter in JavaScript
+      const { data: inventoryData, error: inventoryError } = await supabase
         .from('inventory')
-        .select('id, quantity, reorder_level')
-        .lt('quantity', supabase.rpc('get_reorder_level', {}));
+        .select('id, quantity, reorder_level');
       
-      // If the RPC doesn't work, let's use a simpler approach
-      if (lowStockError) {
-        console.log('Trying alternative low stock query...');
-        const { data: altLowStockData, error: altError } = await supabase
-          .from('inventory')
-          .select('id, quantity, reorder_level');
-        
-        if (altError) {
-          console.error('Low stock error:', altError);
-          throw altError;
-        }
-        
-        // Filter in JavaScript instead
-        const lowStockItems = altLowStockData?.filter(item => 
-          item.quantity <= item.reorder_level
-        ) || [];
-        
-        console.log('Low stock items found:', lowStockItems.length);
+      if (inventoryError) {
+        console.error('Inventory error:', inventoryError);
+        throw inventoryError;
       }
+
+      // Filter low stock items in JavaScript
+      const lowStockItems = inventoryData?.filter(item => 
+        item.quantity <= item.reorder_level
+      ) || [];
+      
+      console.log('Low stock items found:', lowStockItems.length);
 
       // Get total revenue for current month
       const currentMonth = new Date();
@@ -83,32 +74,18 @@ export const useDashboardStats = () => {
       }
 
       const totalRevenue = revenueData?.reduce((sum, invoice) => sum + Number(invoice.total), 0) || 0;
-      
-      // Calculate low stock items manually if the query failed
-      let lowStockCount = 0;
-      if (lowStockError) {
-        const { data: inventoryData } = await supabase
-          .from('inventory')
-          .select('quantity, reorder_level');
-        
-        lowStockCount = inventoryData?.filter(item => 
-          item.quantity <= item.reorder_level
-        ).length || 0;
-      } else {
-        lowStockCount = lowStockData?.length || 0;
-      }
 
       console.log('Dashboard stats calculated:', {
         todayInvoices: todayInvoicesData?.length || 0,
         pendingInvoices: pendingInvoicesData?.length || 0,
-        lowStockItems: lowStockCount,
+        lowStockItems: lowStockItems.length,
         totalRevenue,
       });
 
       return {
         todayInvoices: todayInvoicesData?.length || 0,
         pendingInvoices: pendingInvoicesData?.length || 0,
-        lowStockItems: lowStockCount,
+        lowStockItems: lowStockItems.length,
         totalRevenue,
       };
     },
