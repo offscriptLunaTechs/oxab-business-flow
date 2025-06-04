@@ -65,7 +65,23 @@ export const useCreateInvoice = () => {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async (invoiceData: Partial<Invoice> & { items: Partial<InvoiceItem>[] }) => {
+    mutationFn: async (invoiceData: {
+      customer_id: string;
+      date: string;
+      due_date: string;
+      subtotal: number;
+      tax: number;
+      discount: number;
+      total: number;
+      status: string;
+      notes?: string;
+      items: {
+        product_id: string;
+        quantity: number;
+        price: number;
+        total: number;
+      }[];
+    }) => {
       const { items, ...invoice } = invoiceData;
       
       // Create invoice
@@ -121,7 +137,12 @@ export const useUpdateInvoice = () => {
     }: { 
       invoiceId: string; 
       invoiceData: Partial<Invoice>; 
-      items?: Partial<InvoiceItem>[] 
+      items?: {
+        product_id: string;
+        quantity: number;
+        price: number;
+        total: number;
+      }[] 
     }) => {
       // Update invoice
       const { data: updatedInvoice, error: invoiceError } = await supabase

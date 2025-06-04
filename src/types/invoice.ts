@@ -29,7 +29,7 @@ export interface Customer {
   id: string;
   name: string;
   code: string;
-  customer_type: 'wholesale' | 'retail';
+  customer_type: string; // Changed from union type to string to match database
   email?: string;
   phone?: string;
   address?: string;
