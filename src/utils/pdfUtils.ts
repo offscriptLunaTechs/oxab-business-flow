@@ -7,7 +7,7 @@ import { InvoiceWithDetails } from '@/types/invoice';
 
 export const downloadInvoicePDF = async (invoice: InvoiceWithDetails) => {
   try {
-    const blob = await pdf(<InvoicePDF invoice={invoice} />).toBlob();
+    const blob = await pdf(React.createElement(InvoicePDF, { invoice })).toBlob();
     saveAs(blob, `invoice-${invoice.id}.pdf`);
   } catch (error) {
     console.error('Error generating PDF:', error);
