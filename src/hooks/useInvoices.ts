@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Invoice, InvoiceWithDetails, InvoiceItem } from '@/types/invoice';
@@ -60,6 +59,46 @@ export const useInvoice = (invoiceId: string) => {
   });
 };
 
+const generateNextInvoiceId = async (): Promise<string> => {
+  console.log('Generating next invoice ID...');
+  
+  // Get the latest invoice to determine the next number
+  const { data: latestInvoices, error } = await supabase
+    .from('invoices')
+    .select('id')
+    .order('created_at', { ascending: false })
+    .limit(10);
+  
+  if (error) {
+    console.error('Error fetching latest invoices:', error);
+    throw error;
+  }
+  
+  console.log('Latest invoices:', latestInvoices);
+  
+  let maxNumber = 1690; // Start from a base number
+  
+  if (latestInvoices && latestInvoices.length > 0) {
+    // Extract numbers from existing invoice IDs
+    const numbers = latestInvoices
+      .map(invoice => {
+        // Extract number from invoice ID (assuming format like "1691", "INV-1692", etc.)
+        const match = invoice.id.match(/(\d+)/);
+        return match ? parseInt(match[1], 10) : 0;
+      })
+      .filter(num => num > 0);
+    
+    if (numbers.length > 0) {
+      maxNumber = Math.max(...numbers);
+    }
+  }
+  
+  const nextNumber = maxNumber + 1;
+  console.log('Next invoice number:', nextNumber);
+  
+  return nextNumber.toString();
+};
+
 export const useCreateInvoice = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -84,8 +123,10 @@ export const useCreateInvoice = () => {
     }) => {
       const { items, ...invoice } = invoiceData;
       
-      // Generate unique invoice ID
-      const invoiceId = `INV-${Date.now()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+      // Generate sequential invoice ID
+      const invoiceId = await generateNextInvoiceId();
+      
+      console.log('Creating invoice with ID:', invoiceId);
       
       // Create invoice
       const { data: createdInvoice, error: invoiceError } = await supabase
@@ -97,7 +138,10 @@ export const useCreateInvoice = () => {
         .select()
         .single();
       
-      if (invoiceError) throw invoiceError;
+      if (invoiceError) {
+        console.error('Invoice creation error:', invoiceError);
+        throw invoiceError;
+      }
 
       // Create invoice items
       const itemsWithInvoiceId = items.map(item => ({
@@ -109,24 +153,29 @@ export const useCreateInvoice = () => {
         .from('invoice_items')
         .insert(itemsWithInvoiceId);
       
-      if (itemsError) throw itemsError;
+      if (itemsError) {
+        console.error('Invoice items creation error:', itemsError);
+        throw itemsError;
+      }
 
+      console.log('Invoice created successfully:', createdInvoice);
       return createdInvoice;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
       toast({
         title: "Success",
         description: "Invoice created successfully",
       });
     },
     onError: (error) => {
+      console.error('Create invoice mutation error:', error);
       toast({
         title: "Error",
         description: "Failed to create invoice",
         variant: "destructive",
       });
-      console.error('Create invoice error:', error);
     },
   });
 };
@@ -188,6 +237,7 @@ export const useUpdateInvoice = () => {
     onSuccess: (_, { invoiceId }) => {
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
       queryClient.invalidateQueries({ queryKey: ['invoice', invoiceId] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
       toast({
         title: "Success",
         description: "Invoice updated successfully",

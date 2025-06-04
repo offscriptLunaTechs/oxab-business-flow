@@ -9,10 +9,15 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { useInvoice } from '@/hooks/useInvoices';
 import LoadingSpinner from '@/components/ui/loading-spinner';
 import { format } from 'date-fns';
+import { pdf } from '@react-pdf/renderer';
+import InvoicePDF from '@/components/invoice/InvoicePDF';
+import { saveAs } from 'file-saver';
+import { useToast } from '@/hooks/use-toast';
 
 const InvoiceDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { toast } = useToast();
   
   const { data: invoice, isLoading, error } = useInvoice(id!);
 
@@ -23,6 +28,27 @@ const InvoiceDetail = () => {
       case 'overdue': return 'bg-red-100 text-red-800';
       case 'draft': return 'bg-gray-100 text-gray-800';
       default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const handleDownloadPDF = async () => {
+    if (!invoice) return;
+    
+    try {
+      console.log('Generating PDF for invoice:', invoice.id);
+      const blob = await pdf(<InvoicePDF invoice={invoice} />).toBlob();
+      saveAs(blob, `invoice-${invoice.id}.pdf`);
+      toast({
+        title: "Success",
+        description: "PDF downloaded successfully",
+      });
+    } catch (error) {
+      console.error('PDF generation error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to generate PDF",
+        variant: "destructive",
+      });
     }
   };
 
@@ -78,7 +104,7 @@ const InvoiceDetail = () => {
             <Edit className="h-4 w-4 mr-2" />
             Edit
           </Button>
-          <Button>
+          <Button onClick={handleDownloadPDF}>
             <Download className="h-4 w-4 mr-2" />
             Download PDF
           </Button>

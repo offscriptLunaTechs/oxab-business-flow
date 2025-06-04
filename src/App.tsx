@@ -10,6 +10,7 @@ import Dashboard from "./pages/dashboard/Dashboard";
 import CreateInvoice from "./pages/invoices/CreateInvoice";
 import InvoicesList from "./pages/invoices/InvoicesList";
 import InvoiceDetail from "./pages/invoices/InvoiceDetail";
+import EditInvoice from "./pages/invoices/EditInvoice";
 import AppLayout from "./components/layout/AppLayout";
 import NotFound from "./pages/NotFound";
 
@@ -31,7 +32,7 @@ const App = () => (
             <Route path="invoices" element={<InvoicesList />} />
             <Route path="invoices/new" element={<CreateInvoice />} />
             <Route path="invoices/:id" element={<InvoiceDetail />} />
-            <Route path="invoices/:id/edit" element={<div className="p-8 text-center">Invoice editing coming soon...</div>} />
+            <Route path="invoices/:id/edit" element={<EditInvoice />} />
             <Route path="inventory" element={<div className="p-8 text-center">Inventory page coming soon...</div>} />
             <Route path="customers" element={<div className="p-8 text-center">Customers page coming soon...</div>} />
             <Route path="settings" element={<div className="p-8 text-center">Settings page coming soon...</div>} />
