@@ -3,122 +3,126 @@ import React from 'react';
 import { Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer';
 import { InvoiceWithDetails } from '@/types/invoice';
 
-// Create styles
+// Create styles matching KECC format
 const styles = StyleSheet.create({
   page: {
     fontFamily: 'Helvetica',
-    fontSize: 11,
+    fontSize: 10,
     paddingTop: 30,
-    paddingLeft: 60,
-    paddingRight: 60,
-    lineHeight: 1.5,
+    paddingLeft: 40,
+    paddingRight: 40,
+    paddingBottom: 30,
+    lineHeight: 1.4,
     flexDirection: 'column',
   },
   header: {
     flexDirection: 'row',
-    marginBottom: 20,
+    marginBottom: 30,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+    paddingBottom: 20,
   },
   company: {
     flex: 1,
   },
   companyName: {
-    fontSize: 24,
+    fontSize: 18,
     fontWeight: 'bold',
-    color: '#1e40af',
-    marginBottom: 5,
+    color: '#2d3e87',
+    marginBottom: 8,
   },
   companyDetails: {
-    fontSize: 10,
-    color: '#666',
-    lineHeight: 1.3,
+    fontSize: 9,
+    color: '#374151',
+    lineHeight: 1.4,
   },
   invoiceInfo: {
-    width: 200,
+    width: 180,
     alignItems: 'flex-end',
   },
   invoiceTitle: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: 'bold',
-    color: '#1e40af',
+    color: '#000',
     marginBottom: 10,
   },
   invoiceNumber: {
-    fontSize: 12,
-    marginBottom: 5,
-  },
-  section: {
-    margin: 10,
-    padding: 10,
+    fontSize: 11,
+    marginBottom: 4,
+    color: '#374151',
   },
   customerSection: {
-    flexDirection: 'row',
-    marginBottom: 20,
+    marginBottom: 25,
   },
-  billTo: {
-    flex: 1,
-  },
-  sectionTitle: {
-    fontSize: 12,
+  billToTitle: {
+    fontSize: 11,
     fontWeight: 'bold',
     marginBottom: 8,
-    color: '#1e40af',
+    color: '#374151',
   },
   customerDetails: {
     fontSize: 10,
     lineHeight: 1.4,
+    color: '#374151',
   },
   table: {
     width: 'auto',
-    borderStyle: 'solid',
-    borderWidth: 1,
-    borderRightWidth: 0,
-    borderBottomWidth: 0,
-    borderColor: '#ddd',
+    marginBottom: 20,
+  },
+  tableHeader: {
+    flexDirection: 'row',
+    borderBottomWidth: 2,
+    borderBottomColor: '#374151',
+    paddingBottom: 8,
+    marginBottom: 10,
   },
   tableRow: {
-    margin: 'auto',
     flexDirection: 'row',
+    paddingVertical: 6,
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#e5e7eb',
   },
-  tableColHeader: {
-    width: '20%',
-    borderStyle: 'solid',
-    borderWidth: 1,
-    borderLeftWidth: 0,
-    borderTopWidth: 0,
-    borderColor: '#ddd',
-    backgroundColor: '#f8fafc',
-    padding: 8,
+  itemCol: {
+    width: '40%',
+    paddingRight: 10,
   },
-  tableCol: {
-    width: '20%',
-    borderStyle: 'solid',
-    borderWidth: 1,
-    borderLeftWidth: 0,
-    borderTopWidth: 0,
-    borderColor: '#ddd',
-    padding: 8,
+  descCol: {
+    width: '25%',
+    paddingRight: 10,
   },
-  tableCellHeader: {
+  qtyCol: {
+    width: '10%',
+    textAlign: 'center',
+    paddingRight: 10,
+  },
+  priceCol: {
+    width: '15%',
+    textAlign: 'right',
+    paddingRight: 10,
+  },
+  amountCol: {
+    width: '15%',
+    textAlign: 'right',
+  },
+  tableHeaderText: {
     fontSize: 10,
     fontWeight: 'bold',
     color: '#374151',
   },
-  tableCell: {
-    fontSize: 10,
+  tableCellText: {
+    fontSize: 9,
     color: '#374151',
   },
   totalsSection: {
     alignItems: 'flex-end',
     marginTop: 20,
-    width: '40%',
+    width: '50%',
     alignSelf: 'flex-end',
   },
   totalRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingVertical: 5,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    paddingVertical: 4,
     width: '100%',
   },
   totalLabel: {
@@ -129,55 +133,48 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: '#374151',
     textAlign: 'right',
+    minWidth: 80,
   },
-  grandTotal: {
+  grandTotalRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingVertical: 8,
-    borderBottomWidth: 2,
-    borderBottomColor: '#1e40af',
+    borderTopWidth: 2,
+    borderTopColor: '#374151',
+    marginTop: 8,
     width: '100%',
-    marginTop: 5,
   },
   grandTotalLabel: {
     fontSize: 12,
     fontWeight: 'bold',
-    color: '#1e40af',
+    color: '#000',
   },
   grandTotalValue: {
     fontSize: 12,
     fontWeight: 'bold',
-    color: '#1e40af',
+    color: '#000',
     textAlign: 'right',
+    minWidth: 80,
   },
   footer: {
     position: 'absolute',
     bottom: 30,
-    left: 60,
-    right: 60,
+    left: 40,
+    right: 40,
     textAlign: 'center',
     color: '#666',
     fontSize: 9,
     borderTopWidth: 1,
     borderTopColor: '#e5e7eb',
-    paddingTop: 10,
+    paddingTop: 15,
   },
-  notes: {
-    marginTop: 20,
-    padding: 10,
-    backgroundColor: '#f8fafc',
-    borderRadius: 5,
-  },
-  notesTitle: {
-    fontSize: 10,
+  thankYouMessage: {
+    textAlign: 'center',
+    marginTop: 30,
+    marginBottom: 20,
+    fontSize: 11,
+    color: '#2d3e87',
     fontWeight: 'bold',
-    marginBottom: 5,
-    color: '#374151',
-  },
-  notesText: {
-    fontSize: 9,
-    color: '#6b7280',
-    lineHeight: 1.4,
   },
 });
 
@@ -191,76 +188,80 @@ const InvoicePDF: React.FC<InvoicePDFProps> = ({ invoice }) => (
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.company}>
-          <Text style={styles.companyName}>KECC</Text>
+          <Text style={styles.companyName}>Kuwait European Canadian general trading Company</Text>
           <Text style={styles.companyDetails}>
-            Kuwait Equipment & Chemical Co.{'\n'}
-            OXAB Water Products{'\n'}
-            P.O. Box: [Box Number]{'\n'}
-            Kuwait{'\n'}
-            Tel: [Phone Number]{'\n'}
-            Email: [Email Address]
+            Shuaib, Tunis St. Kuwait{'\n'}
+            Tel: +965 99927328{'\n'}
+            Email: mbjara@kecc-trading.com
           </Text>
         </View>
         <View style={styles.invoiceInfo}>
           <Text style={styles.invoiceTitle}>INVOICE</Text>
-          <Text style={styles.invoiceNumber}>Invoice #: {invoice.id}</Text>
-          <Text style={styles.invoiceNumber}>Date: {new Date(invoice.date).toLocaleDateString()}</Text>
-          <Text style={styles.invoiceNumber}>Due Date: {new Date(invoice.due_date).toLocaleDateString()}</Text>
+          <Text style={styles.invoiceNumber}>Invoice # No. {invoice.id}</Text>
+          <Text style={styles.invoiceNumber}>Date: {new Date(invoice.date).toLocaleDateString('en-US', { 
+            year: 'numeric', 
+            month: 'short', 
+            day: 'numeric' 
+          })}</Text>
+          <Text style={styles.invoiceNumber}>Due Date: {new Date(invoice.due_date).toLocaleDateString('en-US', { 
+            year: 'numeric', 
+            month: 'short', 
+            day: 'numeric' 
+          })}</Text>
         </View>
       </View>
 
       {/* Customer Information */}
       <View style={styles.customerSection}>
-        <View style={styles.billTo}>
-          <Text style={styles.sectionTitle}>Bill To:</Text>
-          <Text style={styles.customerDetails}>
-            {invoice.customer.name}{'\n'}
-            {invoice.customer.code && `Code: ${invoice.customer.code}`}{'\n'}
-            {invoice.customer.address && `${invoice.customer.address}`}{'\n'}
-            {invoice.customer.phone && `Phone: ${invoice.customer.phone}`}{'\n'}
-            {invoice.customer.email && `Email: ${invoice.customer.email}`}
-          </Text>
-        </View>
+        <Text style={styles.billToTitle}>Bill To:</Text>
+        <Text style={styles.customerDetails}>
+          {invoice.customer.name} ({invoice.customer.code}){'\n'}
+          {invoice.customer.address && `${invoice.customer.address}\n`}
+          {invoice.customer.phone && `Phone: ${invoice.customer.phone}\n`}
+          {invoice.customer.email && `Email: ${invoice.customer.email}`}
+        </Text>
       </View>
 
       {/* Items Table */}
       <View style={styles.table}>
         {/* Table Header */}
-        <View style={styles.tableRow}>
-          <View style={[styles.tableColHeader, { width: '40%' }]}>
-            <Text style={styles.tableCellHeader}>Description</Text>
+        <View style={styles.tableHeader}>
+          <View style={styles.itemCol}>
+            <Text style={styles.tableHeaderText}>Item</Text>
           </View>
-          <View style={styles.tableColHeader}>
-            <Text style={styles.tableCellHeader}>Qty</Text>
+          <View style={styles.descCol}>
+            <Text style={styles.tableHeaderText}>Description</Text>
           </View>
-          <View style={styles.tableColHeader}>
-            <Text style={styles.tableCellHeader}>Unit Price</Text>
+          <View style={styles.qtyCol}>
+            <Text style={styles.tableHeaderText}>Qty</Text>
           </View>
-          <View style={styles.tableColHeader}>
-            <Text style={styles.tableCellHeader}>Total</Text>
+          <View style={styles.priceCol}>
+            <Text style={styles.tableHeaderText}>Unit Price</Text>
+          </View>
+          <View style={styles.amountCol}>
+            <Text style={styles.tableHeaderText}>Amount</Text>
           </View>
         </View>
 
         {/* Table Rows */}
         {invoice.items.map((item, index) => (
           <View style={styles.tableRow} key={index}>
-            <View style={[styles.tableCol, { width: '40%' }]}>
-              <Text style={styles.tableCell}>
-                {item.product.name}{'\n'}
-                <Text style={{ fontSize: 8, color: '#666' }}>
-                  SKU: {item.product.sku}
-                  {item.product.size && ` | Size: ${item.product.size}`}
-                </Text>
+            <View style={styles.itemCol}>
+              <Text style={styles.tableCellText}>{item.product.name}</Text>
+            </View>
+            <View style={styles.descCol}>
+              <Text style={styles.tableCellText}>
+                {item.product.size} - {item.product.sku}
               </Text>
             </View>
-            <View style={styles.tableCol}>
-              <Text style={styles.tableCell}>{item.quantity}</Text>
+            <View style={styles.qtyCol}>
+              <Text style={styles.tableCellText}>{item.quantity}</Text>
             </View>
-            <View style={styles.tableCol}>
-              <Text style={styles.tableCell}>KD {item.price.toFixed(3)}</Text>
+            <View style={styles.priceCol}>
+              <Text style={styles.tableCellText}>KWD {Number(item.price).toFixed(3)}</Text>
             </View>
-            <View style={styles.tableCol}>
-              <Text style={styles.tableCell}>KD {item.total.toFixed(3)}</Text>
+            <View style={styles.amountCol}>
+              <Text style={styles.tableCellText}>KWD {Number(item.total).toFixed(3)}</Text>
             </View>
           </View>
         ))}
@@ -270,37 +271,25 @@ const InvoicePDF: React.FC<InvoicePDFProps> = ({ invoice }) => (
       <View style={styles.totalsSection}>
         <View style={styles.totalRow}>
           <Text style={styles.totalLabel}>Subtotal:</Text>
-          <Text style={styles.totalValue}>KD {invoice.subtotal.toFixed(3)}</Text>
+          <Text style={styles.totalValue}>KWD {Number(invoice.subtotal).toFixed(2)}</Text>
         </View>
-        {invoice.discount > 0 && (
-          <View style={styles.totalRow}>
-            <Text style={styles.totalLabel}>Discount:</Text>
-            <Text style={styles.totalValue}>-KD {invoice.discount.toFixed(3)}</Text>
-          </View>
-        )}
-        {invoice.tax > 0 && (
-          <View style={styles.totalRow}>
-            <Text style={styles.totalLabel}>Tax:</Text>
-            <Text style={styles.totalValue}>KD {invoice.tax.toFixed(3)}</Text>
-          </View>
-        )}
-        <View style={styles.grandTotal}>
+        <View style={styles.grandTotalRow}>
           <Text style={styles.grandTotalLabel}>Total:</Text>
-          <Text style={styles.grandTotalValue}>KD {invoice.total.toFixed(3)}</Text>
+          <Text style={styles.grandTotalValue}>KWD {Number(invoice.total).toFixed(2)}</Text>
         </View>
       </View>
 
-      {/* Notes */}
-      {invoice.notes && (
-        <View style={styles.notes}>
-          <Text style={styles.notesTitle}>Notes:</Text>
-          <Text style={styles.notesText}>{invoice.notes}</Text>
-        </View>
-      )}
+      {/* Thank You Message */}
+      <Text style={styles.thankYouMessage}>
+        Thank you for your business with KECC OXAB Mineral Water!
+      </Text>
+      <Text style={styles.thankYouMessage}>
+        kecc-trading.com
+      </Text>
 
       {/* Footer */}
       <Text style={styles.footer}>
-        Thank you for your business! | KECC - Kuwait Equipment & Chemical Co.
+        This invoice was generated electronically and is valid without signature.
       </Text>
     </Page>
   </Document>

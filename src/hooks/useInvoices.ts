@@ -253,3 +253,46 @@ export const useUpdateInvoice = () => {
     },
   });
 };
+
+export const useDeleteInvoice = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (invoiceId: string) => {
+      // Delete invoice items first
+      const { error: itemsError } = await supabase
+        .from('invoice_items')
+        .delete()
+        .eq('invoice_id', invoiceId);
+      
+      if (itemsError) throw itemsError;
+
+      // Delete invoice
+      const { error: invoiceError } = await supabase
+        .from('invoices')
+        .delete()
+        .eq('id', invoiceId);
+      
+      if (invoiceError) throw invoiceError;
+
+      return invoiceId;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+      toast({
+        title: "Success",
+        description: "Invoice deleted successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to delete invoice",
+        variant: "destructive",
+      });
+      console.error('Delete invoice error:', error);
+    },
+  });
+};
