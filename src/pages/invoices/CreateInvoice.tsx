@@ -5,67 +5,31 @@ import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useCreateInvoice } from '@/hooks/useInvoices';
-import { useCustomerProductPrice } from '@/hooks/useCustomerPricing';
 import CustomerSelection from '@/components/invoice/CustomerSelection';
-import ProductSelection from '@/components/invoice/ProductSelection';
+import ProductSelection, { InvoiceItem } from '@/components/invoice/ProductSelection';
 import InvoiceReview from '@/components/invoice/InvoiceReview';
-import { InvoiceItem } from '@/types/invoice';
 
 const CreateInvoice = () => {
   const navigate = useNavigate();
-  const createInvoice = useCreateInvoice();
   
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
   const [selectedItems, setSelectedItems] = useState<InvoiceItem[]>([]);
-  const [invoiceData, setInvoiceData] = useState({
-    date: new Date().toISOString().split('T')[0],
-    due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 30 days from now
-    status: 'pending',
-    notes: '',
-  });
 
   const handleCustomerSelect = (customer: any) => {
     setSelectedCustomer(customer);
-    setCurrentStep(2);
   };
 
-  const handleItemsSelect = (items: InvoiceItem[]) => {
-    setSelectedItems(items);
-    setCurrentStep(3);
+  const handleNext = () => {
+    setCurrentStep(currentStep + 1);
   };
 
-  const handleCreateInvoice = async () => {
-    if (!selectedCustomer || selectedItems.length === 0) return;
+  const handleBack = () => {
+    setCurrentStep(currentStep - 1);
+  };
 
-    const subtotal = selectedItems.reduce((sum, item) => sum + (item.total || 0), 0);
-    const tax = subtotal * 0; // No tax for now
-    const discount = 0; // No discount for now
-    const total = subtotal + tax - discount;
-
-    try {
-      const invoice = await createInvoice.mutateAsync({
-        customer_id: selectedCustomer.id,
-        date: invoiceData.date,
-        due_date: invoiceData.due_date,
-        subtotal,
-        tax,
-        discount,
-        total,
-        status: invoiceData.status,
-        notes: invoiceData.notes,
-        items: selectedItems.map(item => ({
-          product_id: item.product_id,
-          quantity: item.quantity,
-          price: item.price,
-          total: item.total,
-        })),
-      });
-
-      navigate(`/invoices/${invoice.id}`);
-    } catch (error) {
-      console.error('Failed to create invoice:', error);
-    }
+  const handleComplete = (invoiceId: string) => {
+    navigate(`/invoices/${invoiceId}`);
   };
 
   const renderStep = () => {
@@ -75,14 +39,17 @@ const CreateInvoice = () => {
           <CustomerSelection 
             onCustomerSelect={handleCustomerSelect}
             selectedCustomer={selectedCustomer}
+            onNext={handleNext}
           />
         );
       case 2:
         return (
           <ProductSelection
             customer={selectedCustomer}
-            onItemsSelect={handleItemsSelect}
-            selectedItems={selectedItems}
+            items={selectedItems}
+            onItemsChange={setSelectedItems}
+            onNext={handleNext}
+            onBack={handleBack}
           />
         );
       case 3:
@@ -90,10 +57,8 @@ const CreateInvoice = () => {
           <InvoiceReview
             customer={selectedCustomer}
             items={selectedItems}
-            invoiceData={invoiceData}
-            onInvoiceDataChange={setInvoiceData}
-            onCreateInvoice={handleCreateInvoice}
-            isCreating={createInvoice.isPending}
+            onBack={handleBack}
+            onComplete={handleComplete}
           />
         );
       default:
@@ -158,26 +123,6 @@ const CreateInvoice = () => {
           </div>
         ))}
       </div>
-
-      {/* Step Navigation */}
-      {currentStep > 1 && (
-        <div className="flex justify-between items-center py-4 border-b">
-          <Button
-            variant="outline"
-            onClick={() => setCurrentStep(currentStep - 1)}
-          >
-            Previous Step
-          </Button>
-          <div className="text-sm text-gray-600">
-            {currentStep === 2 && selectedCustomer && (
-              <span>Customer: <strong>{selectedCustomer.name}</strong></span>
-            )}
-            {currentStep === 3 && selectedItems.length > 0 && (
-              <span>{selectedItems.length} item(s) selected</span>
-            )}
-          </div>
-        </div>
-      )}
 
       {/* Step Content */}
       <Card>
