@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer';
+import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 import { InvoiceWithDetails } from '@/types/invoice';
 
 // Create styles matching KECC format
@@ -26,10 +26,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   companyName: {
-    fontSize: 18,
+    fontSize: 24,
     fontWeight: 'bold',
     color: '#2d3e87',
     marginBottom: 8,
+    letterSpacing: 1,
   },
   companyDetails: {
     fontSize: 9,
@@ -176,6 +177,13 @@ const styles = StyleSheet.create({
     color: '#2d3e87',
     fontWeight: 'bold',
   },
+  websiteText: {
+    textAlign: 'center',
+    marginBottom: 20,
+    fontSize: 10,
+    color: '#2d3e87',
+    textDecoration: 'underline',
+  },
 });
 
 interface InvoicePDFProps {
@@ -188,11 +196,12 @@ const InvoicePDF: React.FC<InvoicePDFProps> = ({ invoice }) => (
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.company}>
-          <Text style={styles.companyName}>Kuwait European Canadian general trading Company</Text>
+          <Text style={styles.companyName}>KECC</Text>
           <Text style={styles.companyDetails}>
-            Shuaib, Tunis St. Kuwait{'\n'}
-            Tel: +965 99927328{'\n'}
-            Email: mbjara@kecc-trading.com
+            Kuwaiti European Canadian general trading Company{'\n'}
+            Hawally, Tunis St., Kuwait{'\n'}
+            Tel: +965 90927328{'\n'}
+            Email: mjbara@kecc-trading.com
           </Text>
         </View>
         <View style={styles.invoiceInfo}>
@@ -281,9 +290,9 @@ const InvoicePDF: React.FC<InvoicePDFProps> = ({ invoice }) => (
 
       {/* Thank You Message */}
       <Text style={styles.thankYouMessage}>
-        Thank you for your business with KECC OXAB Mineral Water!
+        Thank you for your business with KECC!
       </Text>
-      <Text style={styles.thankYouMessage}>
+      <Text style={styles.websiteText}>
         kecc-trading.com
       </Text>
 
