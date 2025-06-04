@@ -84,10 +84,16 @@ export const useCreateInvoice = () => {
     }) => {
       const { items, ...invoice } = invoiceData;
       
+      // Generate unique invoice ID
+      const invoiceId = `INV-${Date.now()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+      
       // Create invoice
       const { data: createdInvoice, error: invoiceError } = await supabase
         .from('invoices')
-        .insert(invoice)
+        .insert({
+          ...invoice,
+          id: invoiceId
+        })
         .select()
         .single();
       

@@ -1,4 +1,5 @@
 
+
 export interface Invoice {
   id: string;
   customer_id: string;
@@ -8,7 +9,7 @@ export interface Invoice {
   tax: number;
   discount: number;
   total: number;
-  status: 'draft' | 'pending' | 'paid' | 'cancelled';
+  status: string; // Changed from union type to string to match database
   notes?: string;
   created_at: string;
   updated_at: string;
