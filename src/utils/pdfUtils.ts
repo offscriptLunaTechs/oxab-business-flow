@@ -7,8 +7,8 @@ import { InvoiceWithDetails } from '@/types/invoice';
 
 export const downloadInvoicePDF = async (invoice: InvoiceWithDetails) => {
   try {
-    // InvoicePDF returns a Document component, so we can call it directly
-    const pdfDocument = InvoicePDF({ invoice });
+    // Create the PDF document using JSX syntax
+    const pdfDocument = <InvoicePDF invoice={invoice} />;
     const blob = await pdf(pdfDocument).toBlob();
     saveAs(blob, `invoice-${invoice.id}.pdf`);
   } catch (error) {
