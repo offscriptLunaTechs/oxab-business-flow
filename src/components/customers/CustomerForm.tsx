@@ -78,10 +78,10 @@ export const CustomerForm = ({ customer, onSuccess, onCancel }: CustomerFormProp
           description: 'Customer updated successfully',
         });
       } else {
-        // Create new customer
+        // Create new customer - ensure we pass the data directly, not as an array
         const { error } = await supabase
           .from('customers')
-          .insert([data]);
+          .insert(data);
         
         if (error) throw error;
         
