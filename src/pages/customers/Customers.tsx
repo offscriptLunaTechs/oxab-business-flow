@@ -23,15 +23,23 @@ import {
   DollarSign,
   Phone,
   Mail,
-  MapPin
+  MapPin,
+  Edit,
+  Eye
 } from 'lucide-react';
 import { useCustomers } from '@/hooks/useCustomers';
+import { CustomerForm } from '@/components/customers/CustomerForm';
+import { EditCustomerDialog } from '@/components/customers/EditCustomerDialog';
+import { useQueryClient } from '@tanstack/react-query';
 
 const Customers = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'wholesale' | 'retail'>('all');
   const [activeTab, setActiveTab] = useState('all-customers');
+  const [editingCustomer, setEditingCustomer] = useState<any>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
 
+  const queryClient = useQueryClient();
   const { data: customers = [], isLoading, error } = useCustomers(searchTerm);
 
   // Filter customers based on type
@@ -44,6 +52,18 @@ const Customers = () => {
     return type === 'wholesale' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800';
   };
 
+  const handleCustomerSuccess = () => {
+    queryClient.invalidateQueries({ queryKey: ['customers'] });
+    if (activeTab === 'add-customer') {
+      setActiveTab('all-customers');
+    }
+  };
+
+  const handleEditCustomer = (customer: any) => {
+    setEditingCustomer(customer);
+    setEditDialogOpen(true);
+  };
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
@@ -52,7 +72,10 @@ const Customers = () => {
           <h1 className="text-3xl font-bold text-gray-900">Customer Management</h1>
           <p className="text-gray-600 mt-1">Manage wholesale and retail customers, pricing, and account statements</p>
         </div>
-        <Button className="md:w-auto">
+        <Button 
+          className="md:w-auto"
+          onClick={() => setActiveTab('add-customer')}
+        >
           <Plus className="h-4 w-4 mr-2" />
           Add New Customer
         </Button>
@@ -146,6 +169,15 @@ const Customers = () => {
                   <p className="text-gray-500">
                     {searchTerm ? 'No customers found matching your search' : 'No customers found'}
                   </p>
+                  {!searchTerm && (
+                    <Button 
+                      className="mt-4" 
+                      onClick={() => setActiveTab('add-customer')}
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Your First Customer
+                    </Button>
+                  )}
                 </div>
               ) : (
                 <div className="rounded-md border overflow-hidden">
@@ -207,11 +239,12 @@ const Customers = () => {
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center space-x-2">
-                              <Button variant="ghost" size="sm">
-                                View
-                              </Button>
-                              <Button variant="ghost" size="sm">
-                                Edit
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                onClick={() => handleEditCustomer(customer)}
+                              >
+                                <Edit className="h-4 w-4" />
                               </Button>
                             </div>
                           </TableCell>
@@ -235,10 +268,7 @@ const Customers = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-center py-8">
-                <UserPlus className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                <p className="text-gray-500">Add Customer form will be implemented here</p>
-              </div>
+              <CustomerForm onSuccess={handleCustomerSuccess} />
             </CardContent>
           </Card>
         </TabsContent>
@@ -279,6 +309,14 @@ const Customers = () => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Edit Customer Dialog */}
+      <EditCustomerDialog
+        customer={editingCustomer}
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        onSuccess={handleCustomerSuccess}
+      />
     </div>
   );
 };
