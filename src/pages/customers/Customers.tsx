@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -18,13 +19,12 @@ import {
   Filter, 
   Users, 
   UserPlus, 
-  FileText, 
   DollarSign,
   Phone,
   Mail,
   MapPin,
   Edit,
-  Eye
+  FileText
 } from 'lucide-react';
 import { useCustomers } from '@/hooks/useCustomers';
 import { CustomerForm } from '@/components/customers/CustomerForm';
@@ -81,9 +81,9 @@ const Customers = () => {
         </Button>
       </div>
 
-      {/* Main Content */}
+      {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 gap-1">
+        <TabsList className="grid w-full grid-cols-3 gap-1">
           <TabsTrigger value="all-customers" className="flex items-center gap-2">
             <Users className="h-4 w-4" />
             <span className="hidden sm:inline">All Customers</span>
@@ -93,11 +93,6 @@ const Customers = () => {
             <UserPlus className="h-4 w-4" />
             <span className="hidden sm:inline">Add Customer</span>
             <span className="sm:hidden">Add</span>
-          </TabsTrigger>
-          <TabsTrigger value="account-summary" className="flex items-center gap-2">
-            <FileText className="h-4 w-4" />
-            <span className="hidden sm:inline">Account Summary</span>
-            <span className="sm:hidden">Accounts</span>
           </TabsTrigger>
           <TabsTrigger value="custom-pricing" className="flex items-center gap-2">
             <DollarSign className="h-4 w-4" />
@@ -273,11 +268,6 @@ const Customers = () => {
           </Card>
         </TabsContent>
 
-        {/* Account Summary Tab */}
-        <TabsContent value="account-summary">
-          <AccountSummary />
-        </TabsContent>
-
         {/* Custom Pricing Tab */}
         <TabsContent value="custom-pricing">
           <Card>
@@ -296,6 +286,18 @@ const Customers = () => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Account Summary Section - Standalone below tabs */}
+      <div className="border-t pt-6">
+        <div className="mb-6">
+          <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+            <FileText className="h-6 w-6" />
+            Customer Account Summary
+          </h2>
+          <p className="text-gray-600 mt-1">View customer statements, outstanding balances, and payment history</p>
+        </div>
+        <AccountSummary />
+      </div>
 
       {/* Edit Customer Dialog */}
       <EditCustomerDialog
