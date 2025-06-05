@@ -2,7 +2,6 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import {
   Select,
@@ -25,60 +24,48 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { format } from 'date-fns';
-import { CalendarIcon, Download, Printer, CheckCircle, AlertCircle, Clock } from 'lucide-react';
+import { format, subDays } from 'date-fns';
+import { 
+  CalendarIcon, 
+  Download, 
+  Printer, 
+  CheckCircle, 
+  AlertCircle, 
+  Clock,
+  Mail,
+  CreditCard
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useCustomers } from '@/hooks/useCustomers';
-import { useInvoices } from '@/hooks/useInvoices';
+import { useCustomerStatement } from '@/hooks/useCustomerStatement';
+import { useUpdateInvoice } from '@/hooks/useInvoices';
+import { useToast } from '@/hooks/use-toast';
+import { PDFDownloadLink } from '@react-pdf/renderer';
+import CustomerStatementPDF from './CustomerStatementPDF';
 
-interface AccountSummaryProps {}
-
-export const AccountSummary = ({}: AccountSummaryProps) => {
+export const AccountSummary = () => {
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
-  const [startDate, setStartDate] = useState<Date>();
-  const [endDate, setEndDate] = useState<Date>();
+  const [startDate, setStartDate] = useState<Date>(subDays(new Date(), 30));
+  const [endDate, setEndDate] = useState<Date>(new Date());
 
   const { data: customers = [] } = useCustomers();
-  const { data: allInvoices = [] } = useInvoices();
+  const statementData = useCustomerStatement(selectedCustomerId, startDate, endDate);
+  const updateInvoiceMutation = useUpdateInvoice();
+  const { toast } = useToast();
 
-  // Filter invoices by selected customer and date range
-  const filteredInvoices = allInvoices.filter(invoice => {
-    if (selectedCustomerId && invoice.customer_id !== selectedCustomerId) return false;
-    if (startDate && new Date(invoice.date) < startDate) return false;
-    if (endDate && new Date(invoice.date) > endDate) return false;
-    return true;
-  });
-
-  // Calculate running balance and totals
-  let runningBalance = 0;
-  const invoicesWithBalance = filteredInvoices.map(invoice => {
-    const invoiceAmount = invoice.status === 'paid' ? 0 : invoice.total;
-    runningBalance += invoiceAmount;
-    return {
-      ...invoice,
-      runningBalance
-    };
-  });
-
-  const totalOutstanding = filteredInvoices
-    .filter(inv => inv.status !== 'paid')
-    .reduce((sum, inv) => sum + inv.total, 0);
-
-  const getStatusBadge = (status: string, dueDate: string) => {
-    const isOverdue = new Date(dueDate) < new Date() && status !== 'paid';
-    
-    if (status === 'paid') {
+  const getStatusBadge = (invoice: any) => {
+    if (invoice.status === 'paid') {
       return (
-        <Badge className="bg-green-100 text-green-800">
+        <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
           <CheckCircle className="h-3 w-3 mr-1" />
           Paid
         </Badge>
       );
     }
     
-    if (isOverdue) {
+    if (invoice.isOverdue) {
       return (
-        <Badge className="bg-red-100 text-red-800">
+        <Badge className="bg-red-100 text-red-800 hover:bg-red-100">
           <AlertCircle className="h-3 w-3 mr-1" />
           Overdue
         </Badge>
@@ -86,7 +73,7 @@ export const AccountSummary = ({}: AccountSummaryProps) => {
     }
     
     return (
-      <Badge className="bg-yellow-100 text-yellow-800">
+      <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">
         <Clock className="h-3 w-3 mr-1" />
         Pending
       </Badge>
@@ -94,18 +81,30 @@ export const AccountSummary = ({}: AccountSummaryProps) => {
   };
 
   const handleMarkAsPaid = async (invoiceId: string) => {
-    // TODO: Implement mark as paid functionality
-    console.log('Mark as paid:', invoiceId);
+    try {
+      await updateInvoiceMutation.mutateAsync({
+        invoiceId,
+        invoiceData: { status: 'paid' }
+      });
+      toast({
+        title: "Success",
+        description: "Invoice marked as paid successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to mark invoice as paid",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleExportPDF = () => {
-    // TODO: Implement PDF export
-    console.log('Export PDF for customer:', selectedCustomerId);
-  };
-
-  const handlePrintStatement = () => {
-    // TODO: Implement print statement
-    console.log('Print statement for customer:', selectedCustomerId);
+  const handleEmailStatement = () => {
+    // TODO: Implement email statement functionality
+    toast({
+      title: "Email Statement",
+      description: "Email functionality will be implemented soon",
+    });
   };
 
   const selectedCustomer = customers.find(c => c.id === selectedCustomerId);
@@ -115,7 +114,7 @@ export const AccountSummary = ({}: AccountSummaryProps) => {
       {/* Customer Selection and Filters */}
       <Card>
         <CardHeader>
-          <CardTitle>Account Summary Filters</CardTitle>
+          <CardTitle>Customer Statement</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -124,7 +123,7 @@ export const AccountSummary = ({}: AccountSummaryProps) => {
               <label className="text-sm font-medium">Select Customer</label>
               <Select value={selectedCustomerId} onValueChange={setSelectedCustomerId}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Choose a customer..." />
+                  <SelectValue placeholder="Search and select customer..." />
                 </SelectTrigger>
                 <SelectContent>
                   {customers.map((customer) => (
@@ -195,148 +194,205 @@ export const AccountSummary = ({}: AccountSummaryProps) => {
         </CardContent>
       </Card>
 
-      {/* Summary Cards */}
-      {selectedCustomer && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card>
-            <CardContent className="p-4">
-              <div className="text-2xl font-bold text-red-600">
-                ${totalOutstanding.toFixed(2)}
-              </div>
-              <p className="text-sm text-gray-600">Total Outstanding</p>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="p-4">
-              <div className="text-2xl font-bold text-blue-600">
-                {filteredInvoices.length}
-              </div>
-              <p className="text-sm text-gray-600">Total Invoices</p>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="p-4">
-              <div className="text-2xl font-bold text-green-600">
-                {filteredInvoices.filter(inv => inv.status === 'paid').length}
-              </div>
-              <p className="text-sm text-gray-600">Paid Invoices</p>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="p-4">
-              <div className="text-2xl font-bold text-yellow-600">
-                {filteredInvoices.filter(inv => inv.status !== 'paid').length}
-              </div>
-              <p className="text-sm text-gray-600">Pending Invoices</p>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {/* Action Buttons */}
-      {selectedCustomer && (
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex flex-wrap gap-2">
-              <Button onClick={handleExportPDF} className="flex items-center gap-2">
-                <Download className="h-4 w-4" />
-                Export PDF
-              </Button>
-              <Button onClick={handlePrintStatement} variant="outline" className="flex items-center gap-2">
-                <Printer className="h-4 w-4" />
-                Print Statement
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Invoice List */}
+      {/* Customer Statement */}
       {selectedCustomer ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>
-              Account Statement - {selectedCustomer.name}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {invoicesWithBalance.length === 0 ? (
-              <div className="text-center py-8">
-                <p className="text-gray-500">No invoices found for the selected criteria</p>
+        <>
+          {/* Statement Header */}
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900">
+                    {selectedCustomer.name} ({selectedCustomer.code})
+                  </h2>
+                  <p className="text-gray-600">
+                    Period: {format(startDate, 'dd/MM/yyyy')} to {format(endDate, 'dd/MM/yyyy')}
+                  </p>
+                  {selectedCustomer.address && (
+                    <p className="text-sm text-gray-500 mt-1">{selectedCustomer.address}</p>
+                  )}
+                </div>
+                <div className="text-right">
+                  <div className="text-sm text-gray-600">Opening Balance</div>
+                  <div className="text-lg font-semibold">KWD {statementData.openingBalance.toFixed(3)}</div>
+                </div>
               </div>
-            ) : (
-              <div className="rounded-md border overflow-hidden">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Invoice #</TableHead>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Due Date</TableHead>
-                      <TableHead>Amount</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Running Balance</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {invoicesWithBalance.map((invoice) => (
-                      <TableRow key={invoice.id}>
-                        <TableCell>
-                          <code className="bg-gray-100 px-2 py-1 rounded text-xs">
-                            {invoice.id}
-                          </code>
-                        </TableCell>
-                        <TableCell>
-                          {format(new Date(invoice.date), "PP")}
-                        </TableCell>
-                        <TableCell>
-                          {format(new Date(invoice.due_date), "PP")}
-                        </TableCell>
-                        <TableCell>
-                          <span className="font-medium">
-                            ${invoice.total.toFixed(2)}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          {getStatusBadge(invoice.status, invoice.due_date)}
-                        </TableCell>
-                        <TableCell>
-                          <span className={cn(
-                            "font-medium",
-                            invoice.runningBalance > 0 ? "text-red-600" : "text-green-600"
-                          )}>
-                            ${invoice.runningBalance.toFixed(2)}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          {invoice.status !== 'paid' && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleMarkAsPaid(invoice.id)}
-                              className="flex items-center gap-1"
-                            >
-                              <CheckCircle className="h-3 w-3" />
-                              Mark Paid
-                            </Button>
-                          )}
-                        </TableCell>
+            </CardContent>
+          </Card>
+
+          {/* Summary Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <Card>
+              <CardContent className="p-4">
+                <div className="text-2xl font-bold text-red-600">
+                  KWD {statementData.totalOutstanding.toFixed(3)}
+                </div>
+                <p className="text-sm text-gray-600">Total Outstanding</p>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardContent className="p-4">
+                <div className="text-2xl font-bold text-green-600">
+                  KWD {statementData.totalPaid.toFixed(3)}
+                </div>
+                <p className="text-sm text-gray-600">Total Paid</p>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardContent className="p-4">
+                <div className="text-2xl font-bold text-blue-600">
+                  {statementData.invoices.length}
+                </div>
+                <p className="text-sm text-gray-600">Total Invoices</p>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardContent className="p-4">
+                <div className="text-2xl font-bold text-yellow-600">
+                  {statementData.invoices.filter(inv => inv.isOverdue).length}
+                </div>
+                <p className="text-sm text-gray-600">Overdue Invoices</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Action Buttons */}
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex flex-wrap gap-2">
+                {selectedCustomer && statementData.invoices.length > 0 && (
+                  <PDFDownloadLink
+                    document={
+                      <CustomerStatementPDF
+                        customer={selectedCustomer}
+                        invoices={statementData.invoices}
+                        startDate={startDate}
+                        endDate={endDate}
+                        totalOutstanding={statementData.totalOutstanding}
+                        openingBalance={statementData.openingBalance}
+                      />
+                    }
+                    fileName={`statement-${selectedCustomer.code}-${format(new Date(), 'yyyy-MM-dd')}.pdf`}
+                  >
+                    {({ loading }) => (
+                      <Button disabled={loading} className="flex items-center gap-2">
+                        <Download className="h-4 w-4" />
+                        {loading ? 'Generating...' : 'Export PDF'}
+                      </Button>
+                    )}
+                  </PDFDownloadLink>
+                )}
+                
+                <Button 
+                  onClick={handleEmailStatement} 
+                  variant="outline" 
+                  className="flex items-center gap-2"
+                >
+                  <Mail className="h-4 w-4" />
+                  Email Statement
+                </Button>
+                
+                <Button 
+                  onClick={() => window.print()} 
+                  variant="outline" 
+                  className="flex items-center gap-2"
+                >
+                  <Printer className="h-4 w-4" />
+                  Print Statement
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Invoice List */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Transaction History</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {statementData.invoices.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-gray-500">No invoices found for the selected period</p>
+                </div>
+              ) : (
+                <div className="rounded-md border overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Invoice #</TableHead>
+                        <TableHead>Amount</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Running Balance</TableHead>
+                        <TableHead>Due Date</TableHead>
+                        <TableHead>Actions</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                    </TableHeader>
+                    <TableBody>
+                      {statementData.invoices.map((invoice) => (
+                        <TableRow key={invoice.id}>
+                          <TableCell>
+                            {format(new Date(invoice.date), "dd/MM/yyyy")}
+                          </TableCell>
+                          <TableCell>
+                            <code className="bg-gray-100 px-2 py-1 rounded text-xs">
+                              {invoice.id}
+                            </code>
+                          </TableCell>
+                          <TableCell>
+                            <span className="font-medium">
+                              KWD {Number(invoice.total).toFixed(3)}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            {getStatusBadge(invoice)}
+                          </TableCell>
+                          <TableCell>
+                            <span className={cn(
+                              "font-medium",
+                              invoice.runningBalance > 0 ? "text-red-600" : "text-green-600"
+                            )}>
+                              KWD {Number(invoice.runningBalance).toFixed(3)}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            <span className={cn(
+                              invoice.isOverdue ? "text-red-600 font-medium" : "text-gray-600"
+                            )}>
+                              {format(new Date(invoice.due_date), "dd/MM/yyyy")}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            {invoice.status !== 'paid' && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleMarkAsPaid(invoice.id)}
+                                className="flex items-center gap-1"
+                                disabled={updateInvoiceMutation.isPending}
+                              >
+                                <CreditCard className="h-3 w-3" />
+                                Mark Paid
+                              </Button>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </>
       ) : (
         <Card>
           <CardContent className="p-8">
             <div className="text-center">
-              <p className="text-gray-500">Please select a customer to view their account summary</p>
+              <p className="text-gray-500">Please select a customer to view their statement</p>
             </div>
           </CardContent>
         </Card>
