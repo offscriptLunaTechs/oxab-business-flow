@@ -64,11 +64,21 @@ export const CustomerForm = ({ customer, onSuccess, onCancel }: CustomerFormProp
   const onSubmit = async (data: CustomerFormData) => {
     setIsLoading(true);
     try {
+      // Prepare the data for Supabase - ensure all required fields are present
+      const customerData = {
+        name: data.name,
+        code: data.code,
+        customer_type: data.customer_type,
+        phone: data.phone || null,
+        email: data.email || null,
+        address: data.address || null,
+      };
+
       if (customer) {
         // Update existing customer
         const { error } = await supabase
           .from('customers')
-          .update(data)
+          .update(customerData)
           .eq('id', customer.id);
         
         if (error) throw error;
@@ -78,10 +88,10 @@ export const CustomerForm = ({ customer, onSuccess, onCancel }: CustomerFormProp
           description: 'Customer updated successfully',
         });
       } else {
-        // Create new customer - ensure we pass the data directly, not as an array
+        // Create new customer
         const { error } = await supabase
           .from('customers')
-          .insert(data);
+          .insert([customerData]);
         
         if (error) throw error;
         
