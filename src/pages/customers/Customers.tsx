@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -30,6 +29,7 @@ import {
 import { useCustomers } from '@/hooks/useCustomers';
 import { CustomerForm } from '@/components/customers/CustomerForm';
 import { EditCustomerDialog } from '@/components/customers/EditCustomerDialog';
+import { AccountSummary } from '@/components/customers/AccountSummary';
 import { useQueryClient } from '@tanstack/react-query';
 
 const Customers = () => {
@@ -275,20 +275,7 @@ const Customers = () => {
 
         {/* Account Summary Tab */}
         <TabsContent value="account-summary">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FileText className="h-5 w-5" />
-                Account Summary
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-8">
-                <FileText className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                <p className="text-gray-500">Customer account statements will be implemented here</p>
-              </div>
-            </CardContent>
-          </Card>
+          <AccountSummary />
         </TabsContent>
 
         {/* Custom Pricing Tab */}
