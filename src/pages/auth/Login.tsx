@@ -7,10 +7,11 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Eye, EyeOff, UserPlus, AlertCircle } from "lucide-react";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { useAuth } from "@/context/AuthContext";
+import { useAuth } from "@/context/OptimizedAuthContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/components/ui/sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { supabase } from "@/integrations/supabase/client";
 
 const Login = () => {
   // Login state
@@ -31,7 +32,6 @@ const Login = () => {
   const [registerError, setRegisterError] = useState("");
 
   const navigate = useNavigate();
-  const { signIn, signUp } = useAuth();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,7 +39,10 @@ const Login = () => {
     setLoginError("");
     
     try {
-      const { error } = await signIn(email, password);
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
       
       if (error) {
         console.error("Login error:", error);
@@ -90,7 +93,16 @@ const Login = () => {
     setIsRegistering(true);
     
     try {
-      const { error } = await signUp(registerEmail, registerPassword, fullName);
+      const { error } = await supabase.auth.signUp({
+        email: registerEmail,
+        password: registerPassword,
+        options: {
+          data: {
+            full_name: fullName,
+          },
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
       
       if (error) {
         console.error("Registration error:", error);

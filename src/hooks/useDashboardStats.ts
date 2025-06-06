@@ -35,7 +35,8 @@ export const useDashboardStats = () => {
       }
 
       console.log('Dashboard stats loaded successfully:', data);
-      return data as DashboardStats;
+      // Properly cast the Json type to our expected interface
+      return data as unknown as DashboardStats;
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes (replaces cacheTime)

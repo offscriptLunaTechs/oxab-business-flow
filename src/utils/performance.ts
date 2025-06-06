@@ -40,23 +40,27 @@ export const trackWebVitals = () => {
       console.log('🎯 LCP:', lastEntry.startTime);
     }).observe({ entryTypes: ['largest-contentful-paint'] });
 
-    // Track FID (First Input Delay)
-    new PerformanceObserver((entryList) => {
-      const entries = entryList.getEntries();
-      entries.forEach((entry) => {
-        const fidEntry = entry as PerformanceEventTiming;
-        console.log('⚡ FID:', fidEntry.processingStart - fidEntry.startTime);
-      });
-    }).observe({ entryTypes: ['first-input'] });
+    // Track FID (First Input Delay) - only if supported
+    if ('PerformanceEventTiming' in window) {
+      new PerformanceObserver((entryList) => {
+        const entries = entryList.getEntries();
+        entries.forEach((entry) => {
+          const fidEntry = entry as any; // Use any for now since PerformanceEventTiming might not be available
+          if (fidEntry.processingStart) {
+            console.log('⚡ FID:', fidEntry.processingStart - fidEntry.startTime);
+          }
+        });
+      }).observe({ entryTypes: ['first-input'] });
+    }
 
     // Track CLS (Cumulative Layout Shift)
     let clsValue = 0;
     new PerformanceObserver((entryList) => {
       const entries = entryList.getEntries();
       entries.forEach((entry) => {
-        const layoutShiftEntry = entry as LayoutShift;
-        if (!layoutShiftEntry.hadRecentInput) {
-          clsValue += layoutShiftEntry.value;
+        const layoutShiftEntry = entry as any; // Use any for layout shift entries
+        if (layoutShiftEntry.hadRecentInput !== undefined && !layoutShiftEntry.hadRecentInput) {
+          clsValue += layoutShiftEntry.value || 0;
         }
       });
       console.log('📐 CLS:', clsValue);
