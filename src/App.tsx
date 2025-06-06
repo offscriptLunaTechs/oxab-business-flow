@@ -22,6 +22,7 @@ const InvoiceDetail = lazy(() => import("./pages/invoices/InvoiceDetail"));
 const EditInvoice = lazy(() => import("./pages/invoices/EditInvoice"));
 const Customers = lazy(() => import("./pages/customers/Customers"));
 const Profile = lazy(() => import("./pages/profile/Profile"));
+const Inventory = lazy(() => import("./pages/inventory/Inventory"));
 
 // Admin components - separate chunk
 const Settings = lazy(() => import("./pages/settings/Settings"));
@@ -84,7 +85,11 @@ const App = () => (
                   <EditInvoice />
                 </Suspense>
               } />
-              <Route path="inventory" element={<div className="p-8 text-center">Inventory page coming soon...</div>} />
+              <Route path="inventory" element={
+                <Suspense fallback={<LoadingSpinner size="lg" />}>
+                  <Inventory />
+                </Suspense>
+              } />
               <Route path="customers" element={
                 <Suspense fallback={<LoadingSpinner size="lg" />}>
                   <Customers />
