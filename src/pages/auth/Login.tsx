@@ -58,7 +58,6 @@ const Login = () => {
         return;
       }
       
-      toast.success("Login successful!");
       navigate("/dashboard");
     } catch (error) {
       console.error("Unexpected login error:", error);
@@ -168,7 +167,7 @@ const Login = () => {
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="Enter your email"
+                    placeholder="Enter your email address"
                     className="h-12 text-base"
                     required
                     disabled={isLoading}

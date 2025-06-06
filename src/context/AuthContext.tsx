@@ -44,6 +44,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // Only show toasts for explicit user actions, not initial loads
         if (event === 'SIGNED_IN' && currentSession?.user) {
           console.log('User signed in:', currentSession.user.email);
+          toast.success('Successfully signed in!');
         } else if (event === 'SIGNED_OUT') {
           console.log('User signed out');
           toast.info('Signed out successfully');
@@ -97,20 +98,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       if (error) {
         console.error('Error fetching user role:', error);
-        // If the function doesn't exist yet, try the direct query
-        const { data: fallbackData, error: fallbackError } = await supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', userId)
-          .single();
-        
-        if (fallbackError) {
-          console.error('Fallback role fetch failed:', fallbackError);
-          setUserRole('employee'); // Default role
-          return;
-        }
-        
-        setUserRole(fallbackData?.role || 'employee');
+        setUserRole('employee'); // Default role
         return;
       }
       

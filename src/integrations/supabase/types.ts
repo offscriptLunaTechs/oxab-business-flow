@@ -1101,11 +1101,15 @@ export type Database = {
     }
     Functions: {
       get_user_role: {
-        Args: Record<PropertyKey, never>
+        Args: Record<PropertyKey, never> | { user_id?: string }
         Returns: string
       }
       has_permission: {
         Args: { required_role: string }
+        Returns: boolean
+      }
+      has_role: {
+        Args: { required_role: string; user_id?: string }
         Returns: boolean
       }
       initialize_inventory: {

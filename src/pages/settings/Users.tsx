@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/context/AuthContext";
@@ -192,8 +193,8 @@ const EditUserDialog = ({ open, onOpenChange, user, onUpdate }: EditUserDialogPr
         {user && (
           <form onSubmit={handleSubmit} className="space-y-4 py-4">
             <div className="space-y-1">
-              <Label className="text-sm font-medium">Email</Label>
-              <p className="text-sm text-gray-700">{user.email}</p>
+              <Label className="text-sm font-medium">User ID</Label>
+              <p className="text-sm text-gray-700 font-mono">{user.id}</p>
             </div>
             
             <div className="space-y-1">
@@ -258,63 +259,37 @@ const Users = () => {
         return;
       }
 
-      // Try using the new RPC function first
-      const { data: rpcData, error: rpcError } = await supabase
-        .rpc('get_user_role');
-
-      if (rpcError) {
-        console.warn('RPC function not available, using direct query:', rpcError);
-      }
-
-      // Fetch user roles and profiles
-      const { data: userRolesData, error: rolesError } = await supabase
+      // Fetch user roles and profiles using a join query
+      const { data: usersData, error: usersError } = await supabase
         .from('user_roles')
         .select(`
           user_id,
           role,
-          created_at
+          created_at,
+          user_profiles!inner(
+            full_name,
+            department
+          )
         `);
 
-      if (rolesError) {
-        console.error('Error fetching user roles:', rolesError);
-        setError('Failed to load user roles. Please ensure you have admin permissions.');
+      if (usersError) {
+        console.error('Error fetching users:', usersError);
+        setError('Failed to load users. Please ensure you have admin permissions.');
         return;
       }
 
-      // Fetch user profiles
-      const { data: profilesData, error: profilesError } = await supabase
-        .from('user_profiles')
-        .select(`
-          user_id,
-          full_name,
-          department
-        `);
+      // Transform the data to match our interface
+      const transformedUsers: UserWithRole[] = (usersData || []).map(item => ({
+        id: item.user_id,
+        email: item.user_profiles?.full_name || 'Unknown User',
+        created_at: item.created_at,
+        role: item.role,
+        full_name: item.user_profiles?.full_name,
+        department: item.user_profiles?.department
+      }));
 
-      if (profilesError) {
-        console.error('Error fetching user profiles:', profilesError);
-        // Continue without profiles if there's an error
-      }
-
-      // We can't directly query auth.users, so we'll work with what we have
-      // and use the user IDs to construct our user list
-      const userProfiles = profilesData || [];
-      const userRoles = userRolesData || [];
-
-      // Combine the data
-      const combinedUsers: UserWithRole[] = userRoles.map(role => {
-        const profile = userProfiles.find(p => p.user_id === role.user_id);
-        return {
-          id: role.user_id,
-          email: profile?.full_name ? `${profile.full_name}@system` : role.user_id,
-          created_at: role.created_at,
-          role: role.role,
-          full_name: profile?.full_name,
-          department: profile?.department
-        };
-      });
-
-      console.log('Fetched users:', combinedUsers);
-      setUsers(combinedUsers);
+      console.log('Fetched users:', transformedUsers);
+      setUsers(transformedUsers);
     } catch (error) {
       console.error('Error in fetchUsers:', error);
       setError('An unexpected error occurred while loading users');
@@ -455,7 +430,7 @@ const Users = () => {
                       <TableCell>
                         <div>
                           <p className="font-medium">{user.full_name || "No name"}</p>
-                          <p className="text-sm text-gray-500">{user.id}</p>
+                          <p className="text-sm text-gray-500 font-mono">{user.id}</p>
                         </div>
                       </TableCell>
                       <TableCell>
