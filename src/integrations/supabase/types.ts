@@ -11,31 +11,46 @@ export type Database = {
     Tables: {
       account_statements: {
         Row: {
-          content: Json
-          created_at: string
+          closing_balance: number | null
+          created_at: string | null
+          created_by: string | null
           customer_id: string
-          end_date: string
           id: string
-          start_date: string
-          statement_type: string
+          invoice_count: number | null
+          opening_balance: number | null
+          period_end: string
+          period_start: string
+          statement_date: string
+          total_outstanding: number | null
+          updated_at: string | null
         }
         Insert: {
-          content: Json
-          created_at?: string
+          closing_balance?: number | null
+          created_at?: string | null
+          created_by?: string | null
           customer_id: string
-          end_date: string
           id?: string
-          start_date: string
-          statement_type: string
+          invoice_count?: number | null
+          opening_balance?: number | null
+          period_end: string
+          period_start: string
+          statement_date: string
+          total_outstanding?: number | null
+          updated_at?: string | null
         }
         Update: {
-          content?: Json
-          created_at?: string
+          closing_balance?: number | null
+          created_at?: string | null
+          created_by?: string | null
           customer_id?: string
-          end_date?: string
           id?: string
-          start_date?: string
-          statement_type?: string
+          invoice_count?: number | null
+          opening_balance?: number | null
+          period_end?: string
+          period_start?: string
+          statement_date?: string
+          total_outstanding?: number | null
+          updated_at?: string | null
         }
         Relationships: [
           {
@@ -89,27 +104,42 @@ export type Database = {
       customer_pricing: {
         Row: {
           created_at: string
+          created_by: string | null
           customer_id: string
+          effective_date: string | null
+          expires_date: string | null
           id: string
+          is_active: boolean | null
           price: number
           product_id: string
           updated_at: string
+          updated_by: string | null
         }
         Insert: {
           created_at?: string
+          created_by?: string | null
           customer_id: string
+          effective_date?: string | null
+          expires_date?: string | null
           id?: string
+          is_active?: boolean | null
           price: number
           product_id: string
           updated_at?: string
+          updated_by?: string | null
         }
         Update: {
           created_at?: string
+          created_by?: string | null
           customer_id?: string
+          effective_date?: string | null
+          expires_date?: string | null
           id?: string
+          is_active?: boolean | null
           price?: number
           product_id?: string
           updated_at?: string
+          updated_by?: string | null
         }
         Relationships: [
           {
@@ -1169,6 +1199,14 @@ export type Database = {
       }
     }
     Functions: {
+      generate_customer_code: {
+        Args: { customer_type: string }
+        Returns: string
+      }
+      get_customer_price: {
+        Args: { p_customer_id: string; p_product_id: string; p_date?: string }
+        Returns: number
+      }
       get_dashboard_stats: {
         Args: Record<PropertyKey, never>
         Returns: Json

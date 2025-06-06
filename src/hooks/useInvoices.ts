@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Invoice, InvoiceWithDetails, InvoiceItem } from '@/types/invoice';
@@ -128,12 +129,41 @@ export const useCreateInvoice = () => {
       
       console.log('Creating invoice with ID:', invoiceId);
       
+      // Apply customer-specific pricing if available
+      const itemsWithCustomPricing = await Promise.all(
+        items.map(async (item) => {
+          try {
+            const { data: customPrice } = await supabase.rpc('get_customer_price', {
+              p_customer_id: invoice.customer_id,
+              p_product_id: item.product_id,
+              p_date: invoice.date
+            });
+            
+            const finalPrice = customPrice || item.price;
+            return {
+              ...item,
+              price: finalPrice,
+              total: finalPrice * item.quantity
+            };
+          } catch (error) {
+            console.warn('Failed to get custom price for product:', item.product_id, error);
+            return item;
+          }
+        })
+      );
+      
+      // Recalculate totals with custom pricing
+      const newSubtotal = itemsWithCustomPricing.reduce((sum, item) => sum + item.total, 0);
+      const newTotal = newSubtotal + invoice.tax - invoice.discount;
+      
       // Create invoice
       const { data: createdInvoice, error: invoiceError } = await supabase
         .from('invoices')
         .insert({
           ...invoice,
-          id: invoiceId
+          id: invoiceId,
+          subtotal: newSubtotal,
+          total: newTotal
         })
         .select()
         .single();
@@ -143,8 +173,8 @@ export const useCreateInvoice = () => {
         throw invoiceError;
       }
 
-      // Create invoice items
-      const itemsWithInvoiceId = items.map(item => ({
+      // Create invoice items with updated pricing
+      const itemsWithInvoiceId = itemsWithCustomPricing.map(item => ({
         ...item,
         invoice_id: createdInvoice.id
       }));
@@ -166,7 +196,7 @@ export const useCreateInvoice = () => {
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
       toast({
         title: "Success",
-        description: "Invoice created successfully",
+        description: "Invoice created successfully with custom pricing applied",
       });
     },
     onError: (error) => {
