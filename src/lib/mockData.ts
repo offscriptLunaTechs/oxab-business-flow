@@ -12,6 +12,7 @@ export const mockCustomers: Customer[] = [
   {
     id: "1",
     name: "Al-Noor Supermarket",
+    code: "ALNOOR001",
     phone: "+965 2222 3333",
     email: "orders@alnoor.com",
     customer_type: "wholesale",
@@ -21,6 +22,7 @@ export const mockCustomers: Customer[] = [
   {
     id: "2",
     name: "Fresh Market Co.",
+    code: "FRESH002",
     phone: "+965 9999 8888",
     email: "manager@freshmarket.kw",
     customer_type: "wholesale",
@@ -30,6 +32,7 @@ export const mockCustomers: Customer[] = [
   {
     id: "3",
     name: "City Center Retail",
+    code: "CITY003",
     phone: "+965 5555 7777",
     customer_type: "retail",
     address: "Kuwait City, Commercial Area",
@@ -38,6 +41,7 @@ export const mockCustomers: Customer[] = [
   {
     id: "4",
     name: "Peninsula Trading",
+    code: "PENIN004",
     phone: "+965 1111 2222",
     email: "purchasing@peninsula.kw",
     customer_type: "wholesale",
