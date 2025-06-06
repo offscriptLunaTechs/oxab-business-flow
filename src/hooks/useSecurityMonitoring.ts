@@ -38,7 +38,22 @@ export const useSecurityAuditLogs = (limit: number = 50) => {
         throw error;
       }
 
-      return data || [];
+      // Transform the data to match our SecurityEvent interface
+      const transformedData: SecurityEvent[] = (data || []).map(item => ({
+        id: item.id,
+        user_id: item.user_id,
+        event_type: item.event_type,
+        table_name: item.table_name,
+        record_id: item.record_id,
+        old_values: item.old_values,
+        new_values: item.new_values,
+        ip_address: item.ip_address ? String(item.ip_address) : null,
+        user_agent: item.user_agent,
+        timestamp: item.timestamp,
+        severity: item.severity as 'info' | 'warning' | 'error' | 'critical',
+      }));
+
+      return transformedData;
     },
     enabled: userRole === 'admin',
   });
