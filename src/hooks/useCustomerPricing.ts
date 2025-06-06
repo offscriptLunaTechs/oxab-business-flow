@@ -7,15 +7,29 @@ export interface CustomerPricing {
   customer_id: string;
   product_id: string;
   price: number;
+  effective_date: string | null;
+  expires_date: string | null;
+  is_active: boolean | null;
   created_at: string;
   updated_at: string;
+  created_by: string | null;
+  updated_by: string | null;
 }
 
 export const useCustomerPricing = (customerId?: string) => {
   return useQuery({
     queryKey: ['customer-pricing', customerId],
     queryFn: async (): Promise<CustomerPricing[]> => {
-      if (!customerId) return [];
+      if (!customerId) {
+        // Get all pricing entries if no customer specified
+        const { data, error } = await supabase
+          .from('customer_pricing')
+          .select('*')
+          .order('created_at', { ascending: false });
+        
+        if (error) throw error;
+        return data || [];
+      }
       
       const { data, error } = await supabase
         .from('customer_pricing')
@@ -25,7 +39,6 @@ export const useCustomerPricing = (customerId?: string) => {
       if (error) throw error;
       return data || [];
     },
-    enabled: !!customerId,
   });
 };
 

@@ -11,8 +11,7 @@ import { CalendarIcon, Plus, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useProducts } from '@/hooks/useProducts';
 import { useCustomers } from '@/hooks/useCustomers';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/components/ui/sonner';
+import { useCreateCustomerPricing } from '@/hooks/useCustomerPricingMutations';
 import { cn } from '@/lib/utils';
 
 interface PricingEntry {
@@ -33,10 +32,10 @@ export const CustomPricingForm = () => {
       expires_date: null,
     }
   ]);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { data: products = [] } = useProducts();
   const { data: customers = [] } = useCustomers();
+  const createPricingMutation = useCreateCustomerPricing();
 
   const addEntry = () => {
     setEntries([...entries, {
@@ -61,53 +60,35 @@ export const CustomPricingForm = () => {
   };
 
   const handleSubmit = async () => {
-    try {
-      setIsSubmitting(true);
+    // Validate entries
+    const validEntries = entries.filter(entry => 
+      entry.customer_id && entry.product_id && entry.price > 0
+    );
 
-      // Validate entries
-      const validEntries = entries.filter(entry => 
-        entry.customer_id && entry.product_id && entry.price > 0
-      );
+    if (validEntries.length === 0) {
+      return;
+    }
 
-      if (validEntries.length === 0) {
-        toast.error('Please add at least one valid pricing entry');
-        return;
-      }
-
-      // Prepare data for insertion
-      const pricingData = validEntries.map(entry => ({
+    // Create pricing entries one by one
+    for (const entry of validEntries) {
+      await createPricingMutation.mutateAsync({
         customer_id: entry.customer_id,
         product_id: entry.product_id,
         price: entry.price,
         effective_date: entry.effective_date?.toISOString().split('T')[0],
         expires_date: entry.expires_date?.toISOString().split('T')[0],
         is_active: true,
-        created_by: (await supabase.auth.getUser()).data.user?.id,
-      }));
-
-      const { error } = await supabase
-        .from('customer_pricing')
-        .insert(pricingData);
-
-      if (error) throw error;
-
-      toast.success(`Successfully created ${validEntries.length} pricing entries`);
-      
-      // Reset form
-      setEntries([{
-        customer_id: '',
-        product_id: '',
-        price: 0,
-        effective_date: new Date(),
-        expires_date: null,
-      }]);
-
-    } catch (error) {
-      console.error('Error creating pricing entries:', error);
-      toast.error('Failed to create pricing entries');
-    } finally {
-      setIsSubmitting(false);
+      });
     }
+
+    // Reset form
+    setEntries([{
+      customer_id: '',
+      product_id: '',
+      price: 0,
+      effective_date: new Date(),
+      expires_date: null,
+    }]);
   };
 
   return (
@@ -247,10 +228,10 @@ export const CustomPricingForm = () => {
           </Button>
           <Button 
             onClick={handleSubmit} 
-            disabled={isSubmitting}
+            disabled={createPricingMutation.isPending}
             className="flex-1"
           >
-            {isSubmitting ? 'Creating...' : 'Create Pricing Entries'}
+            {createPricingMutation.isPending ? 'Creating...' : 'Create Pricing Entries'}
           </Button>
         </div>
       </CardContent>
