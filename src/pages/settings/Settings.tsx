@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Link, Outlet, useLocation } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, Settings as SettingsIcon } from "lucide-react";
+import { Users as UsersIcon, Settings as SettingsIcon } from "lucide-react";
 import Users from "./Users";
 
 const Settings = () => {
@@ -31,7 +31,7 @@ const Settings = () => {
             onClick={() => setActiveTab("users")}
             className="flex items-center"
           >
-            <Users className="mr-2 h-4 w-4" />
+            <UsersIcon className="mr-2 h-4 w-4" />
             Users Management
           </TabsTrigger>
           <TabsTrigger 
