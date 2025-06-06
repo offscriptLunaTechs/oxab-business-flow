@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/context/AuthContext";
@@ -251,24 +250,46 @@ const Users = () => {
       setLoading(true);
       setError(null);
       
-      console.log('Fetching users with current user role:', userRole);
+      console.log('Current user:', currentUser?.id);
+      console.log('Current user role:', userRole);
       
-      // First, check if we have admin permissions
-      if (userRole !== 'admin') {
-        setError('You do not have permission to view users.');
+      // First, let's try to get the current user's role directly using the RPC function
+      const { data: currentUserRoleData, error: roleCheckError } = await supabase
+        .rpc('get_user_role', { user_id: currentUser?.id });
+      
+      console.log('RPC role check result:', currentUserRoleData, roleCheckError);
+      
+      if (roleCheckError) {
+        console.error('Error checking user role:', roleCheckError);
+        setError(`Failed to verify admin permissions: ${roleCheckError.message}`);
+        return;
+      }
+      
+      if (currentUserRoleData !== 'admin') {
+        setError(`Access denied. Your role is: ${currentUserRoleData || 'unknown'}. Admin role required.`);
         return;
       }
 
-      // Fetch user roles first
+      console.log('User confirmed as admin, fetching user roles...');
+      
+      // Try to fetch user roles with detailed error logging
       const { data: userRolesData, error: rolesError } = await supabase
         .from('user_roles')
         .select('user_id, role, created_at');
 
       if (rolesError) {
         console.error('Error fetching user roles:', rolesError);
-        setError('Failed to load user roles. Please ensure you have admin permissions.');
+        console.error('Error details:', {
+          code: rolesError.code,
+          message: rolesError.message,
+          details: rolesError.details,
+          hint: rolesError.hint
+        });
+        setError(`Failed to load user roles: ${rolesError.message}. Code: ${rolesError.code}`);
         return;
       }
+
+      console.log('Successfully fetched user roles:', userRolesData);
 
       // Fetch user profiles separately
       const { data: profilesData, error: profilesError } = await supabase
@@ -277,9 +298,11 @@ const Users = () => {
 
       if (profilesError) {
         console.error('Error fetching user profiles:', profilesError);
-        setError('Failed to load user profiles.');
-        return;
+        // Don't fail completely if profiles can't be fetched, just log the error
+        console.warn('Continuing without profile data due to error:', profilesError.message);
       }
+
+      console.log('User profiles data:', profilesData);
 
       // Combine the data
       const transformedUsers: UserWithRole[] = (userRolesData || []).map(userRole => {
@@ -295,24 +318,25 @@ const Users = () => {
         };
       });
 
-      console.log('Fetched users:', transformedUsers);
+      console.log('Final transformed users:', transformedUsers);
       setUsers(transformedUsers);
     } catch (error) {
-      console.error('Error in fetchUsers:', error);
-      setError('An unexpected error occurred while loading users');
+      console.error('Unexpected error in fetchUsers:', error);
+      setError(`An unexpected error occurred: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    if (userRole === 'admin') {
+    // Only attempt to fetch if we have a current user
+    if (currentUser) {
       fetchUsers();
-    } else if (userRole && userRole !== 'admin') {
-      setError('You do not have permission to view users.');
+    } else {
+      setError('No authenticated user found.');
       setLoading(false);
     }
-  }, [userRole]);
+  }, [currentUser, userRole]);
 
   const handleEditUser = (user: UserWithRole) => {
     setSelectedUser(user);
@@ -370,6 +394,50 @@ const Users = () => {
         return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
+
+  if (loading) {
+    return (
+      <Card>
+        <CardContent className="flex items-center justify-center py-12">
+          <div className="text-center">
+            <LoadingSpinner size="lg" />
+            <p className="text-gray-600 mt-4">Loading user management...</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card>
+        <CardContent className="py-6">
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              <div className="space-y-2">
+                <p><strong>Error:</strong> {error}</p>
+                <div className="text-sm">
+                  <p><strong>Debug info:</strong></p>
+                  <p>Current User ID: {currentUser?.id || 'Not available'}</p>
+                  <p>Current User Role: {userRole || 'Not available'}</p>
+                  <p>Current User Email: {currentUser?.email || 'Not available'}</p>
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => fetchUsers()}
+                  className="mt-2"
+                >
+                  Retry
+                </Button>
+              </div>
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
+    );
+  }
 
   if (userRole !== 'admin') {
     return (
