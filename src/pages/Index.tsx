@@ -1,21 +1,27 @@
 
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/context/AuthContext";
+import LoadingSpinner from "@/components/ui/loading-spinner";
 
 const Index = () => {
   const navigate = useNavigate();
+  const { user, loading } = useAuth();
 
   useEffect(() => {
-    // Redirect to login page - in real app, check auth state first
-    navigate("/auth/login");
-  }, [navigate]);
+    if (loading) return;
+    
+    if (user) {
+      navigate("/dashboard");
+    } else {
+      navigate("/auth/login");
+    }
+  }, [navigate, user, loading]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="text-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-        <p className="text-gray-600">Loading KECC System...</p>
-      </div>
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-b from-blue-50 to-gray-100">
+      <LoadingSpinner size="lg" />
+      <p className="mt-4 text-gray-600">Redirecting...</p>
     </div>
   );
 };
