@@ -272,37 +272,45 @@ const Users = () => {
 
       console.log('User confirmed as admin, fetching users...');
       
-      // Fetch all user roles directly from the user_roles table
+      // Fetch user roles first
       const { data: userRolesData, error: rolesError } = await supabase
         .from('user_roles')
-        .select(`
-          user_id,
-          role,
-          created_at,
-          user_profiles!inner(
-            full_name,
-            department
-          )
-        `);
+        .select('user_id, role, created_at');
 
       if (rolesError) {
         console.error('Error fetching user roles:', rolesError);
-        setError(`Failed to load users: ${rolesError.message}`);
+        setError(`Failed to load user roles: ${rolesError.message}`);
         return;
       }
 
       console.log('User roles data fetched:', userRolesData);
 
-      // Transform the data to match our interface
-      const transformedUsers: UserWithRole[] = userRolesData.map(userRole => ({
-        id: userRole.user_id,
-        created_at: userRole.created_at,
-        role: userRole.role,
-        full_name: userRole.user_profiles?.full_name,
-        department: userRole.user_profiles?.department
-      }));
+      // Fetch user profiles separately
+      const { data: userProfilesData, error: profilesError } = await supabase
+        .from('user_profiles')
+        .select('user_id, full_name, department');
 
-      console.log('Final users with data:', transformedUsers);
+      if (profilesError) {
+        console.error('Error fetching user profiles:', profilesError);
+        setError(`Failed to load user profiles: ${profilesError.message}`);
+        return;
+      }
+
+      console.log('User profiles data fetched:', userProfilesData);
+
+      // Combine the data
+      const transformedUsers: UserWithRole[] = userRolesData.map(userRole => {
+        const profile = userProfilesData.find(profile => profile.user_id === userRole.user_id);
+        return {
+          id: userRole.user_id,
+          created_at: userRole.created_at,
+          role: userRole.role,
+          full_name: profile?.full_name,
+          department: profile?.department
+        };
+      });
+
+      console.log('Final combined users data:', transformedUsers);
       setUsers(transformedUsers);
     } catch (error) {
       console.error('Unexpected error in fetchUsers:', error);
