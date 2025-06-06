@@ -37,7 +37,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/sonner";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
-import LoadingSpinner from "@/components/ui/loading-spinner";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { UserPlus, Mail, UserCog } from "lucide-react";
 
 interface UserWithRole {

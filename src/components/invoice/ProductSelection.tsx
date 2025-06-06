@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { Search, Package, AlertTriangle, Plus, Minus, ShoppingCart } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -7,7 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useProducts, ProductWithInventory } from '@/hooks/useProducts';
 import { Customer } from '@/types/invoice';
-import LoadingSpinner from '@/components/ui/loading-spinner';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 export interface InvoiceItem {
   product: ProductWithInventory;

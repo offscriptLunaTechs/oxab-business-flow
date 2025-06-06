@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { FileText, Download, User, Package, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -11,7 +10,7 @@ import { Customer } from '@/types/invoice';
 import { InvoiceItem } from './ProductSelection';
 import { useCreateInvoice } from '@/hooks/useInvoices';
 import { useToast } from '@/hooks/use-toast';
-import LoadingSpinner from '@/components/ui/loading-spinner';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 interface InvoiceReviewProps {
   customer: Customer;
