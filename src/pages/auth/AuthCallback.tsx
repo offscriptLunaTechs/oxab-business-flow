@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { toast } from '@/components/ui/sonner';
 
 const AuthCallback = () => {
   const [error, setError] = useState<string | null>(null);
@@ -10,15 +11,49 @@ const AuthCallback = () => {
 
   useEffect(() => {
     const handleAuthCallback = async () => {
-      const { error } = await supabase.auth.getSession();
-      
-      if (error) {
-        setError(error.message);
-        return;
+      try {
+        // Check if we have a hash in the URL (e.g. from email confirmation)
+        const hashParams = window.location.hash;
+        
+        if (hashParams && hashParams.includes('access_token')) {
+          // The hash contains auth params, let Supabase handle it
+          const { data, error } = await supabase.auth.getSession();
+          
+          if (error) {
+            console.error("Error getting session:", error);
+            setError(error.message);
+            toast.error("Authentication failed: " + error.message);
+            return;
+          }
+          
+          if (data?.session) {
+            toast.success('Successfully authenticated');
+            // Redirect to dashboard after successful authentication
+            navigate('/dashboard');
+            return;
+          }
+        }
+        
+        // Try to get the session normally
+        const { data, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error("Error in auth callback:", error);
+          setError(error.message);
+          return;
+        }
+        
+        if (data?.session) {
+          // Redirect to dashboard after successful authentication
+          navigate('/dashboard');
+        } else {
+          // No session found, redirect to login
+          navigate('/auth/login');
+        }
+      } catch (err) {
+        console.error("Unexpected error in auth callback:", err);
+        setError(err instanceof Error ? err.message : "An unknown error occurred");
       }
-      
-      // Redirect to dashboard after successful authentication
-      navigate('/dashboard');
     };
 
     handleAuthCallback();
