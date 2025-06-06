@@ -14,8 +14,8 @@ export const measurePerformance = <T extends (...args: any[]) => Promise<any>>(
       console.log(`⚡ Performance: ${name} completed in ${duration.toFixed(2)}ms`);
       
       // Report to analytics if available
-      if (typeof gtag !== 'undefined') {
-        gtag('event', 'timing_complete', {
+      if (typeof window !== 'undefined' && 'gtag' in window) {
+        (window as any).gtag('event', 'timing_complete', {
           name: name,
           value: Math.round(duration)
         });
@@ -44,7 +44,8 @@ export const trackWebVitals = () => {
     new PerformanceObserver((entryList) => {
       const entries = entryList.getEntries();
       entries.forEach((entry) => {
-        console.log('⚡ FID:', entry.processingStart - entry.startTime);
+        const fidEntry = entry as PerformanceEventTiming;
+        console.log('⚡ FID:', fidEntry.processingStart - fidEntry.startTime);
       });
     }).observe({ entryTypes: ['first-input'] });
 
@@ -53,8 +54,9 @@ export const trackWebVitals = () => {
     new PerformanceObserver((entryList) => {
       const entries = entryList.getEntries();
       entries.forEach((entry) => {
-        if (!entry.hadRecentInput) {
-          clsValue += entry.value;
+        const layoutShiftEntry = entry as LayoutShift;
+        if (!layoutShiftEntry.hadRecentInput) {
+          clsValue += layoutShiftEntry.value;
         }
       });
       console.log('📐 CLS:', clsValue);

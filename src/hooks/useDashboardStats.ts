@@ -35,7 +35,7 @@ export const useDashboardStats = () => {
       }
 
       console.log('Dashboard stats loaded successfully:', data);
-      return data;
+      return data as DashboardStats;
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes (replaces cacheTime)
