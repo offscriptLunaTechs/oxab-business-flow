@@ -253,9 +253,9 @@ const Users = () => {
       console.log('Current user:', currentUser?.id);
       console.log('Current user role:', userRole);
       
-      // Check if current user is admin using RPC
+      // Check if current user is admin using the new security definer function
       const { data: currentUserRoleData, error: roleCheckError } = await supabase
-        .rpc('get_user_role', { user_id: currentUser?.id });
+        .rpc('get_user_role_safe', { user_id: currentUser?.id });
       
       console.log('RPC role check result:', currentUserRoleData, roleCheckError);
       
