@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,7 +13,7 @@ import { useProducts } from '@/hooks/useProducts';
 import { useCustomers } from '@/hooks/useCustomers';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
-import { useRouter } from 'next/navigation';
+import { useNavigate } from 'react-router-dom';
 import { useCreateInvoice } from '@/hooks/useInvoices';
 
 interface Item {
@@ -23,7 +24,7 @@ interface Item {
 }
 
 const CreateInvoice = () => {
-  const router = useRouter();
+  const navigate = useNavigate();
   const [customerId, setCustomerId] = useState('');
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [dueDate, setDueDate] = useState<Date | undefined>(addDays(new Date(), 30));
@@ -89,7 +90,7 @@ const CreateInvoice = () => {
 
     try {
       await createInvoice.mutateAsync(invoiceData);
-      router.push('/invoices/InvoicesList');
+      navigate('/invoices/InvoicesList');
     } catch (error) {
       console.error('Failed to create invoice', error);
     }
@@ -105,7 +106,7 @@ const CreateInvoice = () => {
           {/* Customer Selection */}
           <div>
             <Label htmlFor="customer">Customer</Label>
-            <Select id="customer" value={customerId} onValueChange={setCustomerId}>
+            <Select value={customerId} onValueChange={setCustomerId}>
               <SelectTrigger>
                 <SelectValue placeholder="Select a customer" />
               </SelectTrigger>

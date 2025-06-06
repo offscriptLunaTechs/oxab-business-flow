@@ -1,18 +1,17 @@
+
 import React from 'react';
-import { useRouter } from 'next/router';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { InvoiceForm } from '@/components/invoices/InvoiceForm';
 import { useInvoice, useUpdateInvoice } from '@/hooks/useInvoices';
 import { ArrowLeft } from 'lucide-react';
-import Link from 'next/link';
 
 const EditInvoice = () => {
-  const router = useRouter();
-  const { invoiceId } = router.query;
-  const invoiceIdString = Array.isArray(invoiceId) ? invoiceId[0] : invoiceId;
+  const { invoiceId } = useParams<{ invoiceId: string }>();
+  const navigate = useNavigate();
 
-  const { data: invoice, isLoading } = useInvoice(invoiceIdString || '');
+  const { data: invoice, isLoading } = useInvoice(invoiceId || '');
   const updateInvoice = useUpdateInvoice();
 
   if (isLoading) {
@@ -26,19 +25,27 @@ const EditInvoice = () => {
   const handleUpdate = async (values: any) => {
     try {
       await updateInvoice.mutateAsync({ invoiceId: invoice.id, invoiceData: values, items: values.items });
-      router.push('/invoices/InvoicesList');
+      navigate('/invoices/InvoicesList');
     } catch (error) {
       console.error("Failed to update invoice", error);
     }
   };
 
+  const handleBack = () => {
+    navigate('/invoices/InvoicesList');
+  };
+
   return (
     <div className="container mx-auto py-10">
       <div className="mb-4">
-        <Link href="/invoices/InvoicesList" className="flex items-center gap-2 text-blue-500 hover:text-blue-700">
+        <Button 
+          variant="ghost" 
+          onClick={handleBack}
+          className="flex items-center gap-2 text-blue-500 hover:text-blue-700"
+        >
           <ArrowLeft className="h-4 w-4" />
           Back to Invoices
-        </Link>
+        </Button>
       </div>
       <Card>
         <CardHeader>

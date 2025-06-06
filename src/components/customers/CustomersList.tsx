@@ -3,15 +3,28 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Plus, Search } from 'lucide-react';
+import { Plus, Search, Edit } from 'lucide-react';
 import { useCustomers } from '@/hooks/useCustomers';
 import { CustomerForm } from './CustomerForm';
 import { EditCustomerDialog } from './EditCustomerDialog';
+import { Customer } from '@/types/invoice';
 
 export const CustomersList = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const { data: customers = [] } = useCustomers(searchTerm);
+  const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const { data: customers = [], refetch } = useCustomers(searchTerm);
+
+  const handleEditCustomer = (customer: Customer) => {
+    setEditingCustomer(customer);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleSuccess = () => {
+    refetch();
+    setIsFormOpen(false);
+  };
 
   return (
     <div className="space-y-6">
@@ -57,7 +70,13 @@ export const CustomersList = () => {
                     }`}>
                       {customer.customer_type}
                     </span>
-                    <EditCustomerDialog customer={customer} />
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleEditCustomer(customer)}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -67,8 +86,28 @@ export const CustomersList = () => {
       </Card>
 
       {isFormOpen && (
-        <CustomerForm onClose={() => setIsFormOpen(false)} />
+        <Card>
+          <CardHeader>
+            <CardTitle>Add New Customer</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <CustomerForm
+              onSuccess={handleSuccess}
+              onCancel={() => setIsFormOpen(false)}
+            />
+          </CardContent>
+        </Card>
       )}
+
+      <EditCustomerDialog
+        customer={editingCustomer}
+        open={isEditDialogOpen}
+        onOpenChange={setIsEditDialogOpen}
+        onSuccess={() => {
+          refetch();
+          setIsEditDialogOpen(false);
+        }}
+      />
     </div>
   );
 };
