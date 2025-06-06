@@ -16,6 +16,7 @@ import Customers from "./pages/customers/Customers";
 import Profile from "./pages/profile/Profile";
 import Settings from "./pages/settings/Settings";
 import Users from "./pages/settings/Users";
+import SecurityDashboard from "./components/security/SecurityDashboard";
 import AppLayout from "./components/layout/AppLayout";
 import NotFound from "./pages/NotFound";
 import { AuthProvider } from "./context/AuthContext";
@@ -59,6 +60,11 @@ const App = () => (
               <Route path="settings/users" element={
                 <ProtectedRoute requiredRole="admin">
                   <Users />
+                </ProtectedRoute>
+              } />
+              <Route path="settings/security" element={
+                <ProtectedRoute requiredRole="admin">
+                  <SecurityDashboard />
                 </ProtectedRoute>
               } />
               

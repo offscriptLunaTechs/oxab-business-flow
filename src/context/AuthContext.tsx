@@ -1,5 +1,5 @@
 
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Session, User, AuthError } from "@supabase/supabase-js";
 import { toast } from "@/components/ui/sonner";
@@ -12,15 +12,74 @@ interface AuthContextType {
   signUp: (email: string, password: string, fullName: string) => Promise<{ error: AuthError | null }>;
   signOut: () => Promise<void>;
   loading: boolean;
+  sessionValid: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+// Session timeout: 24 hours
+const SESSION_TIMEOUT = 24 * 60 * 60 * 1000;
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [sessionValid, setSessionValid] = useState(true);
+
+  // Security audit logging function
+  const logSecurityEvent = useCallback(async (
+    eventType: string, 
+    severity: 'info' | 'warning' | 'error' | 'critical' = 'info'
+  ) => {
+    try {
+      await supabase.rpc('log_security_event', {
+        event_type: eventType,
+        severity
+      });
+    } catch (error) {
+      console.warn('Failed to log security event:', error);
+    }
+  }, []);
+
+  // Session validation
+  const validateSession = useCallback(async () => {
+    const { data: { session: currentSession } } = await supabase.auth.getSession();
+    
+    if (currentSession) {
+      const tokenExpiry = new Date(currentSession.expires_at! * 1000);
+      const now = new Date();
+      
+      if (tokenExpiry <= now) {
+        console.log('Session expired, signing out user');
+        await logSecurityEvent('session_expired', 'warning');
+        await supabase.auth.signOut();
+        setSessionValid(false);
+        toast.error('Session expired. Please log in again.');
+        return false;
+      }
+      
+      // Check if session is nearing expiry (within 1 hour)
+      const oneHour = 60 * 60 * 1000;
+      if (tokenExpiry.getTime() - now.getTime() < oneHour) {
+        console.log('Session nearing expiry, refreshing...');
+        try {
+          const { error } = await supabase.auth.refreshSession();
+          if (error) {
+            console.error('Failed to refresh session:', error);
+            await logSecurityEvent('session_refresh_failed', 'error');
+          } else {
+            await logSecurityEvent('session_refreshed', 'info');
+          }
+        } catch (error) {
+          console.error('Session refresh error:', error);
+        }
+      }
+    }
+    
+    setSessionValid(true);
+    return true;
+  }, [logSecurityEvent]);
 
   useEffect(() => {
     // Set up auth state listener FIRST
@@ -33,7 +92,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         
         // Fetch user role if user is authenticated
         if (currentSession?.user) {
-          // Use setTimeout to prevent potential recursion in RLS
           setTimeout(() => {
             fetchUserRole(currentSession.user.id);
           }, 100);
@@ -41,18 +99,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setUserRole(null);
         }
         
-        // Only show toasts for explicit user actions, not initial loads
+        // Handle auth events with security logging
         if (event === 'SIGNED_IN' && currentSession?.user) {
           console.log('User signed in:', currentSession.user.email);
+          await logSecurityEvent('user_signed_in', 'info');
           toast.success('Successfully signed in!');
         } else if (event === 'SIGNED_OUT') {
           console.log('User signed out');
+          await logSecurityEvent('user_signed_out', 'info');
           toast.info('Signed out successfully');
         } else if (event === 'TOKEN_REFRESHED') {
           console.log('Token refreshed for user:', currentSession?.user?.email);
+          await logSecurityEvent('token_refreshed', 'info');
         }
       }
     );
+
+    // Session validation interval - check every 5 minutes
+    const sessionInterval = setInterval(validateSession, 5 * 60 * 1000);
 
     // THEN check for existing session
     const initializeAuth = async () => {
@@ -62,6 +126,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         
         if (error) {
           console.error('Error getting initial session:', error);
+          await logSecurityEvent('auth_initialization_error', 'error');
           return;
         }
         
@@ -72,9 +137,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         
         if (initialSession?.user) {
           await fetchUserRole(initialSession.user.id);
+          await validateSession();
         }
       } catch (error) {
         console.error('Error initializing authentication:', error);
+        await logSecurityEvent('auth_initialization_error', 'error');
       } finally {
         setLoading(false);
       }
@@ -84,20 +151,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     return () => {
       subscription.unsubscribe();
+      clearInterval(sessionInterval);
     };
-  }, []);
+  }, [logSecurityEvent, validateSession]);
 
   const fetchUserRole = async (userId: string) => {
     try {
       console.log('Fetching role for user:', userId);
       
-      // Use the new security definer function to safely get user role
       const { data, error } = await supabase.rpc('get_user_role_safe', {
         user_id: userId
       });
       
       if (error) {
         console.error('Error fetching user role:', error);
+        await logSecurityEvent('role_fetch_error', 'error');
         setUserRole('employee'); // Default role
         return;
       }
@@ -106,6 +174,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUserRole(data || 'employee');
     } catch (error) {
       console.error('Error in fetchUserRole:', error);
+      await logSecurityEvent('role_fetch_error', 'error');
       setUserRole('employee'); // Default role on error
     }
   };
@@ -113,6 +182,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signIn = async (email: string, password: string) => {
     try {
       console.log('Attempting sign in for:', email);
+      await logSecurityEvent('sign_in_attempt', 'info');
       
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -121,13 +191,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       if (error) {
         console.error('Sign in error:', error);
+        await logSecurityEvent('sign_in_failed', 'warning');
         return { error };
       }
       
       console.log('Sign in successful for:', email);
+      await logSecurityEvent('sign_in_successful', 'info');
       return { error: null };
     } catch (error) {
       console.error('Unexpected sign in error:', error);
+      await logSecurityEvent('sign_in_error', 'error');
       return { error: error as AuthError };
     }
   };
@@ -135,6 +208,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signUp = async (email: string, password: string, fullName: string) => {
     try {
       console.log('Attempting sign up for:', email);
+      await logSecurityEvent('sign_up_attempt', 'info');
       
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -149,13 +223,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       if (error) {
         console.error('Sign up error:', error);
+        await logSecurityEvent('sign_up_failed', 'warning');
         return { error };
       }
       
       console.log('Sign up successful for:', email);
+      await logSecurityEvent('sign_up_successful', 'info');
       return { error: null };
     } catch (error) {
       console.error('Unexpected sign up error:', error);
+      await logSecurityEvent('sign_up_error', 'error');
       return { error: error as AuthError };
     }
   };
@@ -163,17 +240,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signOut = async () => {
     try {
       console.log('Attempting sign out');
+      await logSecurityEvent('sign_out_attempt', 'info');
+      
       const { error } = await supabase.auth.signOut();
       
       if (error) {
         console.error('Sign out error:', error);
+        await logSecurityEvent('sign_out_failed', 'error');
         toast.error('Error signing out');
         return;
       }
       
       console.log('Sign out successful');
+      await logSecurityEvent('sign_out_successful', 'info');
     } catch (error) {
       console.error('Unexpected sign out error:', error);
+      await logSecurityEvent('sign_out_error', 'error');
       toast.error('Error signing out');
     }
   };
@@ -186,6 +268,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     signUp,
     signOut,
     loading,
+    sessionValid,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
