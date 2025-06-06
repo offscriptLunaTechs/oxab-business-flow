@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FileText, Search, Filter, Plus, Eye, Edit, Download, Calendar } from 'lucide-react';
@@ -7,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { useInvoices } from '@/hooks/useInvoices';
+import { useInvoices, useDeleteInvoice } from '@/hooks/useInvoices';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { format } from 'date-fns';
 

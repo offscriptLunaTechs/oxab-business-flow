@@ -204,6 +204,45 @@ export type Database = {
         }
         Relationships: []
       }
+      email_logs: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          email_type: string
+          error_message: string | null
+          id: string
+          recipient_email: string
+          reference_id: string | null
+          sent_at: string | null
+          status: string
+          subject: string
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          email_type: string
+          error_message?: string | null
+          id?: string
+          recipient_email: string
+          reference_id?: string | null
+          sent_at?: string | null
+          status?: string
+          subject: string
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          email_type?: string
+          error_message?: string | null
+          id?: string
+          recipient_email?: string
+          reference_id?: string | null
+          sent_at?: string | null
+          status?: string
+          subject?: string
+        }
+        Relationships: []
+      }
       inventory: {
         Row: {
           created_at: string
@@ -1186,6 +1225,36 @@ export type Database = {
       }
     }
     Views: {
+      customer_statements_view: {
+        Row: {
+          account_status: string | null
+          closing_balance: number | null
+          created_at: string | null
+          created_by: string | null
+          customer_code: string | null
+          customer_email: string | null
+          customer_id: string | null
+          customer_name: string | null
+          customer_type: string | null
+          id: string | null
+          invoice_count: number | null
+          opening_balance: number | null
+          period_end: string | null
+          period_start: string | null
+          statement_date: string | null
+          total_outstanding: number | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "account_statements_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       low_stock_products: {
         Row: {
           id: string | null
@@ -1202,6 +1271,22 @@ export type Database = {
       generate_customer_code: {
         Args: { customer_type: string }
         Returns: string
+      }
+      generate_customer_statement: {
+        Args: {
+          p_customer_id: string
+          p_start_date: string
+          p_end_date: string
+        }
+        Returns: {
+          statement_id: string
+          customer_name: string
+          customer_code: string
+          opening_balance: number
+          closing_balance: number
+          total_outstanding: number
+          invoice_count: number
+        }[]
       }
       get_customer_price: {
         Args: { p_customer_id: string; p_product_id: string; p_date?: string }
