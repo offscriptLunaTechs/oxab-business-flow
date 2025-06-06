@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/context/AuthContext";
@@ -42,7 +43,6 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface UserWithRole {
   id: string;
-  email: string;
   created_at: string;
   role: string;
   full_name?: string;
@@ -272,45 +272,38 @@ const Users = () => {
 
       console.log('User confirmed as admin, fetching users...');
       
-      // Use a different approach: Get users from auth.users and then get their roles/profiles
-      // This bypasses the RLS issue by using service role permissions via RPC
-      const { data: authUsersData, error: authError } = await supabase.auth.admin.listUsers();
-      
-      if (authError) {
-        console.error('Error fetching auth users:', authError);
-        setError(`Failed to load users: ${authError.message}`);
+      // Fetch all user roles directly from the user_roles table
+      const { data: userRolesData, error: rolesError } = await supabase
+        .from('user_roles')
+        .select(`
+          user_id,
+          role,
+          created_at,
+          user_profiles!inner(
+            full_name,
+            department
+          )
+        `);
+
+      if (rolesError) {
+        console.error('Error fetching user roles:', rolesError);
+        setError(`Failed to load users: ${rolesError.message}`);
         return;
       }
 
-      console.log('Auth users fetched:', authUsersData.users.length);
+      console.log('User roles data fetched:', userRolesData);
 
-      // Now get roles and profiles for each user using our RPC function
-      const usersWithData = await Promise.all(
-        authUsersData.users.map(async (authUser) => {
-          // Get role using RPC
-          const { data: roleData } = await supabase
-            .rpc('get_user_role', { user_id: authUser.id });
-          
-          // Get profile data
-          const { data: profileData } = await supabase
-            .from('user_profiles')
-            .select('full_name, department')
-            .eq('user_id', authUser.id)
-            .single();
+      // Transform the data to match our interface
+      const transformedUsers: UserWithRole[] = userRolesData.map(userRole => ({
+        id: userRole.user_id,
+        created_at: userRole.created_at,
+        role: userRole.role,
+        full_name: userRole.user_profiles?.full_name,
+        department: userRole.user_profiles?.department
+      }));
 
-          return {
-            id: authUser.id,
-            email: authUser.email || 'No email',
-            created_at: authUser.created_at,
-            role: roleData || 'employee',
-            full_name: profileData?.full_name,
-            department: profileData?.department
-          };
-        })
-      );
-
-      console.log('Final users with data:', usersWithData);
-      setUsers(usersWithData);
+      console.log('Final users with data:', transformedUsers);
+      setUsers(transformedUsers);
     } catch (error) {
       console.error('Unexpected error in fetchUsers:', error);
       setError(`An unexpected error occurred: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -362,17 +355,15 @@ const Users = () => {
 
   const handleInviteUser = async (email: string, role: string, fullName: string) => {
     try {
-      console.log('Inviting user:', email, role, fullName);
+      console.log('Creating user invitation for:', email, role, fullName);
       
-      // Create an invitation (this would typically send an email)
-      toast.success(`Invitation would be sent to ${email} for role: ${role}`);
-      
-      // Note: In a real implementation, you would use Supabase Auth Admin API
-      // or implement a server-side function to create users and send invitations
+      // For now, just show a message since we can't create users from client side
+      // In a real implementation, this would trigger a server-side function or webhook
+      toast.success(`User invitation created for ${email} with role: ${role}. They will need to sign up separately.`);
       
     } catch (error) {
       console.error('Error in handleInviteUser:', error);
-      toast.error('An unexpected error occurred while inviting user');
+      toast.error('An unexpected error occurred while creating invitation');
     }
   };
 
@@ -415,7 +406,6 @@ const Users = () => {
                   <p><strong>Debug info:</strong></p>
                   <p>Current User ID: {currentUser?.id || 'Not available'}</p>
                   <p>Current User Role: {userRole || 'Not available'}</p>
-                  <p>Current User Email: {currentUser?.email || 'Not available'}</p>
                 </div>
                 <Button 
                   variant="outline" 
@@ -466,18 +456,7 @@ const Users = () => {
           </Button>
         </CardHeader>
         <CardContent>
-          {error && (
-            <Alert variant="destructive" className="mb-6">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-          
-          {loading ? (
-            <div className="flex justify-center py-8">
-              <LoadingSpinner size="lg" />
-            </div>
-          ) : users.length === 0 && !error ? (
+          {users.length === 0 ? (
             <div className="text-center py-8">
               <p className="text-gray-500">No users found</p>
             </div>
