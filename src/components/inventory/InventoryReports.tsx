@@ -45,6 +45,22 @@ const InventoryReports = ({ products }: InventoryReportsProps) => {
     console.log('Exporting report:', reportType);
   };
 
+  // Custom render function for variance bars
+  const renderVarianceBar = (props: any) => {
+    const { payload, x, y, width, height } = props;
+    const fill = payload.variance >= 0 ? "#10B981" : "#EF4444";
+    
+    return (
+      <rect
+        x={x}
+        y={y}
+        width={width}
+        height={height}
+        fill={fill}
+      />
+    );
+  };
+
   return (
     <div className="space-y-6">
       {/* Report Controls */}
@@ -195,11 +211,7 @@ const InventoryReports = ({ products }: InventoryReportsProps) => {
               <XAxis dataKey="month" />
               <YAxis />
               <Tooltip />
-              <Bar 
-                dataKey="variance" 
-                name="Net Variance"
-                fill={(dataKey) => dataKey >= 0 ? "#10B981" : "#EF4444"}
-              />
+              <Bar dataKey="variance" name="Net Variance" shape={renderVarianceBar} />
             </BarChart>
           </ResponsiveContainer>
           <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
