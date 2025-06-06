@@ -5,11 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { Eye, EyeOff, UserPlus } from "lucide-react";
+import { Eye, EyeOff, UserPlus, AlertCircle } from "lucide-react";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useAuth } from "@/context/AuthContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/components/ui/sonner";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const Login = () => {
   // Login state
@@ -25,25 +26,45 @@ const Login = () => {
   const [fullName, setFullName] = useState("");
   const [isRegistering, setIsRegistering] = useState(false);
 
+  // Error states
+  const [loginError, setLoginError] = useState("");
+  const [registerError, setRegisterError] = useState("");
+
   const navigate = useNavigate();
   const { signIn, signUp } = useAuth();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setLoginError("");
     
     try {
       const { error } = await signIn(email, password);
       
       if (error) {
-        toast.error(`Login failed: ${error.message}`);
+        console.error("Login error:", error);
+        let errorMessage = "Login failed. Please check your credentials.";
+        
+        if (error.message.includes("Invalid login credentials")) {
+          errorMessage = "Invalid email or password. Please try again.";
+        } else if (error.message.includes("Email not confirmed")) {
+          errorMessage = "Please check your email and confirm your account before signing in.";
+        } else if (error.message.includes("Too many requests")) {
+          errorMessage = "Too many login attempts. Please wait a moment before trying again.";
+        }
+        
+        setLoginError(errorMessage);
+        toast.error(errorMessage);
         return;
       }
       
+      toast.success("Login successful!");
       navigate("/dashboard");
     } catch (error) {
-      console.error("Login error:", error);
-      toast.error("An unexpected error occurred during login");
+      console.error("Unexpected login error:", error);
+      const errorMessage = "An unexpected error occurred. Please try again.";
+      setLoginError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -51,9 +72,19 @@ const Login = () => {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
+    setRegisterError("");
     
     if (registerPassword !== confirmPassword) {
-      toast.error("Passwords do not match");
+      const errorMessage = "Passwords do not match";
+      setRegisterError(errorMessage);
+      toast.error(errorMessage);
+      return;
+    }
+
+    if (registerPassword.length < 6) {
+      const errorMessage = "Password must be at least 6 characters long";
+      setRegisterError(errorMessage);
+      toast.error(errorMessage);
       return;
     }
     
@@ -63,14 +94,34 @@ const Login = () => {
       const { error } = await signUp(registerEmail, registerPassword, fullName);
       
       if (error) {
-        toast.error(`Registration failed: ${error.message}`);
+        console.error("Registration error:", error);
+        let errorMessage = "Registration failed. Please try again.";
+        
+        if (error.message.includes("User already registered")) {
+          errorMessage = "An account with this email already exists. Please sign in instead.";
+        } else if (error.message.includes("Password should be at least")) {
+          errorMessage = "Password is too weak. Please choose a stronger password.";
+        } else if (error.message.includes("Invalid email")) {
+          errorMessage = "Please enter a valid email address.";
+        }
+        
+        setRegisterError(errorMessage);
+        toast.error(errorMessage);
         return;
       }
       
       toast.success("Registration successful! Please check your email to confirm your account.");
+      
+      // Clear form
+      setRegisterEmail("");
+      setRegisterPassword("");
+      setConfirmPassword("");
+      setFullName("");
     } catch (error) {
-      console.error("Registration error:", error);
-      toast.error("An unexpected error occurred during registration");
+      console.error("Unexpected registration error:", error);
+      const errorMessage = "An unexpected error occurred during registration. Please try again.";
+      setRegisterError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setIsRegistering(false);
     }
@@ -101,6 +152,13 @@ const Login = () => {
           <TabsContent value="login">
             <CardContent>
               <form onSubmit={handleLogin} className="space-y-6">
+                {loginError && (
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>{loginError}</AlertDescription>
+                  </Alert>
+                )}
+                
                 <div className="space-y-2">
                   <Label htmlFor="email" className="text-base font-medium">
                     Email Address
@@ -113,6 +171,7 @@ const Login = () => {
                     placeholder="Enter your email"
                     className="h-12 text-base"
                     required
+                    disabled={isLoading}
                   />
                 </div>
 
@@ -129,11 +188,13 @@ const Login = () => {
                       placeholder="Enter your password"
                       className="h-12 text-base pr-12"
                       required
+                      disabled={isLoading}
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 disabled:opacity-50"
+                      disabled={isLoading}
                     >
                       {showPassword ? (
                         <EyeOff className="h-5 w-5" />
@@ -159,18 +220,19 @@ const Login = () => {
                   )}
                 </Button>
               </form>
-
-              <div className="mt-6 text-center">
-                <p className="text-sm text-gray-600">
-                  Demo credentials: admin@kecc.com / password
-                </p>
-              </div>
             </CardContent>
           </TabsContent>
           
           <TabsContent value="register">
             <CardContent>
               <form onSubmit={handleRegister} className="space-y-4">
+                {registerError && (
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>{registerError}</AlertDescription>
+                  </Alert>
+                )}
+                
                 <div className="space-y-2">
                   <Label htmlFor="fullName" className="text-base font-medium">
                     Full Name
@@ -182,6 +244,7 @@ const Login = () => {
                     placeholder="Enter your full name"
                     className="h-12 text-base"
                     required
+                    disabled={isRegistering}
                   />
                 </div>
                 
@@ -197,6 +260,7 @@ const Login = () => {
                     placeholder="Enter your email"
                     className="h-12 text-base"
                     required
+                    disabled={isRegistering}
                   />
                 </div>
 
@@ -209,10 +273,11 @@ const Login = () => {
                     type="password"
                     value={registerPassword}
                     onChange={(e) => setRegisterPassword(e.target.value)}
-                    placeholder="Create a password"
+                    placeholder="Create a password (min. 6 characters)"
                     className="h-12 text-base"
                     required
                     minLength={6}
+                    disabled={isRegistering}
                   />
                 </div>
 
@@ -228,6 +293,7 @@ const Login = () => {
                     placeholder="Confirm your password"
                     className="h-12 text-base"
                     required
+                    disabled={isRegistering}
                   />
                 </div>
 

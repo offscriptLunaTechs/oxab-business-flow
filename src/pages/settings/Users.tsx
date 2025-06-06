@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/context/AuthContext";
@@ -38,19 +37,16 @@ import { toast } from "@/components/ui/sonner";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { UserPlus, Mail, UserCog } from "lucide-react";
+import { UserPlus, Mail, UserCog, Shield, AlertCircle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface UserWithRole {
   id: string;
   email: string;
   created_at: string;
-  user_role: {
-    role: string;
-  };
-  user_profile?: {
-    full_name: string;
-    department: string;
-  };
+  role: string;
+  full_name?: string;
+  department?: string;
 }
 
 interface InviteDialogProps {
@@ -160,12 +156,12 @@ interface EditUserDialogProps {
 }
 
 const EditUserDialog = ({ open, onOpenChange, user, onUpdate }: EditUserDialogProps) => {
-  const [role, setRole] = useState(user?.user_role?.role || "employee");
+  const [role, setRole] = useState(user?.role || "employee");
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     if (user) {
-      setRole(user.user_role?.role || "employee");
+      setRole(user.role || "employee");
     }
   }, [user]);
 
@@ -202,7 +198,7 @@ const EditUserDialog = ({ open, onOpenChange, user, onUpdate }: EditUserDialogPr
             
             <div className="space-y-1">
               <Label className="text-sm font-medium">Full Name</Label>
-              <p className="text-sm text-gray-700">{user.user_profile?.full_name || "No name provided"}</p>
+              <p className="text-sm text-gray-700">{user.full_name || "No name provided"}</p>
             </div>
             
             <div className="space-y-2">
@@ -242,60 +238,99 @@ const EditUserDialog = ({ open, onOpenChange, user, onUpdate }: EditUserDialogPr
 const Users = () => {
   const [users, setUsers] = useState<UserWithRole[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserWithRole | null>(null);
   
-  const { user: currentUser } = useAuth();
+  const { user: currentUser, userRole } = useAuth();
 
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      setError(null);
+      
+      console.log('Fetching users with current user role:', userRole);
+      
+      // First, check if we have admin permissions
+      if (userRole !== 'admin') {
+        setError('You do not have permission to view users.');
+        return;
+      }
+
+      // Try using the new RPC function first
+      const { data: rpcData, error: rpcError } = await supabase
+        .rpc('get_user_role');
+
+      if (rpcError) {
+        console.warn('RPC function not available, using direct query:', rpcError);
+      }
+
+      // Fetch user roles and profiles
+      const { data: userRolesData, error: rolesError } = await supabase
         .from('user_roles')
         .select(`
           user_id,
           role,
-          auth_users:user_id (
-            id,
-            email,
-            created_at
-          ),
-          user_profiles:user_id (
-            full_name,
-            department
-          )
+          created_at
         `);
 
-      if (error) {
-        console.error('Error fetching users:', error);
-        toast.error('Failed to load users');
+      if (rolesError) {
+        console.error('Error fetching user roles:', rolesError);
+        setError('Failed to load user roles. Please ensure you have admin permissions.');
         return;
       }
 
-      // Transform the data to the expected format
-      const formattedUsers = data.map((item: any) => ({
-        id: item.auth_users.id,
-        email: item.auth_users.email,
-        created_at: item.auth_users.created_at,
-        user_role: {
-          role: item.role
-        },
-        user_profile: item.user_profiles || {}
-      }));
+      // Fetch user profiles
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('user_profiles')
+        .select(`
+          user_id,
+          full_name,
+          department
+        `);
 
-      setUsers(formattedUsers);
+      if (profilesError) {
+        console.error('Error fetching user profiles:', profilesError);
+        // Continue without profiles if there's an error
+      }
+
+      // We can't directly query auth.users, so we'll work with what we have
+      // and use the user IDs to construct our user list
+      const userProfiles = profilesData || [];
+      const userRoles = userRolesData || [];
+
+      // Combine the data
+      const combinedUsers: UserWithRole[] = userRoles.map(role => {
+        const profile = userProfiles.find(p => p.user_id === role.user_id);
+        return {
+          id: role.user_id,
+          email: profile?.full_name ? `${profile.full_name}@system` : role.user_id,
+          created_at: role.created_at,
+          role: role.role,
+          full_name: profile?.full_name,
+          department: profile?.department
+        };
+      });
+
+      console.log('Fetched users:', combinedUsers);
+      setUsers(combinedUsers);
     } catch (error) {
       console.error('Error in fetchUsers:', error);
-      toast.error('An unexpected error occurred while loading users');
+      setError('An unexpected error occurred while loading users');
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchUsers();
-  }, []);
+    if (userRole === 'admin') {
+      fetchUsers();
+    } else if (userRole && userRole !== 'admin') {
+      setError('You do not have permission to view users.');
+      setLoading(false);
+    }
+  }, [userRole]);
 
   const handleEditUser = (user: UserWithRole) => {
     setSelectedUser(user);
@@ -304,6 +339,8 @@ const Users = () => {
 
   const handleUpdateUser = async (userId: string, role: string) => {
     try {
+      console.log('Updating user role:', userId, role);
+      
       const { error } = await supabase
         .from('user_roles')
         .update({ role, updated_at: new Date().toISOString() })
@@ -311,7 +348,7 @@ const Users = () => {
 
       if (error) {
         console.error('Error updating user role:', error);
-        toast.error('Failed to update user role');
+        toast.error('Failed to update user role: ' + error.message);
         return;
       }
 
@@ -325,21 +362,14 @@ const Users = () => {
 
   const handleInviteUser = async (email: string, role: string, fullName: string) => {
     try {
-      // In a real implementation, you would send an invitation email
-      // For now, just show a success message
-      toast.success(`Invitation sent to ${email} for role: ${role}`);
+      console.log('Inviting user:', email, role, fullName);
       
-      // Simulate adding the user
-      const { data, error } = await supabase.auth.admin.inviteUserByEmail(email);
+      // Create an invitation (this would typically send an email)
+      toast.success(`Invitation would be sent to ${email} for role: ${role}`);
       
-      if (error) {
-        console.error('Error inviting user:', error);
-        toast.error(`Failed to invite user: ${error.message}`);
-        return;
-      }
+      // Note: In a real implementation, you would use Supabase Auth Admin API
+      // or implement a server-side function to create users and send invitations
       
-      toast.success(`User invited successfully: ${email}`);
-      fetchUsers();
     } catch (error) {
       console.error('Error in handleInviteUser:', error);
       toast.error('An unexpected error occurred while inviting user');
@@ -349,22 +379,39 @@ const Users = () => {
   const getRoleBadgeColor = (role: string) => {
     switch (role) {
       case 'admin':
-        return 'bg-red-100 text-red-800';
+        return 'bg-red-100 text-red-800 border-red-200';
       case 'manager':
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-blue-100 text-blue-800 border-blue-200';
       case 'employee':
-        return 'bg-green-100 text-green-800';
+        return 'bg-green-100 text-green-800 border-green-200';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
+
+  if (userRole !== 'admin') {
+    return (
+      <Card>
+        <CardContent className="flex items-center justify-center py-12">
+          <div className="text-center">
+            <Shield className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Access Denied</h3>
+            <p className="text-gray-600">You need admin privileges to access user management.</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <>
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
-            <CardTitle>User Management</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Shield className="h-5 w-5" />
+              User Management
+            </CardTitle>
             <CardDescription>
               Manage user accounts and permissions
             </CardDescription>
@@ -375,11 +422,18 @@ const Users = () => {
           </Button>
         </CardHeader>
         <CardContent>
+          {error && (
+            <Alert variant="destructive" className="mb-6">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+          
           {loading ? (
             <div className="flex justify-center py-8">
               <LoadingSpinner size="lg" />
             </div>
-          ) : users.length === 0 ? (
+          ) : users.length === 0 && !error ? (
             <div className="text-center py-8">
               <p className="text-gray-500">No users found</p>
             </div>
@@ -390,6 +444,7 @@ const Users = () => {
                   <TableRow>
                     <TableHead>User</TableHead>
                     <TableHead>Role</TableHead>
+                    <TableHead>Department</TableHead>
                     <TableHead>Created</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
@@ -399,14 +454,19 @@ const Users = () => {
                     <TableRow key={user.id}>
                       <TableCell>
                         <div>
-                          <p className="font-medium">{user.user_profile?.full_name || "No name"}</p>
-                          <p className="text-sm text-gray-500">{user.email}</p>
+                          <p className="font-medium">{user.full_name || "No name"}</p>
+                          <p className="text-sm text-gray-500">{user.id}</p>
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge className={getRoleBadgeColor(user.user_role?.role)}>
-                          {user.user_role?.role || "No role"}
+                        <Badge className={getRoleBadgeColor(user.role)}>
+                          {user.role}
                         </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-sm text-gray-600">
+                          {user.department || "Not set"}
+                        </span>
                       </TableCell>
                       <TableCell>
                         {new Date(user.created_at).toLocaleDateString()}
@@ -416,7 +476,7 @@ const Users = () => {
                           variant="ghost"
                           size="sm"
                           onClick={() => handleEditUser(user)}
-                          disabled={user.id === currentUser?.id} // Can't edit yourself
+                          disabled={user.id === currentUser?.id}
                         >
                           <UserCog className="h-4 w-4" />
                         </Button>
