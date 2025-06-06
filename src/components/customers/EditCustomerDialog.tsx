@@ -7,16 +7,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { CustomerForm } from './CustomerForm';
-
-interface Customer {
-  id: string;
-  name: string;
-  code: string;
-  customer_type: 'wholesale' | 'retail';
-  phone?: string;
-  email?: string;
-  address?: string;
-}
+import { Customer } from '@/types';
 
 interface EditCustomerDialogProps {
   customer: Customer | null;

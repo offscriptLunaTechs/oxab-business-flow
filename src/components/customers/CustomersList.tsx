@@ -7,7 +7,7 @@ import { Plus, Search, Edit } from 'lucide-react';
 import { useCustomers } from '@/hooks/useCustomers';
 import { CustomerForm } from './CustomerForm';
 import { EditCustomerDialog } from './EditCustomerDialog';
-import { Customer } from '@/types/invoice';
+import { Customer } from '@/types';
 
 export const CustomersList = () => {
   const [searchTerm, setSearchTerm] = useState('');

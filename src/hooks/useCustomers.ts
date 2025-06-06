@@ -1,7 +1,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Customer } from '@/types/invoice';
+import { Customer } from '@/types';
 
 export const useCustomers = (searchTerm?: string) => {
   return useQuery({
