@@ -92,7 +92,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       console.log('Fetching role for user:', userId);
       
       // Use the new security definer function to safely get user role
-      const { data, error } = await supabase.rpc('get_user_role', {
+      const { data, error } = await supabase.rpc('get_user_role_safe', {
         user_id: userId
       });
       
