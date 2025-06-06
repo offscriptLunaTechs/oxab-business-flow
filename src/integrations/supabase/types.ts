@@ -1169,6 +1169,10 @@ export type Database = {
       }
     }
     Functions: {
+      get_dashboard_stats: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
       get_user_role_safe: {
         Args: { user_id?: string }
         Returns: string

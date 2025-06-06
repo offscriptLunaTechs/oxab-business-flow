@@ -4,29 +4,46 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { lazy, Suspense } from "react";
 import Index from "./pages/Index";
 import Login from "./pages/auth/Login";
 import AuthCallback from "./pages/auth/AuthCallback";
-import Dashboard from "./pages/dashboard/Dashboard";
-import CreateInvoice from "./pages/invoices/CreateInvoice";
-import InvoicesList from "./pages/invoices/InvoicesList";
-import InvoiceDetail from "./pages/invoices/InvoiceDetail";
-import EditInvoice from "./pages/invoices/EditInvoice";
-import Customers from "./pages/customers/Customers";
-import Profile from "./pages/profile/Profile";
-import Settings from "./pages/settings/Settings";
-import Users from "./pages/settings/Users";
-import SecurityDashboard from "./components/security/SecurityDashboard";
 import AppLayout from "./components/layout/AppLayout";
 import NotFound from "./pages/NotFound";
-import { AuthProvider } from "./context/AuthContext";
+import { OptimizedAuthProvider } from "./context/OptimizedAuthContext";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
+import { LoadingSpinner } from "./components/ui/loading-spinner";
 
-const queryClient = new QueryClient();
+// Lazy load components for better performance
+const Dashboard = lazy(() => import("./pages/dashboard/Dashboard"));
+const CreateInvoice = lazy(() => import("./pages/invoices/CreateInvoice"));
+const InvoicesList = lazy(() => import("./pages/invoices/InvoicesList"));
+const InvoiceDetail = lazy(() => import("./pages/invoices/InvoiceDetail"));
+const EditInvoice = lazy(() => import("./pages/invoices/EditInvoice"));
+const Customers = lazy(() => import("./pages/customers/Customers"));
+const Profile = lazy(() => import("./pages/profile/Profile"));
+
+// Admin components - separate chunk
+const Settings = lazy(() => import("./pages/settings/Settings"));
+const Users = lazy(() => import("./pages/settings/Users"));
+const SecurityDashboard = lazy(() => import("./components/security/SecurityDashboard"));
+
+// Configure React Query with optimized settings
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      gcTime: 10 * 60 * 1000, // 10 minutes
+      refetchOnWindowFocus: false,
+      retry: 2,
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    },
+  },
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <AuthProvider>
+    <OptimizedAuthProvider>
       <TooltipProvider>
         <Toaster />
         <Sonner />
@@ -42,29 +59,63 @@ const App = () => (
                 <AppLayout />
               </ProtectedRoute>
             }>
-              <Route path="dashboard" element={<Dashboard />} />
-              <Route path="invoices" element={<InvoicesList />} />
-              <Route path="invoices/new" element={<CreateInvoice />} />
-              <Route path="invoices/:id" element={<InvoiceDetail />} />
-              <Route path="invoices/:id/edit" element={<EditInvoice />} />
+              <Route path="dashboard" element={
+                <Suspense fallback={<LoadingSpinner size="lg" />}>
+                  <Dashboard />
+                </Suspense>
+              } />
+              <Route path="invoices" element={
+                <Suspense fallback={<LoadingSpinner size="lg" />}>
+                  <InvoicesList />
+                </Suspense>
+              } />
+              <Route path="invoices/new" element={
+                <Suspense fallback={<LoadingSpinner size="lg" />}>
+                  <CreateInvoice />
+                </Suspense>
+              } />
+              <Route path="invoices/:id" element={
+                <Suspense fallback={<LoadingSpinner size="lg" />}>
+                  <InvoiceDetail />
+                </Suspense>
+              } />
+              <Route path="invoices/:id/edit" element={
+                <Suspense fallback={<LoadingSpinner size="lg" />}>
+                  <EditInvoice />
+                </Suspense>
+              } />
               <Route path="inventory" element={<div className="p-8 text-center">Inventory page coming soon...</div>} />
-              <Route path="customers" element={<Customers />} />
-              <Route path="profile" element={<Profile />} />
+              <Route path="customers" element={
+                <Suspense fallback={<LoadingSpinner size="lg" />}>
+                  <Customers />
+                </Suspense>
+              } />
+              <Route path="profile" element={
+                <Suspense fallback={<LoadingSpinner size="lg" />}>
+                  <Profile />
+                </Suspense>
+              } />
               
-              {/* Settings Routes - Admin Only */}
+              {/* Settings Routes - Admin Only - Separate chunk */}
               <Route path="settings" element={
                 <ProtectedRoute requiredRole="admin">
-                  <Settings />
+                  <Suspense fallback={<LoadingSpinner size="lg" />}>
+                    <Settings />
+                  </Suspense>
                 </ProtectedRoute>
               } />
               <Route path="settings/users" element={
                 <ProtectedRoute requiredRole="admin">
-                  <Users />
+                  <Suspense fallback={<LoadingSpinner size="lg" />}>
+                    <Users />
+                  </Suspense>
                 </ProtectedRoute>
               } />
               <Route path="settings/security" element={
                 <ProtectedRoute requiredRole="admin">
-                  <SecurityDashboard />
+                  <Suspense fallback={<LoadingSpinner size="lg" />}>
+                    <SecurityDashboard />
+                  </Suspense>
                 </ProtectedRoute>
               } />
               
@@ -76,7 +127,7 @@ const App = () => (
           </Routes>
         </BrowserRouter>
       </TooltipProvider>
-    </AuthProvider>
+    </OptimizedAuthProvider>
   </QueryClientProvider>
 );
 

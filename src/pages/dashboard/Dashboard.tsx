@@ -1,10 +1,11 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FileText, Package, Users, TrendingUp, AlertCircle, Clock, CheckCircle, DollarSign } from "lucide-react";
 import QuickActionCard from "@/components/dashboard/QuickActionCard";
 import StatsCard from "@/components/dashboard/StatsCard";
 import { useDashboardStats } from "@/hooks/useDashboardStats";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { DashboardSkeleton } from "@/components/ui/skeletons";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -24,7 +25,7 @@ const Dashboard = () => {
       icon: Package,
       color: "green" as const,
       onClick: () => navigate("/inventory"),
-      badge: stats?.lowStockItems ? `${stats.lowStockItems} low stock` : undefined,
+      badge: stats?.lowStockCount ? `${stats.lowStockCount} low stock` : undefined,
     },
     {
       title: "Find Customer",
@@ -43,11 +44,7 @@ const Dashboard = () => {
   ];
 
   if (isLoading) {
-    return (
-      <div className="flex justify-center py-8">
-        <LoadingSpinner size="lg" />
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   if (error) {
@@ -77,15 +74,15 @@ const Dashboard = () => {
     },
     {
       title: "Low Stock Items",
-      value: stats?.lowStockItems || 0,
-      change: (stats?.lowStockItems || 0) > 0 ? "Need restocking" : "Stock levels good",
-      changeType: (stats?.lowStockItems || 0) > 0 ? "negative" as const : "positive" as const,
+      value: stats?.lowStockCount || 0,
+      change: (stats?.lowStockCount || 0) > 0 ? "Need restocking" : "Stock levels good",
+      changeType: (stats?.lowStockCount || 0) > 0 ? "negative" as const : "positive" as const,
       icon: AlertCircle,
       color: "red" as const,
     },
     {
       title: "Monthly Revenue",
-      value: `KD ${(stats?.totalRevenue || 0).toLocaleString()}`,
+      value: `KD ${(stats?.monthlyRevenue || 0).toLocaleString()}`,
       change: "+8.2% from last month",
       changeType: "positive" as const,
       icon: DollarSign,
@@ -147,11 +144,11 @@ const Dashboard = () => {
             <CheckCircle className="h-5 w-5 text-green-600" />
             <div className="flex-1">
               <p className="text-sm font-medium text-gray-900">
-                Invoice system is now fully operational
+                Dashboard optimized for faster loading
               </p>
-              <p className="text-xs text-gray-500">Connected to live database</p>
+              <p className="text-xs text-gray-500">Performance improvements active</p>
             </div>
-            <span className="text-sm font-medium text-green-600">Active</span>
+            <span className="text-sm font-medium text-green-600">Optimized</span>
           </div>
           
           <div className="flex items-center space-x-3 p-3 bg-blue-50 rounded-lg">
@@ -165,16 +162,35 @@ const Dashboard = () => {
             <span className="text-sm font-medium text-blue-600">Live</span>
           </div>
           
-          {(stats?.lowStockItems || 0) > 0 && (
+          {(stats?.lowStockCount || 0) > 0 && (
             <div className="flex items-center space-x-3 p-3 bg-orange-50 rounded-lg">
               <AlertCircle className="h-5 w-5 text-orange-600" />
               <div className="flex-1">
                 <p className="text-sm font-medium text-gray-900">
-                  {stats?.lowStockItems} items need restocking
+                  {stats?.lowStockCount} items need restocking
                 </p>
                 <p className="text-xs text-gray-500">Check inventory levels</p>
               </div>
               <span className="text-sm font-medium text-orange-600">Attention</span>
+            </div>
+          )}
+
+          {stats?.recentActivity && stats.recentActivity.length > 0 && (
+            <div className="border-t pt-4 mt-4">
+              <h4 className="text-sm font-medium text-gray-700 mb-3">Latest Transactions</h4>
+              <div className="space-y-2">
+                {stats.recentActivity.slice(0, 3).map((activity, index) => (
+                  <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                    <div className="flex items-center space-x-2">
+                      <FileText className="h-4 w-4 text-gray-500" />
+                      <span className="text-sm text-gray-700">{activity.description}</span>
+                    </div>
+                    <span className="text-sm font-medium text-gray-900">
+                      KD {Number(activity.amount).toLocaleString()}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>
