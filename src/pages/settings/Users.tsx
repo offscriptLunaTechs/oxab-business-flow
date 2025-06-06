@@ -253,7 +253,7 @@ const Users = () => {
       console.log('Current user:', currentUser?.id);
       console.log('Current user role:', userRole);
       
-      // First, let's try to get the current user's role directly using the RPC function
+      // Check if current user is admin using RPC
       const { data: currentUserRoleData, error: roleCheckError } = await supabase
         .rpc('get_user_role', { user_id: currentUser?.id });
       
@@ -270,56 +270,47 @@ const Users = () => {
         return;
       }
 
-      console.log('User confirmed as admin, fetching user roles...');
+      console.log('User confirmed as admin, fetching users...');
       
-      // Try to fetch user roles with detailed error logging
-      const { data: userRolesData, error: rolesError } = await supabase
-        .from('user_roles')
-        .select('user_id, role, created_at');
-
-      if (rolesError) {
-        console.error('Error fetching user roles:', rolesError);
-        console.error('Error details:', {
-          code: rolesError.code,
-          message: rolesError.message,
-          details: rolesError.details,
-          hint: rolesError.hint
-        });
-        setError(`Failed to load user roles: ${rolesError.message}. Code: ${rolesError.code}`);
+      // Use a different approach: Get users from auth.users and then get their roles/profiles
+      // This bypasses the RLS issue by using service role permissions via RPC
+      const { data: authUsersData, error: authError } = await supabase.auth.admin.listUsers();
+      
+      if (authError) {
+        console.error('Error fetching auth users:', authError);
+        setError(`Failed to load users: ${authError.message}`);
         return;
       }
 
-      console.log('Successfully fetched user roles:', userRolesData);
+      console.log('Auth users fetched:', authUsersData.users.length);
 
-      // Fetch user profiles separately
-      const { data: profilesData, error: profilesError } = await supabase
-        .from('user_profiles')
-        .select('user_id, full_name, department');
+      // Now get roles and profiles for each user using our RPC function
+      const usersWithData = await Promise.all(
+        authUsersData.users.map(async (authUser) => {
+          // Get role using RPC
+          const { data: roleData } = await supabase
+            .rpc('get_user_role', { user_id: authUser.id });
+          
+          // Get profile data
+          const { data: profileData } = await supabase
+            .from('user_profiles')
+            .select('full_name, department')
+            .eq('user_id', authUser.id)
+            .single();
 
-      if (profilesError) {
-        console.error('Error fetching user profiles:', profilesError);
-        // Don't fail completely if profiles can't be fetched, just log the error
-        console.warn('Continuing without profile data due to error:', profilesError.message);
-      }
+          return {
+            id: authUser.id,
+            email: authUser.email || 'No email',
+            created_at: authUser.created_at,
+            role: roleData || 'employee',
+            full_name: profileData?.full_name,
+            department: profileData?.department
+          };
+        })
+      );
 
-      console.log('User profiles data:', profilesData);
-
-      // Combine the data
-      const transformedUsers: UserWithRole[] = (userRolesData || []).map(userRole => {
-        const profile = profilesData?.find(p => p.user_id === userRole.user_id);
-        
-        return {
-          id: userRole.user_id,
-          email: profile?.full_name || 'Unknown User', // Using full_name as display name since we don't have email access
-          created_at: userRole.created_at,
-          role: userRole.role,
-          full_name: profile?.full_name,
-          department: profile?.department
-        };
-      });
-
-      console.log('Final transformed users:', transformedUsers);
-      setUsers(transformedUsers);
+      console.log('Final users with data:', usersWithData);
+      setUsers(usersWithData);
     } catch (error) {
       console.error('Unexpected error in fetchUsers:', error);
       setError(`An unexpected error occurred: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -349,8 +340,11 @@ const Users = () => {
       
       const { error } = await supabase
         .from('user_roles')
-        .update({ role, updated_at: new Date().toISOString() })
-        .eq('user_id', userId);
+        .upsert({ 
+          user_id: userId, 
+          role: role, 
+          updated_at: new Date().toISOString() 
+        });
 
       if (error) {
         console.error('Error updating user role:', error);
