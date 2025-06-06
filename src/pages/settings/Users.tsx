@@ -259,34 +259,41 @@ const Users = () => {
         return;
       }
 
-      // Fetch user roles and profiles using a join query
-      const { data: usersData, error: usersError } = await supabase
+      // Fetch user roles first
+      const { data: userRolesData, error: rolesError } = await supabase
         .from('user_roles')
-        .select(`
-          user_id,
-          role,
-          created_at,
-          user_profiles!inner(
-            full_name,
-            department
-          )
-        `);
+        .select('user_id, role, created_at');
 
-      if (usersError) {
-        console.error('Error fetching users:', usersError);
-        setError('Failed to load users. Please ensure you have admin permissions.');
+      if (rolesError) {
+        console.error('Error fetching user roles:', rolesError);
+        setError('Failed to load user roles. Please ensure you have admin permissions.');
         return;
       }
 
-      // Transform the data to match our interface
-      const transformedUsers: UserWithRole[] = (usersData || []).map(item => ({
-        id: item.user_id,
-        email: item.user_profiles?.full_name || 'Unknown User',
-        created_at: item.created_at,
-        role: item.role,
-        full_name: item.user_profiles?.full_name,
-        department: item.user_profiles?.department
-      }));
+      // Fetch user profiles separately
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('user_profiles')
+        .select('user_id, full_name, department');
+
+      if (profilesError) {
+        console.error('Error fetching user profiles:', profilesError);
+        setError('Failed to load user profiles.');
+        return;
+      }
+
+      // Combine the data
+      const transformedUsers: UserWithRole[] = (userRolesData || []).map(userRole => {
+        const profile = profilesData?.find(p => p.user_id === userRole.user_id);
+        
+        return {
+          id: userRole.user_id,
+          email: profile?.full_name || 'Unknown User', // Using full_name as display name since we don't have email access
+          created_at: userRole.created_at,
+          role: userRole.role,
+          full_name: profile?.full_name,
+          department: profile?.department
+        };
+      });
 
       console.log('Fetched users:', transformedUsers);
       setUsers(transformedUsers);
