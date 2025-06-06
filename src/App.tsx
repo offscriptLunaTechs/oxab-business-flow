@@ -10,7 +10,7 @@ import Login from "./pages/auth/Login";
 import AuthCallback from "./pages/auth/AuthCallback";
 import AppLayout from "./components/layout/AppLayout";
 import NotFound from "./pages/NotFound";
-import { OptimizedAuthProvider } from "./context/OptimizedAuthContext";
+import { AuthProvider } from "./context/AuthContext";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import { LoadingSpinner } from "./components/ui/loading-spinner";
 
@@ -43,7 +43,7 @@ const queryClient = new QueryClient({
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <OptimizedAuthProvider>
+    <AuthProvider>
       <TooltipProvider>
         <Toaster />
         <Sonner />
@@ -127,7 +127,7 @@ const App = () => (
           </Routes>
         </BrowserRouter>
       </TooltipProvider>
-    </OptimizedAuthProvider>
+    </AuthProvider>
   </QueryClientProvider>
 );
 

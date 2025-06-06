@@ -17,9 +17,6 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Session timeout: 24 hours
-const SESSION_TIMEOUT = 24 * 60 * 60 * 1000;
-
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
@@ -41,6 +38,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       console.warn('Failed to log security event:', error);
     }
   }, []);
+
+  // Optimized role fetching - only once per session
+  const fetchUserRole = useCallback(async (userId: string) => {
+    try {
+      console.log('Fetching role for user:', userId);
+      
+      const { data, error } = await supabase.rpc('get_user_role_safe', {
+        user_id: userId
+      });
+      
+      if (error) {
+        console.error('Error fetching user role:', error);
+        await logSecurityEvent('role_fetch_error', 'error');
+        setUserRole('employee'); // Default role
+        return;
+      }
+      
+      console.log('User role fetched:', data);
+      setUserRole(data || 'employee');
+    } catch (error) {
+      console.error('Error in fetchUserRole:', error);
+      await logSecurityEvent('role_fetch_error', 'error');
+      setUserRole('employee'); // Default role on error
+    }
+  }, [logSecurityEvent]);
 
   // Session validation
   const validateSession = useCallback(async () => {
@@ -82,41 +104,48 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [logSecurityEvent]);
 
   useEffect(() => {
+    let mounted = true;
+
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, currentSession) => {
+      (event, currentSession) => {
+        if (!mounted) return;
+        
         console.log('Auth state change:', event, currentSession?.user?.email);
         
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
         
-        // Fetch user role if user is authenticated
-        if (currentSession?.user) {
+        // Only fetch role if user is authenticated and role is not already set
+        if (currentSession?.user && !userRole) {
+          // Delay role fetching to avoid blocking auth state change
           setTimeout(() => {
-            fetchUserRole(currentSession.user.id);
+            if (mounted) {
+              fetchUserRole(currentSession.user.id);
+            }
           }, 100);
-        } else {
+        } else if (!currentSession?.user) {
           setUserRole(null);
         }
         
         // Handle auth events with security logging
         if (event === 'SIGNED_IN' && currentSession?.user) {
           console.log('User signed in:', currentSession.user.email);
-          await logSecurityEvent('user_signed_in', 'info');
+          logSecurityEvent('user_signed_in', 'info');
           toast.success('Successfully signed in!');
         } else if (event === 'SIGNED_OUT') {
           console.log('User signed out');
-          await logSecurityEvent('user_signed_out', 'info');
+          logSecurityEvent('user_signed_out', 'info');
           toast.info('Signed out successfully');
         } else if (event === 'TOKEN_REFRESHED') {
           console.log('Token refreshed for user:', currentSession?.user?.email);
-          await logSecurityEvent('token_refreshed', 'info');
+          logSecurityEvent('token_refreshed', 'info');
         }
       }
     );
 
-    // Session validation interval - check every 5 minutes
-    const sessionInterval = setInterval(validateSession, 5 * 60 * 1000);
+    // Session validation interval - check every 10 minutes (reduced frequency)
+    const sessionInterval = setInterval(validateSession, 10 * 60 * 1000);
 
     // THEN check for existing session
     const initializeAuth = async () => {
@@ -150,34 +179,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     initializeAuth();
 
     return () => {
+      mounted = false;
       subscription.unsubscribe();
       clearInterval(sessionInterval);
     };
-  }, [logSecurityEvent, validateSession]);
-
-  const fetchUserRole = async (userId: string) => {
-    try {
-      console.log('Fetching role for user:', userId);
-      
-      const { data, error } = await supabase.rpc('get_user_role_safe', {
-        user_id: userId
-      });
-      
-      if (error) {
-        console.error('Error fetching user role:', error);
-        await logSecurityEvent('role_fetch_error', 'error');
-        setUserRole('employee'); // Default role
-        return;
-      }
-      
-      console.log('User role fetched:', data);
-      setUserRole(data || 'employee');
-    } catch (error) {
-      console.error('Error in fetchUserRole:', error);
-      await logSecurityEvent('role_fetch_error', 'error');
-      setUserRole('employee'); // Default role on error
-    }
-  };
+  }, [logSecurityEvent, validateSession, fetchUserRole, userRole]);
 
   const signIn = async (email: string, password: string) => {
     try {

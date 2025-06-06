@@ -1,17 +1,16 @@
 
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Eye, EyeOff, UserPlus, AlertCircle } from "lucide-react";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { useAuth } from "@/context/OptimizedAuthContext";
+import { useAuth } from "@/context/AuthContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/components/ui/sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { supabase } from "@/integrations/supabase/client";
 
 const Login = () => {
   // Login state
@@ -32,6 +31,7 @@ const Login = () => {
   const [registerError, setRegisterError] = useState("");
 
   const navigate = useNavigate();
+  const { signIn, signUp } = useAuth();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,10 +39,7 @@ const Login = () => {
     setLoginError("");
     
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      const { error } = await signIn(email, password);
       
       if (error) {
         console.error("Login error:", error);
@@ -61,6 +58,8 @@ const Login = () => {
         return;
       }
       
+      // Success - navigation will be handled by auth context
+      toast.success("Successfully signed in!");
       navigate("/dashboard");
     } catch (error) {
       console.error("Unexpected login error:", error);
@@ -93,16 +92,7 @@ const Login = () => {
     setIsRegistering(true);
     
     try {
-      const { error } = await supabase.auth.signUp({
-        email: registerEmail,
-        password: registerPassword,
-        options: {
-          data: {
-            full_name: fullName,
-          },
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
-        },
-      });
+      const { error } = await signUp(registerEmail, registerPassword, fullName);
       
       if (error) {
         console.error("Registration error:", error);
