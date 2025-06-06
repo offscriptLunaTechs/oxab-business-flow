@@ -10,11 +10,13 @@ export interface User {
 export interface Customer {
   id: string;
   name: string;
+  code: string;
   phone: string;
   email?: string;
   customer_type: 'wholesale' | 'retail';
   address?: string;
   created_at: string;
+  updated_at?: string;
 }
 
 export interface Product {

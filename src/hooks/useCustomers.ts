@@ -19,7 +19,12 @@ export const useCustomers = (searchTerm?: string) => {
       const { data, error } = await query;
       
       if (error) throw error;
-      return data || [];
+      
+      // Type assertion to ensure customer_type is properly typed
+      return (data || []).map(customer => ({
+        ...customer,
+        customer_type: customer.customer_type as 'wholesale' | 'retail'
+      })) as Customer[];
     },
   });
 };
@@ -35,7 +40,12 @@ export const useCustomer = (customerId: string) => {
         .single();
       
       if (error) throw error;
-      return data;
+      
+      // Type assertion to ensure customer_type is properly typed
+      return {
+        ...data,
+        customer_type: data.customer_type as 'wholesale' | 'retail'
+      } as Customer;
     },
     enabled: !!customerId,
   });
