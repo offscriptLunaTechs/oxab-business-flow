@@ -32,7 +32,44 @@ export const useCreateInvoice = () => {
       const invoiceId = await generateNextInvoiceId();
       console.log('Creating invoice with ID:', invoiceId);
       
-      const itemsWithCustomPricing = await applyCustomerPricing(items, invoice.customer_id, invoice.date);
+      // Apply customer pricing but also save any manual price changes
+      const itemsWithCustomPricing = await Promise.all(
+        items.map(async (item) => {
+          try {
+            const { data: customPrice } = await supabase.rpc('get_customer_price', {
+              p_customer_id: invoice.customer_id,
+              p_product_id: item.product_id,
+              p_date: invoice.date
+            });
+            
+            const finalPrice = customPrice || item.price;
+            
+            // If the user manually changed the price from the default, save it as customer pricing
+            if (item.price !== finalPrice && customPrice) {
+              await supabase
+                .from('customer_pricing')
+                .upsert({
+                  customer_id: invoice.customer_id,
+                  product_id: item.product_id,
+                  price: item.price,
+                  effective_date: invoice.date,
+                  is_active: true,
+                  created_by: (await supabase.auth.getUser()).data.user?.id,
+                  updated_by: (await supabase.auth.getUser()).data.user?.id,
+                });
+            }
+            
+            return {
+              ...item,
+              price: item.price, // Use the manually entered price
+              total: item.price * item.quantity
+            };
+          } catch (error) {
+            console.warn('Failed to get custom price for product:', item.product_id, error);
+            return item;
+          }
+        })
+      );
       
       const newSubtotal = itemsWithCustomPricing.reduce((sum, item) => sum + item.total, 0);
       const newTotal = newSubtotal + invoice.tax - invoice.discount;
@@ -73,9 +110,10 @@ export const useCreateInvoice = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['customer-pricing'] });
       toast({
         title: "Success",
-        description: "Invoice created successfully with custom pricing applied",
+        description: "Invoice created successfully with pricing saved",
       });
     },
     onError: (error) => {
@@ -108,6 +146,37 @@ export const useUpdateInvoice = () => {
         total: number;
       }[] 
     }) => {
+      // Save any manual price changes as customer pricing
+      if (items && invoiceData.customer_id) {
+        await Promise.all(
+          items.map(async (item) => {
+            try {
+              const { data: customPrice } = await supabase.rpc('get_customer_price', {
+                p_customer_id: invoiceData.customer_id,
+                p_product_id: item.product_id,
+                p_date: invoiceData.date || new Date().toISOString().split('T')[0]
+              });
+              
+              // If the price is different from the customer's current price, save it
+              if (customPrice !== item.price) {
+                await supabase
+                  .from('customer_pricing')
+                  .upsert({
+                    customer_id: invoiceData.customer_id,
+                    product_id: item.product_id,
+                    price: item.price,
+                    effective_date: invoiceData.date || new Date().toISOString().split('T')[0],
+                    is_active: true,
+                    updated_by: (await supabase.auth.getUser()).data.user?.id,
+                  });
+              }
+            } catch (error) {
+              console.warn('Failed to save custom price for product:', item.product_id, error);
+            }
+          })
+        );
+      }
+
       const { data: updatedInvoice, error: invoiceError } = await supabase
         .from('invoices')
         .update(invoiceData)
@@ -143,9 +212,10 @@ export const useUpdateInvoice = () => {
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
       queryClient.invalidateQueries({ queryKey: ['invoice', invoiceId] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['customer-pricing'] });
       toast({
         title: "Success",
-        description: "Invoice updated successfully",
+        description: "Invoice updated successfully with pricing saved",
       });
     },
     onError: (error) => {

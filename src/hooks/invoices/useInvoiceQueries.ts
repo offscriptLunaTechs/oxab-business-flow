@@ -24,7 +24,9 @@ export const useInvoices = () => {
 export const useInvoice = (invoiceId: string) => {
   return useQuery({
     queryKey: ['invoice', invoiceId],
-    queryFn: async (): Promise<InvoiceWithDetails> => {
+    queryFn: async (): Promise<InvoiceWithDetails | null> => {
+      if (!invoiceId) return null;
+      
       const { data: invoice, error: invoiceError } = await supabase
         .from('invoices')
         .select(`
@@ -32,9 +34,10 @@ export const useInvoice = (invoiceId: string) => {
           customers!invoices_customer_id_fkey(*)
         `)
         .eq('id', invoiceId)
-        .single();
+        .maybeSingle();
       
       if (invoiceError) throw invoiceError;
+      if (!invoice) return null;
 
       const { data: items, error: itemsError } = await supabase
         .from('invoice_items')

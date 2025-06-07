@@ -11,20 +11,56 @@ const EditInvoice = () => {
   const { invoiceId } = useParams<{ invoiceId: string }>();
   const navigate = useNavigate();
 
-  const { data: invoice, isLoading } = useInvoice(invoiceId || '');
+  const { data: invoice, isLoading, error } = useInvoice(invoiceId || '');
   const updateInvoice = useUpdateInvoice();
 
   if (isLoading) {
-    return <div>Loading invoice...</div>;
+    return (
+      <div className="container mx-auto py-10">
+        <div className="text-center">Loading invoice...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container mx-auto py-10">
+        <div className="text-center">
+          <p className="text-red-600 mb-4">Error loading invoice: {error.message}</p>
+          <Button 
+            variant="outline" 
+            onClick={() => navigate('/invoices/InvoicesList')}
+          >
+            Back to Invoices
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   if (!invoice) {
-    return <div>Invoice not found</div>;
+    return (
+      <div className="container mx-auto py-10">
+        <div className="text-center">
+          <p className="text-gray-600 mb-4">Invoice not found</p>
+          <Button 
+            variant="outline" 
+            onClick={() => navigate('/invoices/InvoicesList')}
+          >
+            Back to Invoices
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   const handleUpdate = async (values: any) => {
     try {
-      await updateInvoice.mutateAsync({ invoiceId: invoice.id, invoiceData: values, items: values.items });
+      await updateInvoice.mutateAsync({ 
+        invoiceId: invoice.id, 
+        invoiceData: values, 
+        items: values.items 
+      });
       navigate('/invoices/InvoicesList');
     } catch (error) {
       console.error("Failed to update invoice", error);
