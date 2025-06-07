@@ -5,22 +5,26 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, Plus, Trash2 } from 'lucide-react';
-import { format, addDays } from 'date-fns';
+import { Checkbox } from '@/components/ui/checkbox';
+import { DatePicker } from '@/components/ui/date-picker';
+import { Plus, Trash2, Search } from 'lucide-react';
+import { addDays } from 'date-fns';
 import { useProducts } from '@/hooks/useProducts';
 import { useCustomers } from '@/hooks/useCustomers';
 import { useState } from 'react';
-import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
 import { useCreateInvoice } from '@/hooks/useInvoices';
+import { ProductSelectionModal } from '@/components/invoices/ProductSelectionModal';
+import { Product } from '@/types/invoice';
 
 interface Item {
   product_id: string;
   quantity: number;
   price: number;
   total: number;
+  product_name?: string;
+  product_size?: string;
+  product_sku?: string;
 }
 
 const CreateInvoice = () => {
@@ -28,10 +32,11 @@ const CreateInvoice = () => {
   const [customerId, setCustomerId] = useState('');
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [dueDate, setDueDate] = useState<Date | undefined>(addDays(new Date(), 30));
-  const [items, setItems] = useState<Item[]>([{ product_id: '', quantity: 1, price: 0, total: 0 }]);
+  const [items, setItems] = useState<Item[]>([]);
   const [notes, setNotes] = useState('');
-  const [tax, setTax] = useState(0);
   const [discount, setDiscount] = useState(0);
+  const [isFreeOfCharge, setIsFreeOfCharge] = useState(false);
+  const [isProductModalOpen, setIsProductModalOpen] = useState(false);
 
   const { data: products = [] } = useProducts();
   const { data: customers = [] } = useCustomers();
@@ -42,10 +47,19 @@ const CreateInvoice = () => {
   };
 
   const subtotal = calculateSubtotal();
-  const total = subtotal + tax - discount;
+  const total = isFreeOfCharge ? 0 : subtotal - discount;
 
-  const addItem = () => {
-    setItems([...items, { product_id: '', quantity: 1, price: 0, total: 0 }]);
+  const addItemFromModal = (product: Product) => {
+    const newItem: Item = {
+      product_id: product.id,
+      quantity: 1,
+      price: product.base_price,
+      total: product.base_price,
+      product_name: product.name,
+      product_size: product.size,
+      product_sku: product.sku,
+    };
+    setItems([...items, newItem]);
   };
 
   const removeItem = (index: number) => {
@@ -58,10 +72,15 @@ const CreateInvoice = () => {
     const newItems = [...items];
     newItems[index][field] = value;
 
-    // If product_id is updated, fetch the product and update the price
+    // If product_id is updated, fetch the product and update the details
     if (field === 'product_id') {
       const product = products.find((p) => p.id === value);
-      newItems[index].price = product?.base_price || 0;
+      if (product) {
+        newItems[index].price = product.base_price;
+        newItems[index].product_name = product.name;
+        newItems[index].product_size = product.size;
+        newItems[index].product_sku = product.sku;
+      }
     }
 
     // Recalculate total
@@ -70,21 +89,26 @@ const CreateInvoice = () => {
   };
 
   const handleSubmit = async () => {
+    if (!customerId || items.length === 0) {
+      console.error('Customer and items are required');
+      return;
+    }
+
     const invoiceData = {
       customer_id: customerId,
-      date: date ? format(date, 'yyyy-MM-dd') : '',
-      due_date: dueDate ? format(dueDate, 'yyyy-MM-dd') : '',
+      date: date ? date.toISOString().split('T')[0] : '',
+      due_date: dueDate ? dueDate.toISOString().split('T')[0] : '',
       subtotal: subtotal,
-      tax: tax,
+      tax: 0, // No tax in Kuwait
       discount: discount,
       total: total,
-      status: 'unpaid',
-      notes: notes,
+      status: 'pending',
+      notes: isFreeOfCharge ? `${notes}\n[FREE OF CHARGE]`.trim() : notes,
       items: items.map(item => ({
         product_id: item.product_id,
         quantity: item.quantity,
-        price: item.price,
-        total: item.total
+        price: isFreeOfCharge ? 0 : item.price,
+        total: isFreeOfCharge ? 0 : item.total
       }))
     };
 
@@ -124,107 +148,120 @@ const CreateInvoice = () => {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label>Date</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant={"outline"}
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !date && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {date ? format(date, "PPP") : <span>Pick a date</span>}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <Calendar
-                    mode="single"
-                    selected={date}
-                    onSelect={setDate}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
+              <DatePicker
+                date={date}
+                onDateChange={setDate}
+                placeholder="Pick invoice date"
+              />
             </div>
             <div>
               <Label>Due Date</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant={"outline"}
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !dueDate && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {dueDate ? format(dueDate, "PPP") : <span>Pick a due date</span>}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <Calendar
-                    mode="single"
-                    selected={dueDate}
-                    onSelect={setDueDate}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
+              <DatePicker
+                date={dueDate}
+                onDateChange={setDueDate}
+                placeholder="Pick due date"
+              />
             </div>
           </div>
 
           {/* Items */}
           <div>
-            <Label>Items</Label>
-            {items.map((item, index) => (
-              <div key={index} className="grid grid-cols-5 gap-4 py-2 border-b">
-                {/* Product Select */}
-                <div className="col-span-2">
-                  <Select value={item.product_id} onValueChange={(value) => updateItem(index, 'product_id', value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select product" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {products.map((product) => (
-                        <SelectItem key={product.id} value={product.id}>
-                          {product.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+            <div className="flex justify-between items-center mb-4">
+              <Label>Items</Label>
+              <Button 
+                type="button" 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setIsProductModalOpen(true)}
+                className="flex items-center space-x-2"
+              >
+                <Search className="h-4 w-4" />
+                <span>Browse Products</span>
+              </Button>
+            </div>
 
-                {/* Quantity Input */}
-                <div>
-                  <Input
-                    type="number"
-                    value={item.quantity}
-                    onChange={(e) => updateItem(index, 'quantity', parseInt(e.target.value))}
-                  />
-                </div>
-
-                {/* Price Display */}
-                <div>
-                  <Input
-                    type="number"
-                    value={item.price}
-                    readOnly
-                  />
-                </div>
-
-                {/* Remove Button */}
-                <div>
-                  <Button type="button" variant="destructive" size="sm" onClick={() => removeItem(index)}>
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
+            {items.length === 0 ? (
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+                <p className="text-gray-500 mb-4">No items added yet</p>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => setIsProductModalOpen(true)}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add First Item
+                </Button>
               </div>
-            ))}
-            <Button type="button" variant="secondary" size="sm" onClick={addItem}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Item
-            </Button>
+            ) : (
+              <div className="space-y-2">
+                {items.map((item, index) => (
+                  <div key={index} className="grid grid-cols-12 gap-4 py-3 px-4 border rounded-lg bg-gray-50">
+                    <div className="col-span-5">
+                      <div className="space-y-1">
+                        <p className="font-medium text-sm">{item.product_name}</p>
+                        <p className="text-xs text-gray-600">SKU: {item.product_sku}</p>
+                        <p className="text-xs text-gray-600">Size: {item.product_size}</p>
+                      </div>
+                    </div>
+
+                    <div className="col-span-2">
+                      <Label className="text-xs">Quantity</Label>
+                      <Input
+                        type="number"
+                        value={item.quantity}
+                        onChange={(e) => updateItem(index, 'quantity', parseInt(e.target.value) || 0)}
+                        className="h-8"
+                        min="1"
+                      />
+                    </div>
+
+                    <div className="col-span-2">
+                      <Label className="text-xs">Price</Label>
+                      <Input
+                        type="number"
+                        value={item.price}
+                        onChange={(e) => updateItem(index, 'price', parseFloat(e.target.value) || 0)}
+                        className="h-8"
+                        step="0.01"
+                      />
+                    </div>
+
+                    <div className="col-span-2">
+                      <Label className="text-xs">Total</Label>
+                      <Input
+                        type="number"
+                        value={item.total.toFixed(2)}
+                        readOnly
+                        className="h-8 bg-gray-100"
+                      />
+                    </div>
+
+                    <div className="col-span-1 flex items-end">
+                      <Button 
+                        type="button" 
+                        variant="destructive" 
+                        size="sm" 
+                        onClick={() => removeItem(index)}
+                        className="h-8 w-8 p-0"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+                
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => setIsProductModalOpen(true)}
+                  className="w-full mt-4"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Another Item
+                </Button>
+              </div>
+            )}
           </div>
 
           {/* Notes */}
@@ -233,16 +270,17 @@ const CreateInvoice = () => {
             <Input id="notes" value={notes} onChange={(e) => setNotes(e.target.value)} />
           </div>
 
-          {/* Tax and Discount */}
+          {/* Free of Charge and Discount */}
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="tax">Tax</Label>
-              <Input
-                type="number"
-                id="tax"
-                value={tax}
-                onChange={(e) => setTax(parseFloat(e.target.value))}
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="free-of-charge"
+                checked={isFreeOfCharge}
+                onCheckedChange={setIsFreeOfCharge}
               />
+              <Label htmlFor="free-of-charge" className="text-sm font-medium">
+                Free of Charge
+              </Label>
             </div>
             <div>
               <Label htmlFor="discount">Discount</Label>
@@ -250,29 +288,50 @@ const CreateInvoice = () => {
                 type="number"
                 id="discount"
                 value={discount}
-                onChange={(e) => setDiscount(parseFloat(e.target.value))}
+                onChange={(e) => setDiscount(parseFloat(e.target.value) || 0)}
+                disabled={isFreeOfCharge}
+                step="0.01"
               />
             </div>
           </div>
 
           {/* Subtotal and Total */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-4 pt-4 border-t">
             <div>
               <Label>Subtotal</Label>
-              <Input type="number" value={subtotal} readOnly />
+              <Input type="number" value={subtotal.toFixed(2)} readOnly className="bg-gray-50" />
             </div>
             <div>
               <Label>Total</Label>
-              <Input type="number" value={total} readOnly />
+              <Input 
+                type="number" 
+                value={total.toFixed(2)} 
+                readOnly 
+                className={`bg-gray-50 ${isFreeOfCharge ? 'text-green-600 font-bold' : ''}`}
+              />
+              {isFreeOfCharge && (
+                <p className="text-xs text-green-600 mt-1">This invoice is marked as free of charge</p>
+              )}
             </div>
           </div>
 
           {/* Submit Button */}
-          <Button onClick={handleSubmit} disabled={createInvoice.isPending}>
+          <Button 
+            onClick={handleSubmit} 
+            disabled={createInvoice.isPending || !customerId || items.length === 0}
+            className="w-full"
+          >
             {createInvoice.isPending ? 'Creating...' : 'Create Invoice'}
           </Button>
         </CardContent>
       </Card>
+
+      {/* Product Selection Modal */}
+      <ProductSelectionModal
+        isOpen={isProductModalOpen}
+        onClose={() => setIsProductModalOpen(false)}
+        onSelectProduct={addItemFromModal}
+      />
     </div>
   );
 };
