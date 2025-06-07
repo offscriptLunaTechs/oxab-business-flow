@@ -11,8 +11,14 @@ const EditInvoice = () => {
   const { invoiceId } = useParams<{ invoiceId: string }>();
   const navigate = useNavigate();
 
+  console.log('EditInvoice - invoiceId from params:', invoiceId);
+
   const { data: invoice, isLoading, error } = useInvoice(invoiceId || '');
   const updateInvoice = useUpdateInvoice();
+
+  console.log('EditInvoice - invoice data:', invoice);
+  console.log('EditInvoice - isLoading:', isLoading);
+  console.log('EditInvoice - error:', error);
 
   if (isLoading) {
     return (
@@ -23,13 +29,14 @@ const EditInvoice = () => {
   }
 
   if (error) {
+    console.error('Invoice loading error:', error);
     return (
       <div className="container mx-auto py-10">
         <div className="text-center">
           <p className="text-red-600 mb-4">Error loading invoice: {error.message}</p>
           <Button 
             variant="outline" 
-            onClick={() => navigate('/invoices/InvoicesList')}
+            onClick={() => navigate('/invoices')}
           >
             Back to Invoices
           </Button>
@@ -45,7 +52,7 @@ const EditInvoice = () => {
           <p className="text-gray-600 mb-4">Invoice not found</p>
           <Button 
             variant="outline" 
-            onClick={() => navigate('/invoices/InvoicesList')}
+            onClick={() => navigate('/invoices')}
           >
             Back to Invoices
           </Button>
@@ -61,14 +68,14 @@ const EditInvoice = () => {
         invoiceData: values, 
         items: values.items 
       });
-      navigate('/invoices/InvoicesList');
+      navigate('/invoices');
     } catch (error) {
       console.error("Failed to update invoice", error);
     }
   };
 
   const handleBack = () => {
-    navigate('/invoices/InvoicesList');
+    navigate('/invoices');
   };
 
   return (
@@ -99,12 +106,12 @@ const EditInvoice = () => {
               total: invoice.total,
               status: invoice.status,
               notes: invoice.notes || '',
-              items: invoice.items.map(item => ({
+              items: invoice.items?.map(item => ({
                 product_id: item.product_id,
                 quantity: item.quantity,
                 price: item.price,
                 total: item.total,
-              })),
+              })) || [],
             }}
             onSubmit={handleUpdate}
             submitButtonLabel="Update Invoice"

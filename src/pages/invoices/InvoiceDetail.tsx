@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Edit, Download, FileText, User, Calendar, DollarSign } from 'lucide-react';
@@ -14,11 +15,17 @@ import { saveAs } from 'file-saver';
 import { useToast } from '@/hooks/use-toast';
 
 const InvoiceDetail = () => {
-  const { id } = useParams<{ id: string }>();
+  const { invoiceId } = useParams<{ invoiceId: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
   
-  const { data: invoice, isLoading, error } = useInvoice(id!);
+  console.log('InvoiceDetail - invoiceId from params:', invoiceId);
+  
+  const { data: invoice, isLoading, error } = useInvoice(invoiceId || '');
+
+  console.log('InvoiceDetail - invoice data:', invoice);
+  console.log('InvoiceDetail - isLoading:', isLoading);
+  console.log('InvoiceDetail - error:', error);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -59,12 +66,28 @@ const InvoiceDetail = () => {
     );
   }
 
-  if (error || !invoice) {
+  if (error) {
+    console.error('Invoice loading error:', error);
     return (
       <div className="text-center py-8">
-        <p className="text-red-600">
-          {error ? `Error loading invoice: ${error.message}` : 'Invoice not found'}
+        <p className="text-red-600 mb-4">
+          Error loading invoice: {error.message}
         </p>
+        <Button 
+          variant="outline" 
+          onClick={() => navigate('/invoices')} 
+          className="mt-4"
+        >
+          Back to Invoices
+        </Button>
+      </div>
+    );
+  }
+
+  if (!invoice) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-red-600 mb-4">Invoice not found</p>
         <Button 
           variant="outline" 
           onClick={() => navigate('/invoices')} 

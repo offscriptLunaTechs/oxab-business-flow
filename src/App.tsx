@@ -75,12 +75,12 @@ const App = () => (
                   <CreateInvoice />
                 </Suspense>
               } />
-              <Route path="invoices/:id" element={
+              <Route path="invoices/:invoiceId" element={
                 <Suspense fallback={<LoadingSpinner size="lg" />}>
                   <InvoiceDetail />
                 </Suspense>
               } />
-              <Route path="invoices/:id/edit" element={
+              <Route path="invoices/:invoiceId/edit" element={
                 <Suspense fallback={<LoadingSpinner size="lg" />}>
                   <EditInvoice />
                 </Suspense>
