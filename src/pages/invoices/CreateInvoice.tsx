@@ -276,7 +276,7 @@ const CreateInvoice = () => {
               <Checkbox
                 id="free-of-charge"
                 checked={isFreeOfCharge}
-                onCheckedChange={setIsFreeOfCharge}
+                onCheckedChange={(checked) => setIsFreeOfCharge(checked === true)}
               />
               <Label htmlFor="free-of-charge" className="text-sm font-medium">
                 Free of Charge
