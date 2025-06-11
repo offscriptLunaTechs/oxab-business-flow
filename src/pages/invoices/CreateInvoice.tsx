@@ -11,7 +11,8 @@ import { Plus, Trash2, Search } from 'lucide-react';
 import { addDays } from 'date-fns';
 import { useProducts } from '@/hooks/useProducts';
 import { useCustomers } from '@/hooks/useCustomers';
-import { useState } from 'react';
+import { useCustomerProductPrice } from '@/hooks/useCustomerPricing';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCreateInvoice } from '@/hooks/useInvoices';
 import { ProductSelectionModal } from '@/components/invoices/ProductSelectionModal';
@@ -49,12 +50,60 @@ const CreateInvoice = () => {
   const subtotal = calculateSubtotal();
   const total = isFreeOfCharge ? 0 : subtotal - discount;
 
-  const addItemFromModal = (product: Product) => {
+  // Function to update item price based on customer pricing
+  const updateItemPriceForCustomer = async (item: Item, customerIdToUse: string, dateToUse: string) => {
+    if (!item.product_id || !customerIdToUse) return item;
+
+    try {
+      const { data: customerPrice } = await useCustomerProductPrice(customerIdToUse, item.product_id).refetch();
+      if (customerPrice !== null && customerPrice !== undefined) {
+        return {
+          ...item,
+          price: customerPrice,
+          total: customerPrice * item.quantity
+        };
+      }
+    } catch (error) {
+      console.warn('Failed to fetch customer price for product:', item.product_id, error);
+    }
+    
+    return item;
+  };
+
+  // Update all item prices when customer changes
+  useEffect(() => {
+    if (customerId && items.length > 0 && date) {
+      const dateString = date.toISOString().split('T')[0];
+      const updateAllItemPrices = async () => {
+        const updatedItems = await Promise.all(
+          items.map(item => updateItemPriceForCustomer(item, customerId, dateString))
+        );
+        setItems(updatedItems);
+      };
+      updateAllItemPrices();
+    }
+  }, [customerId, date]);
+
+  const addItemFromModal = async (product: Product) => {
+    let price = product.base_price;
+    
+    // Try to get customer-specific price if customer is selected
+    if (customerId && date) {
+      try {
+        const { data: customerPrice } = await useCustomerProductPrice(customerId, product.id).refetch();
+        if (customerPrice !== null && customerPrice !== undefined) {
+          price = customerPrice;
+        }
+      } catch (error) {
+        console.warn('Failed to fetch customer price, using base price:', error);
+      }
+    }
+
     const newItem: Item = {
       product_id: product.id,
       quantity: 1,
-      price: product.base_price,
-      total: product.base_price,
+      price: price,
+      total: price,
       product_name: product.name,
       product_size: product.size,
       product_sku: product.sku,
@@ -68,7 +117,7 @@ const CreateInvoice = () => {
     setItems(newItems);
   };
 
-  const updateItem = (index: number, field: string, value: any) => {
+  const updateItem = async (index: number, field: string, value: any) => {
     const newItems = [...items];
     newItems[index][field] = value;
 
@@ -76,7 +125,21 @@ const CreateInvoice = () => {
     if (field === 'product_id') {
       const product = products.find((p) => p.id === value);
       if (product) {
-        newItems[index].price = product.base_price;
+        let price = product.base_price;
+        
+        // Try to get customer-specific price
+        if (customerId && date) {
+          try {
+            const { data: customerPrice } = await useCustomerProductPrice(customerId, value).refetch();
+            if (customerPrice !== null && customerPrice !== undefined) {
+              price = customerPrice;
+            }
+          } catch (error) {
+            console.warn('Failed to fetch customer price, using base price:', error);
+          }
+        }
+        
+        newItems[index].price = price;
         newItems[index].product_name = product.name;
         newItems[index].product_size = product.size;
         newItems[index].product_sku = product.sku;
@@ -114,7 +177,7 @@ const CreateInvoice = () => {
 
     try {
       await createInvoice.mutateAsync(invoiceData);
-      navigate('/invoices/InvoicesList');
+      navigate('/invoices');
     } catch (error) {
       console.error('Failed to create invoice', error);
     }
