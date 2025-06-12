@@ -42,7 +42,7 @@ export const useAdminUserManagement = () => {
       }
 
       console.log('User creation response:', data);
-      return data as AdminFunctionResponse;
+      return data as unknown as AdminFunctionResponse;
     },
     onSuccess: (data) => {
       if (data.success) {
@@ -72,7 +72,7 @@ export const useAdminUserManagement = () => {
         throw adminError;
       }
 
-      const adminResponse = adminData as AdminFunctionResponse;
+      const adminResponse = adminData as unknown as AdminFunctionResponse;
 
       // Then trigger the actual password reset email
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {

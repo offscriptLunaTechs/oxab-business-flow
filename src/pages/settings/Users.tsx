@@ -291,18 +291,10 @@ const Users = () => {
 
       console.log('User confirmed as admin, fetching users...');
       
-      // Fetch user roles with profile data using a corrected query
+      // First get all user roles
       const { data: userRolesData, error: rolesError } = await supabase
         .from('user_roles')
-        .select(`
-          user_id, 
-          role, 
-          created_at,
-          user_profiles!user_roles_user_id_fkey(
-            full_name,
-            department
-          )
-        `);
+        .select('user_id, role, created_at');
 
       if (rolesError) {
         console.error('Error fetching user roles:', rolesError);
@@ -312,14 +304,32 @@ const Users = () => {
 
       console.log('User roles data fetched:', userRolesData);
 
-      // Transform the data
-      const transformedUsers: UserWithRole[] = userRolesData.map(userRole => ({
-        id: userRole.user_id,
-        created_at: userRole.created_at,
-        role: userRole.role,
-        full_name: userRole.user_profiles?.full_name,
-        department: userRole.user_profiles?.department
-      }));
+      // Then get profiles for each user
+      const userIds = userRolesData.map(role => role.user_id);
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('user_profiles')
+        .select('user_id, full_name, department')
+        .in('user_id', userIds);
+
+      if (profilesError) {
+        console.error('Error fetching user profiles:', profilesError);
+        setError(`Failed to load user profiles: ${profilesError.message}`);
+        return;
+      }
+
+      console.log('User profiles data fetched:', profilesData);
+
+      // Combine the data
+      const transformedUsers: UserWithRole[] = userRolesData.map(userRole => {
+        const profile = profilesData.find(p => p.user_id === userRole.user_id);
+        return {
+          id: userRole.user_id,
+          created_at: userRole.created_at,
+          role: userRole.role,
+          full_name: profile?.full_name,
+          department: profile?.department
+        };
+      });
 
       console.log('Final transformed users data:', transformedUsers);
       setUsers(transformedUsers);
