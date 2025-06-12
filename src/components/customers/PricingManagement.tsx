@@ -28,10 +28,16 @@ export const PricingManagement = () => {
         <CardContent>
           {isFormOpen ? (
             <div className="space-y-4">
-              <CustomPricingForm
-                onSuccess={handleSuccess}
-                onCancel={() => setIsFormOpen(false)}
-              />
+              <div className="flex justify-end">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setIsFormOpen(false)}
+                  className="mb-4"
+                >
+                  Cancel
+                </Button>
+              </div>
+              <CustomPricingForm />
             </div>
           ) : (
             <CustomPricingList />

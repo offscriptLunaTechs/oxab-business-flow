@@ -16,6 +16,7 @@ import { useNavigate } from 'react-router-dom';
 import { useCreateInvoice } from '@/hooks/useInvoices';
 import { ProductSelectionModal } from '@/components/invoices/ProductSelectionModal';
 import { Product } from '@/types/invoice';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Item {
   product_id: string;

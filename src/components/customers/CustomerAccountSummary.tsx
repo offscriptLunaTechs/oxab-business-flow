@@ -10,11 +10,13 @@ import { StatementInvoiceList } from './StatementInvoiceList';
 import { PaymentEntry } from './PaymentEntry';
 import { PaymentHistory } from './PaymentHistory';
 import { subDays } from 'date-fns';
+import { useQueryClient } from '@tanstack/react-query';
 
 export const CustomerAccountSummary = () => {
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
   const [startDate] = useState<Date>(subDays(new Date(), 90)); // Last 90 days
   const [endDate] = useState<Date>(new Date());
+  const queryClient = useQueryClient();
 
   const { data: customers = [] } = useCustomers();
   const statementData = useCustomerStatement(selectedCustomerId, startDate, endDate);
@@ -24,8 +26,10 @@ export const CustomerAccountSummary = () => {
   const selectedCustomer = customers.find(c => c.id === selectedCustomerId);
 
   const handlePaymentAdded = () => {
-    // Refresh data after payment is added
-    statementData.refetch?.();
+    // Refresh data after payment is added using queryClient
+    queryClient.invalidateQueries({ queryKey: ['invoices'] });
+    queryClient.invalidateQueries({ queryKey: ['customer-payments', selectedCustomerId] });
+    queryClient.invalidateQueries({ queryKey: ['customer-outstanding-balance', selectedCustomerId] });
   };
 
   return (
