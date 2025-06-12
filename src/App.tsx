@@ -4,136 +4,156 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { lazy, Suspense } from "react";
+import { AuthProvider } from "@/context/AuthContext";
+import ProtectedRoute from "@/components/auth/ProtectedRoute";
+import AppLayout from "@/components/layout/AppLayout";
 import Index from "./pages/Index";
 import Login from "./pages/auth/Login";
 import AuthCallback from "./pages/auth/AuthCallback";
-import AppLayout from "./components/layout/AppLayout";
+import Dashboard from "./pages/dashboard/Dashboard";
+import Customers from "./pages/customers/Customers";
+import Inventory from "./pages/inventory/Inventory";
+import InvoicesList from "./pages/invoices/InvoicesList";
+import InvoiceDetail from "./pages/invoices/InvoiceDetail";
+import CreateInvoice from "./pages/invoices/CreateInvoice";
+import EditInvoice from "./pages/invoices/EditInvoice";
+import OutstandingInvoicesReport from "./pages/reports/OutstandingInvoicesReport";
+import Profile from "./pages/profile/Profile";
+import Settings from "./pages/settings/Settings";
+import Users from "./pages/settings/Users";
 import NotFound from "./pages/NotFound";
-import { AuthProvider } from "./context/AuthContext";
-import ProtectedRoute from "./components/auth/ProtectedRoute";
-import { LoadingSpinner } from "./components/ui/loading-spinner";
 
-// Lazy load components for better performance
-const Dashboard = lazy(() => import("./pages/dashboard/Dashboard"));
-const CreateInvoice = lazy(() => import("./pages/invoices/CreateInvoice"));
-const InvoicesList = lazy(() => import("./pages/invoices/InvoicesList"));
-const InvoiceDetail = lazy(() => import("./pages/invoices/InvoiceDetail"));
-const EditInvoice = lazy(() => import("./pages/invoices/EditInvoice"));
-const Customers = lazy(() => import("./pages/customers/Customers"));
-const Profile = lazy(() => import("./pages/profile/Profile"));
-const Inventory = lazy(() => import("./pages/inventory/Inventory"));
+const queryClient = new QueryClient();
 
-// Admin components - separate chunk
-const Settings = lazy(() => import("./pages/settings/Settings"));
-const Users = lazy(() => import("./pages/settings/Users"));
-const SecurityDashboard = lazy(() => import("./components/security/SecurityDashboard"));
-
-// Configure React Query with optimized settings
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 5 * 60 * 1000, // 5 minutes
-      gcTime: 10 * 60 * 1000, // 10 minutes
-      refetchOnWindowFocus: false,
-      retry: 2,
-      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
-    },
-  },
-});
-
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/auth/login" element={<Login />} />
-            <Route path="/auth/callback" element={<AuthCallback />} />
-            
-            {/* Protected Routes with Layout */}
-            <Route path="/" element={
-              <ProtectedRoute>
-                <AppLayout />
-              </ProtectedRoute>
-            }>
-              <Route path="dashboard" element={
-                <Suspense fallback={<LoadingSpinner size="lg" />}>
-                  <Dashboard />
-                </Suspense>
-              } />
-              <Route path="invoices" element={
-                <Suspense fallback={<LoadingSpinner size="lg" />}>
-                  <InvoicesList />
-                </Suspense>
-              } />
-              <Route path="invoices/new" element={
-                <Suspense fallback={<LoadingSpinner size="lg" />}>
-                  <CreateInvoice />
-                </Suspense>
-              } />
-              <Route path="invoices/:invoiceId" element={
-                <Suspense fallback={<LoadingSpinner size="lg" />}>
-                  <InvoiceDetail />
-                </Suspense>
-              } />
-              <Route path="invoices/:invoiceId/edit" element={
-                <Suspense fallback={<LoadingSpinner size="lg" />}>
-                  <EditInvoice />
-                </Suspense>
-              } />
-              <Route path="inventory" element={
-                <Suspense fallback={<LoadingSpinner size="lg" />}>
-                  <Inventory />
-                </Suspense>
-              } />
-              <Route path="customers" element={
-                <Suspense fallback={<LoadingSpinner size="lg" />}>
-                  <Customers />
-                </Suspense>
-              } />
-              <Route path="profile" element={
-                <Suspense fallback={<LoadingSpinner size="lg" />}>
-                  <Profile />
-                </Suspense>
-              } />
-              
-              {/* Settings Routes - Admin Only - Separate chunk */}
-              <Route path="settings" element={
-                <ProtectedRoute requiredRole="admin">
-                  <Suspense fallback={<LoadingSpinner size="lg" />}>
-                    <Settings />
-                  </Suspense>
-                </ProtectedRoute>
-              } />
-              <Route path="settings/users" element={
-                <ProtectedRoute requiredRole="admin">
-                  <Suspense fallback={<LoadingSpinner size="lg" />}>
-                    <Users />
-                  </Suspense>
-                </ProtectedRoute>
-              } />
-              <Route path="settings/security" element={
-                <ProtectedRoute requiredRole="admin">
-                  <Suspense fallback={<LoadingSpinner size="lg" />}>
-                    <SecurityDashboard />
-                  </Suspense>
-                </ProtectedRoute>
-              } />
-              
-              <Route path="reports" element={<div className="p-8 text-center">Reports page coming soon...</div>} />
-            </Route>
-            
-            {/* Catch-all route */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
-    </AuthProvider>
-  </QueryClientProvider>
-);
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/auth/callback" element={<AuthCallback />} />
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute>
+                    <AppLayout>
+                      <Dashboard />
+                    </AppLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/customers"
+                element={
+                  <ProtectedRoute>
+                    <AppLayout>
+                      <Customers />
+                    </AppLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/inventory"
+                element={
+                  <ProtectedRoute>
+                    <AppLayout>
+                      <Inventory />
+                    </AppLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/invoices"
+                element={
+                  <ProtectedRoute>
+                    <AppLayout>
+                      <InvoicesList />
+                    </AppLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/invoices/new"
+                element={
+                  <ProtectedRoute>
+                    <AppLayout>
+                      <CreateInvoice />
+                    </AppLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/invoices/:invoiceId"
+                element={
+                  <ProtectedRoute>
+                    <AppLayout>
+                      <InvoiceDetail />
+                    </AppLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/invoices/:invoiceId/edit"
+                element={
+                  <ProtectedRoute>
+                    <AppLayout>
+                      <EditInvoice />
+                    </AppLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/reports/outstanding-invoices"
+                element={
+                  <ProtectedRoute>
+                    <AppLayout>
+                      <OutstandingInvoicesReport />
+                    </AppLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/profile"
+                element={
+                  <ProtectedRoute>
+                    <AppLayout>
+                      <Profile />
+                    </AppLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/settings"
+                element={
+                  <ProtectedRoute>
+                    <AppLayout>
+                      <Settings />
+                    </AppLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/settings/users"
+                element={
+                  <ProtectedRoute>
+                    <AppLayout>
+                      <Users />
+                    </AppLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </AuthProvider>
+    </QueryClientProvider>
+  );
+}
 
 export default App;

@@ -1,7 +1,6 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FileText, Search, Filter, Plus, Eye, Edit, Download, Calendar, MoreHorizontal } from 'lucide-react';
+import { FileText, Search, Filter, Plus, Eye, Edit, Download, Calendar, MoreHorizontal, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -108,13 +107,23 @@ const InvoicesList = () => {
           <h1 className="text-3xl font-bold text-gray-900">Invoices</h1>
           <p className="text-gray-600">Manage and track all your invoices</p>
         </div>
-        <Button 
-          onClick={() => navigate('/invoices/new')}
-          className="flex items-center gap-2"
-        >
-          <Plus className="h-4 w-4" />
-          Create Invoice
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            variant="outline"
+            onClick={() => navigate('/reports/outstanding-invoices')}
+            className="flex items-center gap-2"
+          >
+            <AlertTriangle className="h-4 w-4" />
+            Outstanding Report
+          </Button>
+          <Button 
+            onClick={() => navigate('/invoices/new')}
+            className="flex items-center gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            Create Invoice
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}

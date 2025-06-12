@@ -35,11 +35,11 @@ const Dashboard = () => {
       onClick: () => navigate("/customers"),
     },
     {
-      title: "View Invoices",
-      description: "Browse and manage all your invoices and payments",
+      title: "Outstanding Report",
+      description: "View detailed outstanding invoices report with aging analysis",
       icon: TrendingUp,
       color: "orange" as const,
-      onClick: () => navigate("/invoices"),
+      onClick: () => navigate("/reports/outstanding-invoices"),
     },
   ];
 
@@ -63,6 +63,7 @@ const Dashboard = () => {
       changeType: (stats?.todayInvoices || 0) > 0 ? "positive" as const : "neutral" as const,
       icon: FileText,
       color: "blue" as const,
+      onClick: () => navigate("/invoices"),
     },
     {
       title: "Pending Invoices",
@@ -71,14 +72,16 @@ const Dashboard = () => {
       changeType: (stats?.pendingInvoices || 0) > 0 ? "neutral" as const : "positive" as const,
       icon: Clock,
       color: "orange" as const,
+      onClick: () => navigate("/invoices?status=pending"),
     },
     {
-      title: "Low Stock Items",
-      value: stats?.lowStockCount || 0,
-      change: (stats?.lowStockCount || 0) > 0 ? "Need restocking" : "Stock levels good",
-      changeType: (stats?.lowStockCount || 0) > 0 ? "negative" as const : "positive" as const,
-      icon: AlertCircle,
+      title: "Total Outstanding",
+      value: `KD ${(stats?.totalOutstanding || 0).toLocaleString()}`,
+      change: (stats?.totalOutstanding || 0) > 0 ? "Needs collection" : "All collected",
+      changeType: (stats?.totalOutstanding || 0) > 0 ? "negative" as const : "positive" as const,
+      icon: DollarSign,
       color: "red" as const,
+      onClick: () => navigate("/reports/outstanding-invoices"),
     },
     {
       title: "Monthly Revenue",
@@ -144,11 +147,11 @@ const Dashboard = () => {
             <CheckCircle className="h-5 w-5 text-green-600" />
             <div className="flex-1">
               <p className="text-sm font-medium text-gray-900">
-                Dashboard optimized for faster loading
+                Outstanding invoices report now available
               </p>
-              <p className="text-xs text-gray-500">Performance improvements active</p>
+              <p className="text-xs text-gray-500">Comprehensive aging analysis with payment tracking</p>
             </div>
-            <span className="text-sm font-medium text-green-600">Optimized</span>
+            <span className="text-sm font-medium text-green-600">New</span>
           </div>
           
           <div className="flex items-center space-x-3 p-3 bg-blue-50 rounded-lg">

@@ -1390,6 +1390,30 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: Json
       }
+      get_outstanding_invoices_report: {
+        Args: {
+          p_customer_id?: string
+          p_start_date?: string
+          p_end_date?: string
+          p_min_amount?: number
+        }
+        Returns: {
+          invoice_id: string
+          customer_id: string
+          customer_name: string
+          customer_code: string
+          customer_type: string
+          invoice_date: string
+          due_date: string
+          total_amount: number
+          paid_amount: number
+          outstanding_amount: number
+          days_overdue: number
+          aging_bucket: string
+          status: string
+          payment_status: string
+        }[]
+      }
       get_user_role_safe: {
         Args: { user_id?: string }
         Returns: string
