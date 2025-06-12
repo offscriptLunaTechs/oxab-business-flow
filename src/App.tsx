@@ -6,6 +6,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/context/AuthContext";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
+import DashboardLayout from "@/components/layout/DashboardLayout";
+import CustomersLayout from "@/components/layout/CustomersLayout";
+import InvoicesLayout from "@/components/layout/InvoicesLayout";
 import AppLayout from "@/components/layout/AppLayout";
 import Index from "./pages/Index";
 import Login from "./pages/auth/Login";
@@ -31,7 +34,7 @@ function App() {
                 path="/dashboard/*"
                 element={
                   <ProtectedRoute>
-                    <AppLayout />
+                    <DashboardLayout />
                   </ProtectedRoute>
                 }
               />
@@ -39,7 +42,7 @@ function App() {
                 path="/customers/*"
                 element={
                   <ProtectedRoute>
-                    <AppLayout />
+                    <CustomersLayout />
                   </ProtectedRoute>
                 }
               />
@@ -55,7 +58,7 @@ function App() {
                 path="/invoices/*"
                 element={
                   <ProtectedRoute>
-                    <AppLayout />
+                    <InvoicesLayout />
                   </ProtectedRoute>
                 }
               />
