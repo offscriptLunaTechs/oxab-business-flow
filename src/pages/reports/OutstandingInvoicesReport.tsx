@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DatePicker } from '@/components/ui/date-picker';
-import { useOutstandingInvoices, OutstandingInvoicesFilters } from '@/hooks/useOutstandingInvoices';
+import { useOutstandingInvoices, useCustomerSummaries, OutstandingInvoicesFilters } from '@/hooks/useOutstandingInvoices';
 import { useOutstandingInvoicesPDF } from '@/hooks/useOutstandingInvoicesPDF';
 import { useCustomers } from '@/hooks/useCustomers';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
@@ -47,6 +47,8 @@ const OutstandingInvoicesReport = () => {
 
     return filtered;
   }, [invoices, searchTerm, minAmountFilter]);
+
+  const customerSummaries = useCustomerSummaries(filteredInvoices);
 
   // Calculate summary statistics
   const totalOutstanding = filteredInvoices.reduce((sum, inv) => sum + inv.outstanding_amount, 0);
@@ -197,7 +199,7 @@ const OutstandingInvoicesReport = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {new Set(filteredInvoices.map(inv => inv.customer_id)).size}
+              {customerSummaries.length}
             </div>
             <p className="text-xs text-muted-foreground">
               With outstanding balances
@@ -206,22 +208,35 @@ const OutstandingInvoicesReport = () => {
         </Card>
       </div>
 
-      {/* Aging Analysis */}
+      {/* Customer Summary */}
       <Card>
         <CardHeader>
-          <CardTitle>Aging Analysis</CardTitle>
+          <CardTitle>Customer Summary</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-            {Object.entries(agingBuckets).map(([bucket, amount]) => (
-              <div key={bucket} className="text-center p-4 border rounded-lg">
-                <div className="text-sm font-medium text-gray-600">{bucket}</div>
-                <div className="text-xl font-bold mt-1">KWD {amount.toFixed(3)}</div>
-                <div className="text-xs text-gray-500 mt-1">
-                  {((amount / totalOutstanding) * 100).toFixed(1)}%
-                </div>
-              </div>
-            ))}
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Customer Code</TableHead>
+                  <TableHead>Customer Name</TableHead>
+                  <TableHead>Invoice Count</TableHead>
+                  <TableHead>Total Outstanding</TableHead>
+                  <TableHead>Oldest Invoice</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {customerSummaries.slice(0, 10).map((customer) => (
+                  <TableRow key={customer.customer_id}>
+                    <TableCell className="font-medium">{customer.customer_code}</TableCell>
+                    <TableCell>{customer.customer_name}</TableCell>
+                    <TableCell>{customer.invoice_count}</TableCell>
+                    <TableCell className="font-medium">KWD {customer.total_outstanding.toFixed(3)}</TableCell>
+                    <TableCell>{format(new Date(customer.oldest_invoice_date), 'MMM dd, yyyy')}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </div>
         </CardContent>
       </Card>

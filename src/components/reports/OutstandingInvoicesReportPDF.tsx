@@ -2,7 +2,7 @@
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet, Font } from '@react-pdf/renderer';
 import { format } from 'date-fns';
-import { OutstandingInvoice } from '@/hooks/useOutstandingInvoices';
+import { OutstandingInvoice, useCustomerSummaries } from '@/hooks/useOutstandingInvoices';
 
 // Register fonts for better typography
 Font.register({
@@ -21,8 +21,8 @@ const styles = StyleSheet.create({
     lineHeight: 1.5,
   },
   header: {
-    fontSize: 20,
-    marginBottom: 20,
+    fontSize: 18,
+    marginBottom: 10,
     textAlign: 'center',
     color: '#1f2937',
     fontWeight: 'bold',
@@ -31,45 +31,77 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     textAlign: 'center',
     color: '#6b7280',
+    fontSize: 9,
   },
-  section: {
-    margin: 10,
-    padding: 10,
-  },
-  summaryContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
+  reportTitle: {
+    fontSize: 14,
     marginBottom: 20,
-    backgroundColor: '#f9fafb',
-    padding: 15,
-    borderRadius: 5,
+    textAlign: 'center',
+    color: '#1f2937',
+    fontWeight: 'bold',
   },
-  summaryItem: {
-    alignItems: 'center',
+  summarySection: {
+    marginBottom: 25,
   },
-  summaryLabel: {
-    fontSize: 8,
-    color: '#6b7280',
-    marginBottom: 3,
-  },
-  summaryValue: {
+  sectionTitle: {
     fontSize: 12,
     fontWeight: 'bold',
+    marginBottom: 10,
     color: '#1f2937',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+    paddingBottom: 3,
   },
-  table: {
+  summaryTable: {
     width: 'auto',
     borderStyle: 'solid',
     borderWidth: 1,
-    borderRightWidth: 0,
-    borderBottomWidth: 0,
     borderColor: '#e5e7eb',
   },
-  tableRow: {
+  summaryTableRow: {
     margin: 'auto',
     flexDirection: 'row',
   },
-  tableColHeader: {
+  summaryTableColHeader: {
+    width: '25%',
+    borderStyle: 'solid',
+    borderWidth: 1,
+    borderLeftWidth: 0,
+    borderTopWidth: 0,
+    borderColor: '#e5e7eb',
+    backgroundColor: '#f3f4f6',
+    padding: 8,
+  },
+  summaryTableCol: {
+    width: '25%',
+    borderStyle: 'solid',
+    borderWidth: 1,
+    borderLeftWidth: 0,
+    borderTopWidth: 0,
+    borderColor: '#e5e7eb',
+    padding: 8,
+  },
+  summaryTableCellHeader: {
+    fontSize: 9,
+    fontWeight: 'bold',
+    color: '#374151',
+  },
+  summaryTableCell: {
+    fontSize: 9,
+    color: '#1f2937',
+  },
+  detailsTable: {
+    width: 'auto',
+    borderStyle: 'solid',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    marginTop: 15,
+  },
+  detailsTableRow: {
+    margin: 'auto',
+    flexDirection: 'row',
+  },
+  detailsTableColHeader: {
     width: '12.5%',
     borderStyle: 'solid',
     borderWidth: 1,
@@ -79,7 +111,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f3f4f6',
     padding: 5,
   },
-  tableCol: {
+  detailsTableCol: {
     width: '12.5%',
     borderStyle: 'solid',
     borderWidth: 1,
@@ -88,38 +120,42 @@ const styles = StyleSheet.create({
     borderColor: '#e5e7eb',
     padding: 5,
   },
-  tableCellHeader: {
+  detailsTableCellHeader: {
     fontSize: 8,
     fontWeight: 'bold',
     color: '#374151',
   },
-  tableCell: {
+  detailsTableCell: {
     fontSize: 8,
     color: '#1f2937',
   },
-  aging: {
-    marginTop: 20,
+  customerGroupHeader: {
+    backgroundColor: '#f9fafb',
+    padding: 8,
+    marginTop: 10,
+    marginBottom: 5,
   },
-  agingTitle: {
-    fontSize: 14,
+  customerGroupTitle: {
+    fontSize: 10,
     fontWeight: 'bold',
-    marginBottom: 10,
     color: '#1f2937',
   },
-  agingRow: {
+  totals: {
+    marginTop: 20,
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 3,
-    paddingHorizontal: 10,
-    backgroundColor: '#f9fafb',
+    justifyContent: 'flex-end',
+  },
+  totalItem: {
+    marginLeft: 20,
+    alignItems: 'flex-end',
+  },
+  totalLabel: {
+    fontSize: 10,
+    color: '#6b7280',
     marginBottom: 2,
   },
-  agingLabel: {
-    fontSize: 9,
-    color: '#374151',
-  },
-  agingAmount: {
-    fontSize: 9,
+  totalValue: {
+    fontSize: 12,
     fontWeight: 'bold',
     color: '#1f2937',
   },
@@ -154,20 +190,8 @@ export const OutstandingInvoicesReportPDF: React.FC<OutstandingInvoicesReportPDF
   invoices,
   filters
 }) => {
-  // Calculate summary statistics
+  const customerSummaries = useCustomerSummaries(invoices);
   const totalOutstanding = invoices.reduce((sum, inv) => sum + inv.outstanding_amount, 0);
-  const totalInvoices = invoices.length;
-  const overdueInvoices = invoices.filter(inv => inv.days_overdue > 0).length;
-  
-  // Calculate aging buckets
-  const agingBuckets = {
-    'Current': invoices.filter(inv => inv.aging_bucket === 'Current').reduce((sum, inv) => sum + inv.outstanding_amount, 0),
-    '1-30 Days': invoices.filter(inv => inv.aging_bucket === '1-30 Days').reduce((sum, inv) => sum + inv.outstanding_amount, 0),
-    '31-60 Days': invoices.filter(inv => inv.aging_bucket === '31-60 Days').reduce((sum, inv) => sum + inv.outstanding_amount, 0),
-    '61-90 Days': invoices.filter(inv => inv.aging_bucket === '61-90 Days').reduce((sum, inv) => sum + inv.outstanding_amount, 0),
-    '90+ Days': invoices.filter(inv => inv.aging_bucket === '90+ Days').reduce((sum, inv) => sum + inv.outstanding_amount, 0),
-  };
-
   const formatCurrency = (amount: number) => `KWD ${amount.toFixed(3)}`;
 
   return (
@@ -176,118 +200,153 @@ export const OutstandingInvoicesReportPDF: React.FC<OutstandingInvoicesReportPDF
         {/* Header */}
         <View style={styles.companyInfo}>
           <Text style={styles.header}>KECC Business System</Text>
-          <Text>Outstanding Invoices Report</Text>
+          <Text>Kuwait Engineering Contracting Company</Text>
+          <Text>Tel: +965 XXXX XXXX | Email: info@kecc.com.kw</Text>
         </View>
+
+        <Text style={styles.reportTitle}>Outstanding Invoices Report</Text>
 
         {/* Report Info */}
         <View style={styles.reportInfo}>
-          <Text>Generated on: {format(new Date(), 'MMM dd, yyyy HH:mm')}</Text>
+          <Text>Generated on: {format(new Date(), 'dd/MM/yyyy HH:mm')}</Text>
           {filters?.customerName && <Text>Customer: {filters.customerName}</Text>}
-          {filters?.startDate && <Text>Period: {format(filters.startDate, 'MMM dd, yyyy')} - {format(filters.endDate || new Date(), 'MMM dd, yyyy')}</Text>}
+          {filters?.startDate && <Text>Period: {format(filters.startDate, 'dd/MM/yyyy')} - {format(filters.endDate || new Date(), 'dd/MM/yyyy')}</Text>}
           {filters?.minAmount && <Text>Minimum Amount: {formatCurrency(filters.minAmount)}</Text>}
         </View>
 
-        {/* Summary Cards */}
-        <View style={styles.summaryContainer}>
-          <View style={styles.summaryItem}>
-            <Text style={styles.summaryLabel}>Total Outstanding</Text>
-            <Text style={styles.summaryValue}>{formatCurrency(totalOutstanding)}</Text>
-          </View>
-          <View style={styles.summaryItem}>
-            <Text style={styles.summaryLabel}>Total Invoices</Text>
-            <Text style={styles.summaryValue}>{totalInvoices}</Text>
-          </View>
-          <View style={styles.summaryItem}>
-            <Text style={styles.summaryLabel}>Overdue Invoices</Text>
-            <Text style={styles.summaryValue}>{overdueInvoices}</Text>
-          </View>
-          <View style={styles.summaryItem}>
-            <Text style={styles.summaryLabel}>Average Amount</Text>
-            <Text style={styles.summaryValue}>{formatCurrency(totalInvoices > 0 ? totalOutstanding / totalInvoices : 0)}</Text>
+        {/* Customer Summary Section */}
+        <View style={styles.summarySection}>
+          <Text style={styles.sectionTitle}>Customer Summary</Text>
+          <View style={styles.summaryTable}>
+            {/* Summary Table Header */}
+            <View style={styles.summaryTableRow}>
+              <View style={styles.summaryTableColHeader}>
+                <Text style={styles.summaryTableCellHeader}>Customer Code</Text>
+              </View>
+              <View style={styles.summaryTableColHeader}>
+                <Text style={styles.summaryTableCellHeader}>Customer Name</Text>
+              </View>
+              <View style={styles.summaryTableColHeader}>
+                <Text style={styles.summaryTableCellHeader}>Invoice Count</Text>
+              </View>
+              <View style={styles.summaryTableColHeader}>
+                <Text style={styles.summaryTableCellHeader}>Total Outstanding</Text>
+              </View>
+            </View>
+
+            {/* Summary Table Rows */}
+            {customerSummaries.slice(0, 15).map((customer) => (
+              <View key={customer.customer_id} style={styles.summaryTableRow}>
+                <View style={styles.summaryTableCol}>
+                  <Text style={styles.summaryTableCell}>{customer.customer_code}</Text>
+                </View>
+                <View style={styles.summaryTableCol}>
+                  <Text style={styles.summaryTableCell}>{customer.customer_name}</Text>
+                </View>
+                <View style={styles.summaryTableCol}>
+                  <Text style={styles.summaryTableCell}>{customer.invoice_count}</Text>
+                </View>
+                <View style={styles.summaryTableCol}>
+                  <Text style={styles.summaryTableCell}>{formatCurrency(customer.total_outstanding)}</Text>
+                </View>
+              </View>
+            ))}
           </View>
         </View>
 
-        {/* Aging Analysis */}
-        <View style={styles.aging}>
-          <Text style={styles.agingTitle}>Aging Analysis</Text>
-          {Object.entries(agingBuckets).map(([bucket, amount]) => (
-            <View key={bucket} style={styles.agingRow}>
-              <Text style={styles.agingLabel}>{bucket}</Text>
-              <Text style={styles.agingAmount}>{formatCurrency(amount)}</Text>
+        {/* Invoice Details Section */}
+        <Text style={styles.sectionTitle}>Invoice Details</Text>
+        
+        <View style={styles.detailsTable}>
+          {/* Details Table Header */}
+          <View style={styles.detailsTableRow}>
+            <View style={styles.detailsTableColHeader}>
+              <Text style={styles.detailsTableCellHeader}>Invoice ID</Text>
             </View>
+            <View style={styles.detailsTableColHeader}>
+              <Text style={styles.detailsTableCellHeader}>Customer</Text>
+            </View>
+            <View style={styles.detailsTableColHeader}>
+              <Text style={styles.detailsTableCellHeader}>Date</Text>
+            </View>
+            <View style={styles.detailsTableColHeader}>
+              <Text style={styles.detailsTableCellHeader}>Due Date</Text>
+            </View>
+            <View style={styles.detailsTableColHeader}>
+              <Text style={styles.detailsTableCellHeader}>Total</Text>
+            </View>
+            <View style={styles.detailsTableColHeader}>
+              <Text style={styles.detailsTableCellHeader}>Paid</Text>
+            </View>
+            <View style={styles.detailsTableColHeader}>
+              <Text style={styles.detailsTableCellHeader}>Outstanding</Text>
+            </View>
+            <View style={styles.detailsTableColHeader}>
+              <Text style={styles.detailsTableCellHeader}>Days Overdue</Text>
+            </View>
+          </View>
+
+          {/* Details Table Rows - grouped by customer */}
+          {customerSummaries.slice(0, 8).map((customer) => (
+            <React.Fragment key={customer.customer_id}>
+              <View style={styles.customerGroupHeader}>
+                <Text style={styles.customerGroupTitle}>
+                  {customer.customer_name} ({customer.customer_code}) - {formatCurrency(customer.total_outstanding)}
+                </Text>
+              </View>
+              {customer.invoices.slice(0, 5).map((invoice) => (
+                <View key={invoice.invoice_id} style={styles.detailsTableRow}>
+                  <View style={styles.detailsTableCol}>
+                    <Text style={styles.detailsTableCell}>{invoice.invoice_id}</Text>
+                  </View>
+                  <View style={styles.detailsTableCol}>
+                    <Text style={styles.detailsTableCell}>{invoice.customer_code}</Text>
+                  </View>
+                  <View style={styles.detailsTableCol}>
+                    <Text style={styles.detailsTableCell}>{format(new Date(invoice.invoice_date), 'dd/MM')}</Text>
+                  </View>
+                  <View style={styles.detailsTableCol}>
+                    <Text style={styles.detailsTableCell}>{format(new Date(invoice.due_date), 'dd/MM')}</Text>
+                  </View>
+                  <View style={styles.detailsTableCol}>
+                    <Text style={styles.detailsTableCell}>{formatCurrency(invoice.total_amount)}</Text>
+                  </View>
+                  <View style={styles.detailsTableCol}>
+                    <Text style={styles.detailsTableCell}>{formatCurrency(invoice.paid_amount)}</Text>
+                  </View>
+                  <View style={styles.detailsTableCol}>
+                    <Text style={styles.detailsTableCell}>{formatCurrency(invoice.outstanding_amount)}</Text>
+                  </View>
+                  <View style={styles.detailsTableCol}>
+                    <Text style={styles.detailsTableCell}>{invoice.days_overdue}</Text>
+                  </View>
+                </View>
+              ))}
+            </React.Fragment>
           ))}
         </View>
 
-        {/* Invoice Table */}
-        <View style={styles.table}>
-          {/* Table Header */}
-          <View style={styles.tableRow}>
-            <View style={styles.tableColHeader}>
-              <Text style={styles.tableCellHeader}>Invoice ID</Text>
-            </View>
-            <View style={styles.tableColHeader}>
-              <Text style={styles.tableCellHeader}>Customer</Text>
-            </View>
-            <View style={styles.tableColHeader}>
-              <Text style={styles.tableCellHeader}>Date</Text>
-            </View>
-            <View style={styles.tableColHeader}>
-              <Text style={styles.tableCellHeader}>Due Date</Text>
-            </View>
-            <View style={styles.tableColHeader}>
-              <Text style={styles.tableCellHeader}>Total</Text>
-            </View>
-            <View style={styles.tableColHeader}>
-              <Text style={styles.tableCellHeader}>Paid</Text>
-            </View>
-            <View style={styles.tableColHeader}>
-              <Text style={styles.tableCellHeader}>Outstanding</Text>
-            </View>
-            <View style={styles.tableColHeader}>
-              <Text style={styles.tableCellHeader}>Days Overdue</Text>
-            </View>
+        {/* Totals */}
+        <View style={styles.totals}>
+          <View style={styles.totalItem}>
+            <Text style={styles.totalLabel}>Total Outstanding:</Text>
+            <Text style={styles.totalValue}>{formatCurrency(totalOutstanding)}</Text>
           </View>
-
-          {/* Table Rows */}
-          {invoices.slice(0, 25).map((invoice) => (
-            <View key={invoice.invoice_id} style={styles.tableRow}>
-              <View style={styles.tableCol}>
-                <Text style={styles.tableCell}>{invoice.invoice_id}</Text>
-              </View>
-              <View style={styles.tableCol}>
-                <Text style={styles.tableCell}>{invoice.customer_name}</Text>
-              </View>
-              <View style={styles.tableCol}>
-                <Text style={styles.tableCell}>{format(new Date(invoice.invoice_date), 'MMM dd')}</Text>
-              </View>
-              <View style={styles.tableCol}>
-                <Text style={styles.tableCell}>{format(new Date(invoice.due_date), 'MMM dd')}</Text>
-              </View>
-              <View style={styles.tableCol}>
-                <Text style={styles.tableCell}>{formatCurrency(invoice.total_amount)}</Text>
-              </View>
-              <View style={styles.tableCol}>
-                <Text style={styles.tableCell}>{formatCurrency(invoice.paid_amount)}</Text>
-              </View>
-              <View style={styles.tableCol}>
-                <Text style={styles.tableCell}>{formatCurrency(invoice.outstanding_amount)}</Text>
-              </View>
-              <View style={styles.tableCol}>
-                <Text style={styles.tableCell}>{invoice.days_overdue}</Text>
-              </View>
-            </View>
-          ))}
+          <View style={styles.totalItem}>
+            <Text style={styles.totalLabel}>Total Invoices:</Text>
+            <Text style={styles.totalValue}>{invoices.length}</Text>
+          </View>
         </View>
 
-        {invoices.length > 25 && (
+        {invoices.length > 40 && (
           <Text style={[styles.reportInfo, { marginTop: 10 }]}>
-            Showing first 25 of {invoices.length} invoices. For complete data, use filters to narrow results.
+            Report shows first 40 invoices. Total outstanding: {formatCurrency(totalOutstanding)}
           </Text>
         )}
 
         {/* Footer */}
         <Text style={styles.footer}>
-          KECC Business System - Outstanding Invoices Report - Page 1
+          KECC Business System - Outstanding Invoices Report - {format(new Date(), 'dd/MM/yyyy')}
         </Text>
       </Page>
     </Document>
