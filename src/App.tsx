@@ -9,7 +9,10 @@ import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import CustomersLayout from "@/components/layout/CustomersLayout";
 import InvoicesLayout from "@/components/layout/InvoicesLayout";
-import AppLayout from "@/components/layout/AppLayout";
+import InventoryLayout from "@/components/layout/InventoryLayout";
+import ReportsLayout from "@/components/layout/ReportsLayout";
+import ProfileLayout from "@/components/layout/ProfileLayout";
+import SettingsLayout from "@/components/layout/SettingsLayout";
 import Index from "./pages/Index";
 import Login from "./pages/auth/Login";
 import AuthCallback from "./pages/auth/AuthCallback";
@@ -50,7 +53,7 @@ function App() {
                 path="/inventory/*"
                 element={
                   <ProtectedRoute>
-                    <AppLayout />
+                    <InventoryLayout />
                   </ProtectedRoute>
                 }
               />
@@ -66,7 +69,7 @@ function App() {
                 path="/reports/*"
                 element={
                   <ProtectedRoute>
-                    <AppLayout />
+                    <ReportsLayout />
                   </ProtectedRoute>
                 }
               />
@@ -74,7 +77,7 @@ function App() {
                 path="/profile/*"
                 element={
                   <ProtectedRoute>
-                    <AppLayout />
+                    <ProfileLayout />
                   </ProtectedRoute>
                 }
               />
@@ -82,7 +85,7 @@ function App() {
                 path="/settings/*"
                 element={
                   <ProtectedRoute requiredRole="admin">
-                    <AppLayout />
+                    <SettingsLayout />
                   </ProtectedRoute>
                 }
               />

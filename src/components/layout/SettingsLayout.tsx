@@ -5,13 +5,10 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import DesktopSidebar from "./DesktopSidebar";
 import MobileNav from "./MobileNav";
 import TopBar from "./TopBar";
-import Inventory from "@/pages/inventory/Inventory";
-import OutstandingInvoicesReport from "@/pages/reports/OutstandingInvoicesReport";
-import Profile from "@/pages/profile/Profile";
 import Settings from "@/pages/settings/Settings";
 import Users from "@/pages/settings/Users";
 
-const AppLayout = () => {
+const SettingsLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const isMobile = useIsMobile();
 
@@ -25,19 +22,6 @@ const AppLayout = () => {
             <TopBar onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
             <main className="p-6">
               <Routes>
-                {/* Inventory routes - relative paths */}
-                <Route index element={<Inventory />} />
-                <Route path="*" element={<Inventory />} />
-                
-                {/* Reports routes - relative paths */}
-                <Route path="outstanding-invoices" element={<OutstandingInvoicesReport />} />
-                <Route path="*" element={<OutstandingInvoicesReport />} />
-                
-                {/* Profile routes - relative paths */}
-                <Route index element={<Profile />} />
-                <Route path="*" element={<Profile />} />
-                
-                {/* Settings routes - relative paths */}
                 <Route index element={<Settings />} />
                 <Route path="users" element={<Users />} />
                 <Route path="*" element={<Settings />} />
@@ -53,19 +37,6 @@ const AppLayout = () => {
           <TopBar />
           <main className="p-4">
             <Routes>
-              {/* Inventory routes - relative paths */}
-              <Route index element={<Inventory />} />
-              <Route path="*" element={<Inventory />} />
-              
-              {/* Reports routes - relative paths */}
-              <Route path="outstanding-invoices" element={<OutstandingInvoicesReport />} />
-              <Route path="*" element={<OutstandingInvoicesReport />} />
-              
-              {/* Profile routes - relative paths */}
-              <Route index element={<Profile />} />
-              <Route path="*" element={<Profile />} />
-              
-              {/* Settings routes - relative paths */}
               <Route index element={<Settings />} />
               <Route path="users" element={<Users />} />
               <Route path="*" element={<Settings />} />
@@ -78,4 +49,4 @@ const AppLayout = () => {
   );
 };
 
-export default AppLayout;
+export default SettingsLayout;

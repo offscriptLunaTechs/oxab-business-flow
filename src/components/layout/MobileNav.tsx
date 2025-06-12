@@ -5,18 +5,26 @@ import {
   LayoutDashboard, 
   FileText, 
   Package, 
-  Users 
+  Users,
+  Settings
 } from "lucide-react";
-
-const navigation = [
-  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Invoices", href: "/invoices", icon: FileText },
-  { name: "Inventory", href: "/inventory", icon: Package },
-  { name: "Customers", href: "/customers", icon: Users },
-];
+import { useAuth } from "@/context/AuthContext";
 
 const MobileNav = () => {
   const location = useLocation();
+  const { userRole } = useAuth();
+
+  const navigation = [
+    { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+    { name: "Invoices", href: "/invoices", icon: FileText },
+    { name: "Inventory", href: "/inventory", icon: Package },
+    { name: "Customers", href: "/customers", icon: Users },
+  ];
+
+  // Add Settings for admin users
+  if (userRole === 'admin') {
+    navigation.push({ name: "Settings", href: "/settings", icon: Settings });
+  }
 
   return (
     <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-2">

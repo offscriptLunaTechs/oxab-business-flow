@@ -7,24 +7,34 @@ import {
   Package, 
   Users, 
   Settings,
+  BarChart3,
+  UserCircle,
   Menu
 } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
 
 interface DesktopSidebarProps {
   open: boolean;
   onToggle: () => void;
 }
 
-const navigation = [
-  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Invoices", href: "/invoices", icon: FileText },
-  { name: "Inventory", href: "/inventory", icon: Package },
-  { name: "Customers", href: "/customers", icon: Users },
-  { name: "Settings", href: "/settings", icon: Settings },
-];
-
 const DesktopSidebar = ({ open, onToggle }: DesktopSidebarProps) => {
   const location = useLocation();
+  const { userRole } = useAuth();
+
+  const navigation = [
+    { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+    { name: "Invoices", href: "/invoices", icon: FileText },
+    { name: "Inventory", href: "/inventory", icon: Package },
+    { name: "Customers", href: "/customers", icon: Users },
+    { name: "Reports", href: "/reports", icon: BarChart3 },
+    { name: "Profile", href: "/profile", icon: UserCircle },
+  ];
+
+  // Add Settings for admin users
+  if (userRole === 'admin') {
+    navigation.push({ name: "Settings", href: "/settings", icon: Settings });
+  }
 
   return (
     <div className={cn(
