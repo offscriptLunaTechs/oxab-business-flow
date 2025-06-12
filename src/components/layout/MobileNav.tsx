@@ -6,7 +6,8 @@ import {
   FileText, 
   Package, 
   Users,
-  Settings
+  Settings,
+  BarChart3
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
@@ -19,9 +20,10 @@ const MobileNav = () => {
     { name: "Invoices", href: "/invoices", icon: FileText },
     { name: "Inventory", href: "/inventory", icon: Package },
     { name: "Customers", href: "/customers", icon: Users },
+    { name: "Reports", href: "/reports", icon: BarChart3 },
   ];
 
-  // Add Settings for admin users
+  // Add Settings for admin users (now includes profile)
   if (userRole === 'admin') {
     navigation.push({ name: "Settings", href: "/settings", icon: Settings });
   }

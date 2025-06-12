@@ -8,7 +8,6 @@ import {
   Users, 
   Settings,
   BarChart3,
-  UserCircle,
   Menu
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
@@ -28,10 +27,9 @@ const DesktopSidebar = ({ open, onToggle }: DesktopSidebarProps) => {
     { name: "Inventory", href: "/inventory", icon: Package },
     { name: "Customers", href: "/customers", icon: Users },
     { name: "Reports", href: "/reports", icon: BarChart3 },
-    { name: "Profile", href: "/profile", icon: UserCircle },
   ];
 
-  // Add Settings for admin users
+  // Add Settings for admin users (now includes profile)
   if (userRole === 'admin') {
     navigation.push({ name: "Settings", href: "/settings", icon: Settings });
   }

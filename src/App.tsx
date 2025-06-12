@@ -11,7 +11,6 @@ import CustomersLayout from "@/components/layout/CustomersLayout";
 import InvoicesLayout from "@/components/layout/InvoicesLayout";
 import InventoryLayout from "@/components/layout/InventoryLayout";
 import ReportsLayout from "@/components/layout/ReportsLayout";
-import ProfileLayout from "@/components/layout/ProfileLayout";
 import SettingsLayout from "@/components/layout/SettingsLayout";
 import Index from "./pages/Index";
 import Login from "./pages/auth/Login";
@@ -70,14 +69,6 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <ReportsLayout />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/profile/*"
-                element={
-                  <ProtectedRoute>
-                    <ProfileLayout />
                   </ProtectedRoute>
                 }
               />
