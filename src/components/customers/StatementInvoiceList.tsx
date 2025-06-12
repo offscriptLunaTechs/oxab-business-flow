@@ -12,7 +12,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { format } from 'date-fns';
-import { CheckCircle, AlertCircle, Clock, CreditCard } from 'lucide-react';
+import { CheckCircle, AlertCircle, Clock, CreditCard, DollarSign } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useUpdateInvoice } from '@/hooks/useInvoices';
 import { useToast } from '@/hooks/use-toast';
@@ -26,30 +26,36 @@ export const StatementInvoiceList: React.FC<StatementInvoiceListProps> = ({ invo
   const { toast } = useToast();
 
   const getStatusBadge = (invoice: any) => {
-    if (invoice.status === 'paid') {
-      return (
-        <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
-          <CheckCircle className="h-3 w-3 mr-1" />
-          Paid
-        </Badge>
-      );
+    switch (invoice.payment_status) {
+      case 'paid':
+        return (
+          <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
+            <CheckCircle className="h-3 w-3 mr-1" />
+            Paid
+          </Badge>
+        );
+      case 'partially_paid':
+        return (
+          <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">
+            <DollarSign className="h-3 w-3 mr-1" />
+            Paid Partially
+          </Badge>
+        );
+      case 'overdue':
+        return (
+          <Badge className="bg-red-100 text-red-800 hover:bg-red-100">
+            <AlertCircle className="h-3 w-3 mr-1" />
+            Overdue
+          </Badge>
+        );
+      default:
+        return (
+          <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">
+            <Clock className="h-3 w-3 mr-1" />
+            Pending
+          </Badge>
+        );
     }
-    
-    if (invoice.isOverdue) {
-      return (
-        <Badge className="bg-red-100 text-red-800 hover:bg-red-100">
-          <AlertCircle className="h-3 w-3 mr-1" />
-          Overdue
-        </Badge>
-      );
-    }
-    
-    return (
-      <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">
-        <Clock className="h-3 w-3 mr-1" />
-        Pending
-      </Badge>
-    );
   };
 
   const handleMarkAsPaid = async (invoiceId: string) => {
@@ -88,9 +94,10 @@ export const StatementInvoiceList: React.FC<StatementInvoiceListProps> = ({ invo
                 <TableRow>
                   <TableHead>Date</TableHead>
                   <TableHead>Invoice #</TableHead>
-                  <TableHead>Amount</TableHead>
+                  <TableHead>Total Amount</TableHead>
+                  <TableHead>Paid Amount</TableHead>
+                  <TableHead>Outstanding</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Running Balance</TableHead>
                   <TableHead>Due Date</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
@@ -112,15 +119,20 @@ export const StatementInvoiceList: React.FC<StatementInvoiceListProps> = ({ invo
                       </span>
                     </TableCell>
                     <TableCell>
-                      {getStatusBadge(invoice)}
+                      <span className="font-medium text-green-600">
+                        KWD {Number(invoice.allocated_amount || 0).toFixed(3)}
+                      </span>
                     </TableCell>
                     <TableCell>
                       <span className={cn(
                         "font-medium",
-                        invoice.runningBalance > 0 ? "text-red-600" : "text-green-600"
+                        invoice.outstanding_amount > 0 ? "text-red-600" : "text-green-600"
                       )}>
-                        KWD {Number(invoice.runningBalance).toFixed(3)}
+                        KWD {Number(invoice.outstanding_amount || 0).toFixed(3)}
                       </span>
+                    </TableCell>
+                    <TableCell>
+                      {getStatusBadge(invoice)}
                     </TableCell>
                     <TableCell>
                       <span className={cn(
@@ -130,7 +142,7 @@ export const StatementInvoiceList: React.FC<StatementInvoiceListProps> = ({ invo
                       </span>
                     </TableCell>
                     <TableCell>
-                      {invoice.status !== 'paid' && (
+                      {invoice.payment_status !== 'paid' && (
                         <Button
                           size="sm"
                           variant="outline"

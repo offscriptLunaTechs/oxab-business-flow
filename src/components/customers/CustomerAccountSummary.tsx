@@ -16,7 +16,7 @@ import { useQueryClient } from '@tanstack/react-query';
 
 export const CustomerAccountSummary = () => {
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
-  const [startDate, setStartDate] = useState<Date>(subDays(new Date(), 90)); // Last 90 days
+  const [startDate, setStartDate] = useState<Date>(subDays(new Date(), 90));
   const [endDate, setEndDate] = useState<Date>(new Date());
   const queryClient = useQueryClient();
 
@@ -30,7 +30,7 @@ export const CustomerAccountSummary = () => {
   // Auto-adjust dates to cover all unpaid invoices for the customer
   React.useEffect(() => {
     if (selectedCustomerId && statementData.invoices.length > 0) {
-      const unpaidInvoices = statementData.invoices.filter(inv => inv.status !== 'paid');
+      const unpaidInvoices = statementData.invoices.filter(inv => inv.outstanding_amount > 0);
       if (unpaidInvoices.length > 0) {
         const oldestDate = new Date(Math.min(...unpaidInvoices.map(inv => new Date(inv.date).getTime())));
         const newestDate = new Date(Math.max(...unpaidInvoices.map(inv => new Date(inv.date).getTime())));
@@ -41,10 +41,11 @@ export const CustomerAccountSummary = () => {
   }, [selectedCustomerId, statementData.invoices]);
 
   const handlePaymentAdded = () => {
-    // Refresh data after payment is added using queryClient
+    // Refresh all related queries after payment is added
     queryClient.invalidateQueries({ queryKey: ['invoices'] });
     queryClient.invalidateQueries({ queryKey: ['customer-payments', selectedCustomerId] });
     queryClient.invalidateQueries({ queryKey: ['customer-outstanding-balance', selectedCustomerId] });
+    queryClient.invalidateQueries({ queryKey: ['customer-statement-invoices', selectedCustomerId] });
   };
 
   return (
@@ -81,12 +82,12 @@ export const CustomerAccountSummary = () => {
                   </p>
                 </div>
 
-                {/* Enhanced Summary Cards with Outstanding Balance */}
+                {/* Enhanced Summary Cards with Actual Outstanding Balance */}
                 <StatementSummaryCards
-                  totalOutstanding={outstandingBalance}
+                  totalOutstanding={statementData.totalOutstanding}
                   totalPaid={statementData.totalPaid}
                   totalInvoices={statementData.invoices.length}
-                  overdueInvoices={statementData.invoices.filter(inv => inv.isOverdue).length}
+                  overdueInvoices={statementData.invoices.filter(inv => inv.payment_status === 'overdue').length}
                 />
 
                 {/* Statement Generation and Actions */}
@@ -111,7 +112,7 @@ export const CustomerAccountSummary = () => {
                         invoices={statementData.invoices}
                         startDate={startDate}
                         endDate={endDate}
-                        totalOutstanding={outstandingBalance}
+                        totalOutstanding={statementData.totalOutstanding}
                         openingBalance={statementData.openingBalance}
                       />
                     )}
@@ -128,7 +129,7 @@ export const CustomerAccountSummary = () => {
                 {/* Payment History */}
                 <PaymentHistory payments={payments} />
 
-                {/* Invoice List */}
+                {/* Invoice List with Enhanced Payment Status */}
                 <StatementInvoiceList invoices={statementData.invoices} />
               </>
             )}
