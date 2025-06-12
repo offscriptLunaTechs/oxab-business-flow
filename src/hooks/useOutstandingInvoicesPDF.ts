@@ -21,8 +21,8 @@ export const useOutstandingInvoicesPDF = () => {
     mutationFn: async ({ invoices, filters, filename }: GeneratePDFParams) => {
       console.log('Generating Outstanding Invoices PDF...');
       
-      // Create the PDF document component directly
-      const pdfDocument = OutstandingInvoicesReportPDF({ invoices, filters });
+      // Create the PDF document as a JSX element
+      const pdfDocument = <OutstandingInvoicesReportPDF invoices={invoices} filters={filters} />;
       
       const blob = await pdf(pdfDocument).toBlob();
       
