@@ -7,6 +7,7 @@ export interface DashboardStats {
   pendingInvoices: number;
   overdueInvoices: number;
   monthlyRevenue: number;
+  totalOutstanding: number;
   lowStockCount: number;
   topCustomers: Array<{
     name: string;

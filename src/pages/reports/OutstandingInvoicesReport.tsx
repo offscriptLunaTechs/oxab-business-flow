@@ -188,7 +188,7 @@ const OutstandingInvoicesReport = () => {
               <label className="text-sm font-medium text-gray-700 mb-2 block">Start Date</label>
               <DatePicker
                 date={filters.startDate}
-                onSelect={(date) => handleFilterChange('startDate', date)}
+                onDateChange={(date) => handleFilterChange('startDate', date)}
                 placeholder="Select start date"
               />
             </div>
@@ -196,7 +196,7 @@ const OutstandingInvoicesReport = () => {
               <label className="text-sm font-medium text-gray-700 mb-2 block">End Date</label>
               <DatePicker
                 date={filters.endDate}
-                onSelect={(date) => handleFilterChange('endDate', date)}
+                onDateChange={(date) => handleFilterChange('endDate', date)}
                 placeholder="Select end date"
               />
             </div>

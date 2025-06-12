@@ -41,9 +41,7 @@ function App() {
                 path="/dashboard"
                 element={
                   <ProtectedRoute>
-                    <AppLayout>
-                      <Dashboard />
-                    </AppLayout>
+                    <AppLayout />
                   </ProtectedRoute>
                 }
               />
@@ -51,9 +49,7 @@ function App() {
                 path="/customers"
                 element={
                   <ProtectedRoute>
-                    <AppLayout>
-                      <Customers />
-                    </AppLayout>
+                    <AppLayout />
                   </ProtectedRoute>
                 }
               />
@@ -61,9 +57,7 @@ function App() {
                 path="/inventory"
                 element={
                   <ProtectedRoute>
-                    <AppLayout>
-                      <Inventory />
-                    </AppLayout>
+                    <AppLayout />
                   </ProtectedRoute>
                 }
               />
@@ -71,9 +65,7 @@ function App() {
                 path="/invoices"
                 element={
                   <ProtectedRoute>
-                    <AppLayout>
-                      <InvoicesList />
-                    </AppLayout>
+                    <AppLayout />
                   </ProtectedRoute>
                 }
               />
@@ -81,9 +73,7 @@ function App() {
                 path="/invoices/new"
                 element={
                   <ProtectedRoute>
-                    <AppLayout>
-                      <CreateInvoice />
-                    </AppLayout>
+                    <AppLayout />
                   </ProtectedRoute>
                 }
               />
@@ -91,9 +81,7 @@ function App() {
                 path="/invoices/:invoiceId"
                 element={
                   <ProtectedRoute>
-                    <AppLayout>
-                      <InvoiceDetail />
-                    </AppLayout>
+                    <AppLayout />
                   </ProtectedRoute>
                 }
               />
@@ -101,9 +89,7 @@ function App() {
                 path="/invoices/:invoiceId/edit"
                 element={
                   <ProtectedRoute>
-                    <AppLayout>
-                      <EditInvoice />
-                    </AppLayout>
+                    <AppLayout />
                   </ProtectedRoute>
                 }
               />
@@ -111,9 +97,7 @@ function App() {
                 path="/reports/outstanding-invoices"
                 element={
                   <ProtectedRoute>
-                    <AppLayout>
-                      <OutstandingInvoicesReport />
-                    </AppLayout>
+                    <AppLayout />
                   </ProtectedRoute>
                 }
               />
@@ -121,9 +105,7 @@ function App() {
                 path="/profile"
                 element={
                   <ProtectedRoute>
-                    <AppLayout>
-                      <Profile />
-                    </AppLayout>
+                    <AppLayout />
                   </ProtectedRoute>
                 }
               />
@@ -131,9 +113,7 @@ function App() {
                 path="/settings"
                 element={
                   <ProtectedRoute>
-                    <AppLayout>
-                      <Settings />
-                    </AppLayout>
+                    <AppLayout />
                   </ProtectedRoute>
                 }
               />
@@ -141,9 +121,7 @@ function App() {
                 path="/settings/users"
                 element={
                   <ProtectedRoute>
-                    <AppLayout>
-                      <Users />
-                    </AppLayout>
+                    <AppLayout />
                   </ProtectedRoute>
                 }
               />
