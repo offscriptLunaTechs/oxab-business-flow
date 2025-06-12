@@ -9,12 +9,19 @@ const Index = () => {
   const { user, loading } = useAuth();
 
   useEffect(() => {
-    if (loading) return;
+    if (loading) {
+      console.log('Auth still loading...');
+      return;
+    }
+    
+    console.log('Auth loaded, user:', user?.email || 'No user');
     
     if (user) {
+      console.log('User authenticated, redirecting to dashboard');
       navigate("/dashboard");
     } else {
-      navigate("/auth/login");
+      console.log('No user, redirecting to login');
+      navigate("/login");
     }
   }, [navigate, user, loading]);
 

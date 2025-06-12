@@ -31,6 +31,7 @@ const AppLayout = () => {
             <TopBar onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
             <main className="p-6">
               <Routes>
+                <Route path="/" element={<Dashboard />} />
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/customers" element={<Customers />} />
                 <Route path="/inventory" element={<Inventory />} />
@@ -42,8 +43,6 @@ const AppLayout = () => {
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/settings" element={<Settings />} />
                 <Route path="/settings/users" element={<Users />} />
-                {/* Default route for root path */}
-                <Route path="/" element={<Dashboard />} />
               </Routes>
             </main>
           </div>
@@ -56,6 +55,7 @@ const AppLayout = () => {
           <TopBar />
           <main className="p-4">
             <Routes>
+              <Route path="/" element={<Dashboard />} />
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/customers" element={<Customers />} />
               <Route path="/inventory" element={<Inventory />} />
@@ -67,8 +67,6 @@ const AppLayout = () => {
               <Route path="/profile" element={<Profile />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/settings/users" element={<Users />} />
-              {/* Default route for root path */}
-              <Route path="/" element={<Dashboard />} />
             </Routes>
           </main>
           <MobileNav />

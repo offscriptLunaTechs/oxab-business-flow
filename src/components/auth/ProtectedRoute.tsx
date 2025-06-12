@@ -15,13 +15,15 @@ const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {
 
   useEffect(() => {
     if (!loading && !user) {
-      navigate("/auth/login");
+      console.log('No user found, redirecting to login');
+      navigate("/login");
       return;
     }
 
     if (!loading && user && requiredRole) {
       const hasPermission = checkPermission(userRole, requiredRole);
       if (!hasPermission) {
+        console.log('Insufficient permissions, redirecting to dashboard');
         navigate("/dashboard");
       }
     }

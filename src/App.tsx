@@ -25,11 +25,60 @@ function App() {
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/login" element={<Login />} />
+              <Route path="/auth/login" element={<Login />} />
               <Route path="/auth/callback" element={<AuthCallback />} />
               <Route
-                path="/*"
+                path="/dashboard/*"
                 element={
                   <ProtectedRoute>
+                    <AppLayout />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/customers/*"
+                element={
+                  <ProtectedRoute>
+                    <AppLayout />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/inventory/*"
+                element={
+                  <ProtectedRoute>
+                    <AppLayout />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/invoices/*"
+                element={
+                  <ProtectedRoute>
+                    <AppLayout />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/reports/*"
+                element={
+                  <ProtectedRoute>
+                    <AppLayout />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/profile/*"
+                element={
+                  <ProtectedRoute>
+                    <AppLayout />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/settings/*"
+                element={
+                  <ProtectedRoute requiredRole="admin">
                     <AppLayout />
                   </ProtectedRoute>
                 }
