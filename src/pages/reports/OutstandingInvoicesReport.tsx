@@ -1,13 +1,12 @@
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Download, Filter, Eye, Calendar, DollarSign, Clock, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Download, Filter, Eye, Calendar, DollarSign, Clock, AlertTriangle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DatePicker } from '@/components/ui/date-picker';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { useOutstandingInvoices, OutstandingInvoicesFilters } from '@/hooks/useOutstandingInvoices';
@@ -18,7 +17,7 @@ const OutstandingInvoicesReport = () => {
   const [filters, setFilters] = useState<OutstandingInvoicesFilters>({});
   const [minAmountInput, setMinAmountInput] = useState('');
 
-  const { data: invoices = [], isLoading, error } = useOutstandingInvoices(filters);
+  const { data: invoices = [], isLoading, error, refetch } = useOutstandingInvoices(filters);
 
   const handleFilterChange = (key: keyof OutstandingInvoicesFilters, value: any) => {
     setFilters(prev => ({ ...prev, [key]: value }));
@@ -32,6 +31,11 @@ const OutstandingInvoicesReport = () => {
     } else if (value === '') {
       handleFilterChange('minAmount', undefined);
     }
+  };
+
+  const clearFilters = () => {
+    setFilters({});
+    setMinAmountInput('');
   };
 
   const getPaymentStatusColor = (status: string) => {
@@ -88,8 +92,42 @@ const OutstandingInvoicesReport = () => {
 
   if (error) {
     return (
-      <div className="text-center py-8">
-        <p className="text-red-600">Error loading outstanding invoices: {error.message}</p>
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate('/invoices')}
+              className="flex items-center"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Invoices
+            </Button>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Outstanding Invoices Report</h1>
+              <p className="text-gray-600">Track all unpaid and partially paid invoices</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Error State */}
+        <Card>
+          <CardContent className="p-6">
+            <div className="text-center py-8">
+              <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-red-600 mb-2">Error Loading Report</h3>
+              <p className="text-gray-600 mb-4">
+                {error.message || 'Failed to load outstanding invoices report'}
+              </p>
+              <Button onClick={() => refetch()} className="flex items-center gap-2">
+                <RefreshCw className="h-4 w-4" />
+                Retry
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -113,10 +151,16 @@ const OutstandingInvoicesReport = () => {
             <p className="text-gray-600">Track all unpaid and partially paid invoices</p>
           </div>
         </div>
-        <Button className="flex items-center gap-2">
-          <Download className="h-4 w-4" />
-          Export Report
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => refetch()} size="sm" className="flex items-center gap-2">
+            <RefreshCw className="h-4 w-4" />
+            Refresh
+          </Button>
+          <Button className="flex items-center gap-2">
+            <Download className="h-4 w-4" />
+            Export Report
+          </Button>
+        </div>
       </div>
 
       {/* Summary Cards */}
@@ -213,10 +257,7 @@ const OutstandingInvoicesReport = () => {
             <div className="flex items-end">
               <Button
                 variant="outline"
-                onClick={() => {
-                  setFilters({});
-                  setMinAmountInput('');
-                }}
+                onClick={clearFilters}
                 className="w-full"
               >
                 Clear Filters
@@ -238,7 +279,11 @@ const OutstandingInvoicesReport = () => {
             </div>
           ) : invoices.length === 0 ? (
             <div className="text-center py-8">
+              <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
               <p className="text-gray-600">No outstanding invoices found</p>
+              <p className="text-sm text-gray-500 mt-1">
+                Try adjusting your filters or check back later
+              </p>
             </div>
           ) : (
             <div className="overflow-x-auto">
