@@ -43,8 +43,9 @@ export const useStockMovements = (limit: number = 50) => {
       }
 
       console.log('Stock movements loaded:', data?.length || 0, 'records');
-      return data.map(movement => ({
+      return data?.map(movement => ({
         ...movement,
+        movement_type: movement.movement_type as 'in' | 'out' | 'adjustment',
         product: movement.products
       })) || [];
     },
@@ -82,8 +83,9 @@ export const useProductStockMovements = (productId: string, limit: number = 20) 
       }
 
       console.log('Product stock movements loaded:', data?.length || 0, 'records');
-      return data.map(movement => ({
+      return data?.map(movement => ({
         ...movement,
+        movement_type: movement.movement_type as 'in' | 'out' | 'adjustment',
         product: movement.products
       })) || [];
     },
