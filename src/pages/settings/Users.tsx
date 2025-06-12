@@ -291,14 +291,14 @@ const Users = () => {
 
       console.log('User confirmed as admin, fetching users...');
       
-      // Fetch user roles with profile data
+      // Fetch user roles with profile data using a corrected query
       const { data: userRolesData, error: rolesError } = await supabase
         .from('user_roles')
         .select(`
           user_id, 
           role, 
           created_at,
-          user_profiles!inner(
+          user_profiles!user_roles_user_id_fkey(
             full_name,
             department
           )

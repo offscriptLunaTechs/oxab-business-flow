@@ -14,6 +14,14 @@ interface ResetPasswordParams {
   email: string;
 }
 
+interface AdminFunctionResponse {
+  success: boolean;
+  message?: string;
+  error?: string;
+  user_id?: string;
+  resetEmailSent?: boolean;
+}
+
 export const useAdminUserManagement = () => {
   const queryClient = useQueryClient();
 
@@ -34,11 +42,11 @@ export const useAdminUserManagement = () => {
       }
 
       console.log('User creation response:', data);
-      return data;
+      return data as AdminFunctionResponse;
     },
     onSuccess: (data) => {
       if (data.success) {
-        toast.success(data.message);
+        toast.success(data.message || 'User created successfully');
         queryClient.invalidateQueries({ queryKey: ['users'] });
       } else {
         toast.error(data.error || 'Failed to create user');
@@ -64,6 +72,8 @@ export const useAdminUserManagement = () => {
         throw adminError;
       }
 
+      const adminResponse = adminData as AdminFunctionResponse;
+
       // Then trigger the actual password reset email
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/auth/callback`
@@ -74,7 +84,7 @@ export const useAdminUserManagement = () => {
         throw resetError;
       }
 
-      return { ...adminData, resetEmailSent: true };
+      return { ...adminResponse, resetEmailSent: true };
     },
     onSuccess: (data) => {
       if (data.success) {
