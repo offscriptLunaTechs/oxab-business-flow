@@ -9,13 +9,15 @@ import { StatementSummaryCards } from './StatementSummaryCards';
 import { StatementInvoiceList } from './StatementInvoiceList';
 import { PaymentEntry } from './PaymentEntry';
 import { PaymentHistory } from './PaymentHistory';
+import { StatementFilters } from './StatementFilters';
+import { StatementActions } from './StatementActions';
 import { subDays } from 'date-fns';
 import { useQueryClient } from '@tanstack/react-query';
 
 export const CustomerAccountSummary = () => {
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
-  const [startDate] = useState<Date>(subDays(new Date(), 90)); // Last 90 days
-  const [endDate] = useState<Date>(new Date());
+  const [startDate, setStartDate] = useState<Date>(subDays(new Date(), 90)); // Last 90 days
+  const [endDate, setEndDate] = useState<Date>(new Date());
   const queryClient = useQueryClient();
 
   const { data: customers = [] } = useCustomers();
@@ -24,6 +26,19 @@ export const CustomerAccountSummary = () => {
   const { data: outstandingBalance = 0 } = useCustomerOutstandingBalance(selectedCustomerId);
 
   const selectedCustomer = customers.find(c => c.id === selectedCustomerId);
+
+  // Auto-adjust dates to cover all unpaid invoices for the customer
+  React.useEffect(() => {
+    if (selectedCustomerId && statementData.invoices.length > 0) {
+      const unpaidInvoices = statementData.invoices.filter(inv => inv.status !== 'paid');
+      if (unpaidInvoices.length > 0) {
+        const oldestDate = new Date(Math.min(...unpaidInvoices.map(inv => new Date(inv.date).getTime())));
+        const newestDate = new Date(Math.max(...unpaidInvoices.map(inv => new Date(inv.date).getTime())));
+        setStartDate(oldestDate);
+        setEndDate(newestDate);
+      }
+    }
+  }, [selectedCustomerId, statementData.invoices]);
 
   const handlePaymentAdded = () => {
     // Refresh data after payment is added using queryClient
@@ -73,6 +88,35 @@ export const CustomerAccountSummary = () => {
                   totalInvoices={statementData.invoices.length}
                   overdueInvoices={statementData.invoices.filter(inv => inv.isOverdue).length}
                 />
+
+                {/* Statement Generation and Actions */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Generate Account Statement</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <StatementFilters
+                      customers={[selectedCustomer]}
+                      selectedCustomerId={selectedCustomerId}
+                      startDate={startDate}
+                      endDate={endDate}
+                      onCustomerChange={() => {}} // Disabled since customer is already selected
+                      onStartDateChange={(date) => date && setStartDate(date)}
+                      onEndDateChange={(date) => date && setEndDate(date)}
+                    />
+                    
+                    {statementData.invoices.length > 0 && (
+                      <StatementActions
+                        customer={selectedCustomer}
+                        invoices={statementData.invoices}
+                        startDate={startDate}
+                        endDate={endDate}
+                        totalOutstanding={outstandingBalance}
+                        openingBalance={statementData.openingBalance}
+                      />
+                    )}
+                  </CardContent>
+                </Card>
 
                 {/* Payment Entry */}
                 <PaymentEntry

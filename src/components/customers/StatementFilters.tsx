@@ -40,27 +40,10 @@ export const StatementFilters: React.FC<StatementFiltersProps> = ({
 }) => (
   <Card>
     <CardHeader>
-      <CardTitle>Customer Statement</CardTitle>
+      <CardTitle>Statement Period</CardTitle>
     </CardHeader>
     <CardContent className="space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Customer Selection */}
-        <div className="space-y-2">
-          <label className="text-sm font-medium">Select Customer</label>
-          <Select value={selectedCustomerId} onValueChange={onCustomerChange}>
-            <SelectTrigger>
-              <SelectValue placeholder="Search and select customer..." />
-            </SelectTrigger>
-            <SelectContent>
-              {customers.map((customer) => (
-                <SelectItem key={customer.id} value={customer.id}>
-                  {customer.name} ({customer.code})
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Start Date */}
         <div className="space-y-2">
           <label className="text-sm font-medium">Start Date</label>
