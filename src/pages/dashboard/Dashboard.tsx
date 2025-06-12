@@ -1,15 +1,18 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FileText, Package, Users, TrendingUp, AlertCircle, Clock, CheckCircle, DollarSign } from "lucide-react";
 import QuickActionCard from "@/components/dashboard/QuickActionCard";
 import StatsCard from "@/components/dashboard/StatsCard";
 import { useDashboardStats } from "@/hooks/useDashboardStats";
+import { usePaymentDataSync } from "@/hooks/usePaymentDataSync";
 import { DashboardSkeleton } from "@/components/ui/skeletons";
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const { data: stats, isLoading, error } = useDashboardStats();
+  
+  // Ensure payment data is synchronized
+  usePaymentDataSync();
 
   const quickActions = [
     {

@@ -1,65 +1,42 @@
 
-import { useState } from "react";
-import { Calendar, TrendingUp, TrendingDown, Package, Filter } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DatePicker } from "@/components/ui/date-picker";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-
-// Mock data for stock movements - in real app this would come from useStockMovements hook
-const mockMovements = [
-  {
-    id: "1",
-    product_name: "OXAB Mineral Water 500ml",
-    movement_type: "out",
-    quantity: 50,
-    previous_stock: 120,
-    new_stock: 70,
-    reason: "Invoice #INV-2024-003",
-    timestamp: "2024-06-06T10:30:00Z",
-    performed_by: "Ahmed Al-Mansouri"
-  },
-  {
-    id: "2",
-    product_name: "OXAB Mineral Water 330ml",
-    movement_type: "in",
-    quantity: 200,
-    previous_stock: 150,
-    new_stock: 350,
-    reason: "Purchase Order #PO-2024-001 received",
-    timestamp: "2024-06-06T09:15:00Z",
-    performed_by: "System"
-  },
-  {
-    id: "3",
-    product_name: "OXAB Mineral Water 1L",
-    movement_type: "adjustment",
-    quantity: -5,
-    previous_stock: 85,
-    new_stock: 80,
-    reason: "Damaged goods adjustment",
-    timestamp: "2024-06-05T16:45:00Z",
-    performed_by: "Sara Al-Kindi"
-  },
-  {
-    id: "4",
-    product_name: "OXAB Mineral Water 200ml",
-    movement_type: "out",
-    quantity: 100,
-    previous_stock: 300,
-    new_stock: 200,
-    reason: "Invoice #INV-2024-002",
-    timestamp: "2024-06-05T14:20:00Z",
-    performed_by: "Ahmed Al-Mansouri"
-  }
-];
+import React from 'react';
+import { format } from 'date-fns';
+import { Package, TrendingUp, TrendingDown, RotateCcw, FileText } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { useStockMovements } from '@/hooks/useStockMovements';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 const MovementHistory = () => {
-  const [dateFilter, setDateFilter] = useState<Date | undefined>(undefined);
-  const [typeFilter, setTypeFilter] = useState<string>("all");
-  const [productFilter, setProductFilter] = useState<string>("all");
+  const { data: movements = [], isLoading, error } = useStockMovements(50);
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Recent Stock Movements</CardTitle>
+        </CardHeader>
+        <CardContent className="flex justify-center py-8">
+          <LoadingSpinner size="lg" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Recent Stock Movements</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-8">
+            <p className="text-red-600">Error loading stock movements: {error.message}</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   const getMovementIcon = (type: string) => {
     switch (type) {
@@ -67,189 +44,113 @@ const MovementHistory = () => {
         return <TrendingUp className="h-4 w-4 text-green-600" />;
       case 'out':
         return <TrendingDown className="h-4 w-4 text-red-600" />;
+      case 'adjustment':
+        return <RotateCcw className="h-4 w-4 text-blue-600" />;
       default:
-        return <Package className="h-4 w-4 text-blue-600" />;
+        return <Package className="h-4 w-4 text-gray-600" />;
     }
   };
 
-  const getMovementBadge = (type: string) => {
+  const getMovementColor = (type: string) => {
     switch (type) {
       case 'in':
-        return <Badge className="bg-green-100 text-green-800">Stock In</Badge>;
+        return 'bg-green-50 border-green-200';
       case 'out':
-        return <Badge className="bg-red-100 text-red-800">Stock Out</Badge>;
+        return 'bg-red-50 border-red-200';
+      case 'adjustment':
+        return 'bg-blue-50 border-blue-200';
       default:
-        return <Badge className="bg-blue-100 text-blue-800">Adjustment</Badge>;
+        return 'bg-gray-50 border-gray-200';
     }
   };
 
-  const formatDateTime = (timestamp: string) => {
-    const date = new Date(timestamp);
-    return {
-      date: date.toLocaleDateString('en-US', { 
-        year: 'numeric', 
-        month: 'short', 
-        day: 'numeric' 
-      }),
-      time: date.toLocaleTimeString('en-US', { 
-        hour: '2-digit', 
-        minute: '2-digit' 
-      })
-    };
-  };
-
-  const filteredMovements = mockMovements.filter(movement => {
-    if (typeFilter !== "all" && movement.movement_type !== typeFilter) return false;
-    if (dateFilter) {
-      const movementDate = new Date(movement.timestamp).toDateString();
-      const filterDate = dateFilter.toDateString();
-      if (movementDate !== filterDate) return false;
+  const getBadgeVariant = (type: string) => {
+    switch (type) {
+      case 'in':
+        return 'default';
+      case 'out':
+        return 'destructive';
+      case 'adjustment':
+        return 'secondary';
+      default:
+        return 'outline';
     }
-    return true;
-  });
+  };
 
   return (
-    <div className="space-y-6">
-      {/* Filters */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Filter className="h-5 w-5" />
-            Filters
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="text-sm font-medium text-gray-700 mb-2 block">
-                Date
-              </label>
-              <DatePicker
-                date={dateFilter}
-                onDateChange={setDateFilter}
-                placeholder="Filter by date"
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium text-gray-700 mb-2 block">
-                Movement Type
-              </label>
-              <Select value={typeFilter} onValueChange={setTypeFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="All types" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Types</SelectItem>
-                  <SelectItem value="in">Stock In</SelectItem>
-                  <SelectItem value="out">Stock Out</SelectItem>
-                  <SelectItem value="adjustment">Adjustment</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex items-end">
-              <Button 
-                variant="outline" 
-                onClick={() => {
-                  setDateFilter(undefined);
-                  setTypeFilter("all");
-                  setProductFilter("all");
-                }}
-                className="w-full"
+    <Card>
+      <CardHeader>
+        <CardTitle>Recent Stock Movements</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4 max-h-96 overflow-y-auto">
+          {movements.length > 0 ? (
+            movements.map((movement) => (
+              <div
+                key={movement.id}
+                className={`p-4 rounded-lg border ${getMovementColor(movement.movement_type)}`}
               >
-                Clear Filters
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Movement History */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5" />
-            Movement History ({filteredMovements.length} movements)
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Product</TableHead>
-                  <TableHead>Quantity</TableHead>
-                  <TableHead>Stock Change</TableHead>
-                  <TableHead>Reason</TableHead>
-                  <TableHead>Date & Time</TableHead>
-                  <TableHead>Performed By</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredMovements.map((movement) => {
-                  const dateTime = formatDateTime(movement.timestamp);
-                  const quantityDisplay = movement.movement_type === 'out' 
-                    ? `-${movement.quantity}` 
-                    : movement.movement_type === 'adjustment' && movement.quantity < 0
-                    ? movement.quantity.toString()
-                    : `+${movement.quantity}`;
-
-                  return (
-                    <TableRow key={movement.id} className="hover:bg-gray-50">
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          {getMovementIcon(movement.movement_type)}
-                          {getMovementBadge(movement.movement_type)}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="font-medium">{movement.product_name}</div>
-                      </TableCell>
-                      <TableCell>
-                        <div className={`font-semibold ${
-                          movement.movement_type === 'out' || (movement.movement_type === 'adjustment' && movement.quantity < 0)
-                            ? 'text-red-600' 
-                            : 'text-green-600'
-                        }`}>
-                          {quantityDisplay}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="text-sm">
-                          <div>{movement.previous_stock} → {movement.new_stock}</div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="text-sm">{movement.reason}</div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="text-sm">
-                          <div className="font-medium">{dateTime.date}</div>
-                          <div className="text-gray-500">{dateTime.time}</div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="text-sm">{movement.performed_by}</div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </div>
-
-          {filteredMovements.length === 0 && (
-            <div className="text-center py-8">
-              <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600">No movements found</p>
-              <p className="text-sm text-gray-500 mt-2">
-                Try adjusting your filters
-              </p>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center space-x-3">
+                    {getMovementIcon(movement.movement_type)}
+                    <div>
+                      <h4 className="font-medium text-sm">
+                        {movement.product?.name || 'Unknown Product'}
+                      </h4>
+                      <p className="text-xs text-gray-500">
+                        SKU: {movement.product?.sku || 'N/A'}
+                      </p>
+                    </div>
+                  </div>
+                  <Badge variant={getBadgeVariant(movement.movement_type) as any}>
+                    {movement.movement_type.toUpperCase()}
+                  </Badge>
+                </div>
+                
+                <div className="flex items-center justify-between text-sm">
+                  <div className="flex items-center space-x-4">
+                    <span className="text-gray-600">
+                      Qty: <span className="font-medium">{movement.quantity}</span>
+                    </span>
+                    <span className="text-gray-600">
+                      Stock: {movement.previous_stock} → {movement.new_stock}
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs text-gray-500">
+                      {format(new Date(movement.created_at), 'MMM d, yyyy HH:mm')}
+                    </p>
+                    {movement.invoice_id && (
+                      <div className="flex items-center space-x-1 text-xs text-blue-600">
+                        <FileText className="h-3 w-3" />
+                        <span>Invoice: {movement.invoice_id}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                
+                {movement.reason && (
+                  <p className="text-xs text-gray-600 mt-2 italic">
+                    {movement.reason}
+                  </p>
+                )}
+                
+                {movement.performed_by && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    By: {movement.performed_by}
+                  </p>
+                )}
+              </div>
+            ))
+          ) : (
+            <div className="text-center py-8 text-gray-500">
+              <Package className="h-12 w-12 mx-auto mb-4" />
+              <p>No stock movements found</p>
             </div>
           )}
-        </CardContent>
-      </Card>
-    </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 

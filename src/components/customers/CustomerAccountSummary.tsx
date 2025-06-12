@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useCustomers } from '@/hooks/useCustomers';
 import { useCustomerStatement } from '@/hooks/useCustomerStatement';
 import { useCustomerPayments, useCustomerOutstandingBalance } from '@/hooks/useCustomerPayments';
+import { usePaymentDataSync } from '@/hooks/usePaymentDataSync';
 import { StatementSummaryCards } from './StatementSummaryCards';
 import { StatementInvoiceList } from './StatementInvoiceList';
 import { PaymentEntry } from './PaymentEntry';
@@ -20,6 +21,9 @@ export const CustomerAccountSummary = () => {
   const [startDate, setStartDate] = useState<Date>(subDays(new Date(), 90));
   const [endDate, setEndDate] = useState<Date>(new Date());
   const queryClient = useQueryClient();
+  
+  // Ensure payment data is synchronized
+  const { refreshPaymentData } = usePaymentDataSync();
 
   const { data: customers = [] } = useCustomers();
   const statementData = useCustomerStatement(selectedCustomerId, startDate, endDate);
@@ -62,7 +66,7 @@ export const CustomerAccountSummary = () => {
 
   const handlePaymentAdded = () => {
     // Refresh all related queries after payment is added
-    queryClient.invalidateQueries({ queryKey: ['invoices'] });
+    refreshPaymentData();
     queryClient.invalidateQueries({ queryKey: ['customer-payments', selectedCustomerId] });
     queryClient.invalidateQueries({ queryKey: ['customer-outstanding-balance', selectedCustomerId] });
     queryClient.invalidateQueries({ queryKey: ['customer-statement-invoices', selectedCustomerId] });
