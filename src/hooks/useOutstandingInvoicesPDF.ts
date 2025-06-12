@@ -22,9 +22,13 @@ export const useOutstandingInvoicesPDF = () => {
     mutationFn: async ({ invoices, filters, filename }: GeneratePDFParams) => {
       console.log('Generating Outstanding Invoices PDF...');
       
-      const blob = await pdf(
-        React.createElement(OutstandingInvoicesReportPDF, { invoices, filters })
-      ).toBlob();
+      // Create the PDF element properly - OutstandingInvoicesReportPDF returns a Document
+      const pdfElement = React.createElement(OutstandingInvoicesReportPDF, { 
+        invoices, 
+        filters 
+      });
+      
+      const blob = await pdf(pdfElement).toBlob();
       
       const defaultFilename = `outstanding-invoices-${new Date().toISOString().split('T')[0]}.pdf`;
       saveAs(blob, filename || defaultFilename);
