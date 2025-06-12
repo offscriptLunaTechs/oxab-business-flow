@@ -99,64 +99,76 @@ export const StatementInvoiceList: React.FC<StatementInvoiceListProps> = ({ invo
                   <TableHead>Outstanding</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Due Date</TableHead>
+                  <TableHead>Payment Method</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {invoices.map((invoice) => (
-                  <TableRow key={invoice.id}>
-                    <TableCell>
-                      {format(new Date(invoice.date), "dd/MM/yyyy")}
-                    </TableCell>
-                    <TableCell>
-                      <code className="bg-gray-100 px-2 py-1 rounded text-xs">
-                        {invoice.id}
-                      </code>
-                    </TableCell>
-                    <TableCell>
-                      <span className="font-medium">
-                        KWD {Number(invoice.total).toFixed(3)}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <span className="font-medium text-green-600">
-                        KWD {Number(invoice.allocated_amount || 0).toFixed(3)}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <span className={cn(
-                        "font-medium",
-                        invoice.outstanding_amount > 0 ? "text-red-600" : "text-green-600"
-                      )}>
-                        KWD {Number(invoice.outstanding_amount || 0).toFixed(3)}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      {getStatusBadge(invoice)}
-                    </TableCell>
-                    <TableCell>
-                      <span className={cn(
-                        invoice.isOverdue ? "text-red-600 font-medium" : "text-gray-600"
-                      )}>
-                        {format(new Date(invoice.due_date), "dd/MM/yyyy")}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      {invoice.payment_status !== 'paid' && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleMarkAsPaid(invoice.id)}
-                          className="flex items-center gap-1"
-                          disabled={updateInvoiceMutation.isPending}
-                        >
-                          <CreditCard className="h-3 w-3" />
-                          Mark Paid
-                        </Button>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {invoices.map((invoice) => {
+                  // Use effective paid amount from hybrid calculation
+                  const effectivePaidAmount = invoice.effective_paid_amount || invoice.allocated_amount || 0;
+                  const paymentMethod = invoice.status === 'paid' && invoice.allocated_amount === 0 ? 'Legacy' : 'Payment System';
+                  
+                  return (
+                    <TableRow key={invoice.id}>
+                      <TableCell>
+                        {format(new Date(invoice.date), "dd/MM/yyyy")}
+                      </TableCell>
+                      <TableCell>
+                        <code className="bg-gray-100 px-2 py-1 rounded text-xs">
+                          {invoice.id}
+                        </code>
+                      </TableCell>
+                      <TableCell>
+                        <span className="font-medium">
+                          KWD {Number(invoice.total).toFixed(3)}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <span className="font-medium text-green-600">
+                          KWD {Number(effectivePaidAmount).toFixed(3)}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <span className={cn(
+                          "font-medium",
+                          invoice.outstanding_amount > 0 ? "text-red-600" : "text-green-600"
+                        )}>
+                          KWD {Number(invoice.outstanding_amount || 0).toFixed(3)}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        {getStatusBadge(invoice)}
+                      </TableCell>
+                      <TableCell>
+                        <span className={cn(
+                          invoice.isOverdue ? "text-red-600 font-medium" : "text-gray-600"
+                        )}>
+                          {format(new Date(invoice.due_date), "dd/MM/yyyy")}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-xs text-gray-500">
+                          {paymentMethod}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        {invoice.payment_status !== 'paid' && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleMarkAsPaid(invoice.id)}
+                            className="flex items-center gap-1"
+                            disabled={updateInvoiceMutation.isPending}
+                          >
+                            <CreditCard className="h-3 w-3" />
+                            Mark Paid
+                          </Button>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </div>

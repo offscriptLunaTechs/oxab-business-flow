@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useCustomers } from '@/hooks/useCustomers';
 import { useCustomerStatement } from '@/hooks/useCustomerStatement';
@@ -11,7 +12,7 @@ import { PaymentEntry } from './PaymentEntry';
 import { PaymentHistory } from './PaymentHistory';
 import { StatementFilters } from './StatementFilters';
 import { StatementActions } from './StatementActions';
-import { subDays } from 'date-fns';
+import { subDays, subMonths, startOfMonth, endOfMonth, startOfYear } from 'date-fns';
 import { useQueryClient } from '@tanstack/react-query';
 
 export const CustomerAccountSummary = () => {
@@ -27,18 +28,37 @@ export const CustomerAccountSummary = () => {
 
   const selectedCustomer = customers.find(c => c.id === selectedCustomerId);
 
-  // Auto-adjust dates to cover all unpaid invoices for the customer
-  React.useEffect(() => {
-    if (selectedCustomerId && statementData.invoices.length > 0) {
-      const unpaidInvoices = statementData.invoices.filter(inv => inv.outstanding_amount > 0);
-      if (unpaidInvoices.length > 0) {
-        const oldestDate = new Date(Math.min(...unpaidInvoices.map(inv => new Date(inv.date).getTime())));
-        const newestDate = new Date(Math.max(...unpaidInvoices.map(inv => new Date(inv.date).getTime())));
-        setStartDate(oldestDate);
-        setEndDate(newestDate);
-      }
+  // Predefined date range options
+  const setDateRange = (range: string) => {
+    const now = new Date();
+    switch (range) {
+      case 'last30':
+        setStartDate(subDays(now, 30));
+        setEndDate(now);
+        break;
+      case 'last90':
+        setStartDate(subDays(now, 90));
+        setEndDate(now);
+        break;
+      case 'thisMonth':
+        setStartDate(startOfMonth(now));
+        setEndDate(endOfMonth(now));
+        break;
+      case 'lastMonth':
+        const lastMonth = subMonths(now, 1);
+        setStartDate(startOfMonth(lastMonth));
+        setEndDate(endOfMonth(lastMonth));
+        break;
+      case 'thisYear':
+        setStartDate(startOfYear(now));
+        setEndDate(now);
+        break;
+      case 'allTime':
+        setStartDate(new Date(2020, 0, 1)); // Set a reasonable start date
+        setEndDate(now);
+        break;
     }
-  }, [selectedCustomerId, statementData.invoices]);
+  };
 
   const handlePaymentAdded = () => {
     // Refresh all related queries after payment is added
@@ -82,7 +102,7 @@ export const CustomerAccountSummary = () => {
                   </p>
                 </div>
 
-                {/* Enhanced Summary Cards with Actual Outstanding Balance */}
+                {/* Enhanced Summary Cards with Hybrid Calculation */}
                 <StatementSummaryCards
                   totalOutstanding={statementData.totalOutstanding}
                   totalPaid={statementData.totalPaid}
@@ -96,6 +116,31 @@ export const CustomerAccountSummary = () => {
                     <CardTitle>Generate Account Statement</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
+                    {/* Quick Date Range Selector */}
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Quick Date Ranges</label>
+                      <div className="flex flex-wrap gap-2">
+                        <Button size="sm" variant="outline" onClick={() => setDateRange('last30')}>
+                          Last 30 Days
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => setDateRange('last90')}>
+                          Last 90 Days
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => setDateRange('thisMonth')}>
+                          This Month
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => setDateRange('lastMonth')}>
+                          Last Month
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => setDateRange('thisYear')}>
+                          This Year
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => setDateRange('allTime')}>
+                          All Time
+                        </Button>
+                      </div>
+                    </div>
+                    
                     <StatementFilters
                       customers={[selectedCustomer]}
                       selectedCustomerId={selectedCustomerId}
