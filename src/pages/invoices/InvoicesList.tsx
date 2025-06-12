@@ -1,21 +1,41 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FileText, Search, Filter, Plus, Eye, Edit, Download, Calendar } from 'lucide-react';
+import { FileText, Search, Filter, Plus, Eye, Edit, Download, Calendar, MoreHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { useInvoices, useDeleteInvoice } from '@/hooks/useInvoices';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { useInvoices, useDeleteInvoice, useUpdateInvoice } from '@/hooks/useInvoices';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { format } from 'date-fns';
+import { downloadInvoicePDF } from '@/utils/pdfUtils';
+import { useToast } from '@/hooks/use-toast';
 
 const InvoicesList = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const { toast } = useToast();
   
   const { data: invoices, isLoading, error } = useInvoices();
+  const updateInvoiceMutation = useUpdateInvoice();
 
   const filteredInvoices = invoices?.filter(invoice => {
     const matchesSearch = searchTerm === '' || 
@@ -34,6 +54,41 @@ const InvoicesList = () => {
       case 'overdue': return 'bg-red-100 text-red-800';
       case 'draft': return 'bg-gray-100 text-gray-800';
       default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const handleStatusUpdate = async (invoiceId: string, newStatus: string) => {
+    try {
+      await updateInvoiceMutation.mutateAsync({
+        invoiceId,
+        invoiceData: { status: newStatus }
+      });
+      toast({
+        title: "Success",
+        description: `Invoice status updated to ${newStatus}`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update invoice status",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDownloadPDF = async (invoice: any) => {
+    try {
+      await downloadInvoicePDF(invoice);
+      toast({
+        title: "Success",
+        description: "PDF downloaded successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to generate PDF",
+        variant: "destructive",
+      });
     }
   };
 
@@ -162,6 +217,49 @@ const InvoicesList = () => {
                           >
                             <Edit className="h-4 w-4" />
                           </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDownloadPDF(invoice)}
+                            disabled={updateInvoiceMutation.isPending}
+                          >
+                            <Download className="h-4 w-4" />
+                          </Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="sm">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuLabel>Update Status</DropdownMenuLabel>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem 
+                                onClick={() => handleStatusUpdate(invoice.id, 'draft')}
+                                disabled={updateInvoiceMutation.isPending}
+                              >
+                                Mark as Draft
+                              </DropdownMenuItem>
+                              <DropdownMenuItem 
+                                onClick={() => handleStatusUpdate(invoice.id, 'pending')}
+                                disabled={updateInvoiceMutation.isPending}
+                              >
+                                Mark as Pending
+                              </DropdownMenuItem>
+                              <DropdownMenuItem 
+                                onClick={() => handleStatusUpdate(invoice.id, 'paid')}
+                                disabled={updateInvoiceMutation.isPending}
+                              >
+                                Mark as Paid
+                              </DropdownMenuItem>
+                              <DropdownMenuItem 
+                                onClick={() => handleStatusUpdate(invoice.id, 'overdue')}
+                                disabled={updateInvoiceMutation.isPending}
+                              >
+                                Mark as Overdue
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
                       </TableCell>
                     </TableRow>

@@ -6,7 +6,14 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { useInvoice, useDeleteInvoice } from '@/hooks/useInvoices';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { useInvoice, useDeleteInvoice, useUpdateInvoice } from '@/hooks/useInvoices';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { format } from 'date-fns';
 import { pdf } from '@react-pdf/renderer';
@@ -22,6 +29,7 @@ const InvoiceDetail = () => {
   console.log('InvoiceDetail - invoiceId from params:', invoiceId);
   
   const { data: invoice, isLoading, error } = useInvoice(invoiceId || '');
+  const updateInvoiceMutation = useUpdateInvoice();
 
   console.log('InvoiceDetail - invoice data:', invoice);
   console.log('InvoiceDetail - isLoading:', isLoading);
@@ -53,6 +61,27 @@ const InvoiceDetail = () => {
       toast({
         title: "Error",
         description: "Failed to generate PDF",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleStatusUpdate = async (newStatus: string) => {
+    if (!invoice) return;
+    
+    try {
+      await updateInvoiceMutation.mutateAsync({
+        invoiceId: invoice.id,
+        invoiceData: { status: newStatus }
+      });
+      toast({
+        title: "Success",
+        description: `Invoice status updated to ${newStatus}`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update invoice status",
         variant: "destructive",
       });
     }
@@ -119,6 +148,17 @@ const InvoiceDetail = () => {
           </div>
         </div>
         <div className="flex gap-2">
+          <Select value={invoice.status} onValueChange={handleStatusUpdate}>
+            <SelectTrigger className="w-40">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="draft">Draft</SelectItem>
+              <SelectItem value="pending">Pending</SelectItem>
+              <SelectItem value="paid">Paid</SelectItem>
+              <SelectItem value="overdue">Overdue</SelectItem>
+            </SelectContent>
+          </Select>
           <Button
             variant="outline"
             onClick={() => navigate(`/invoices/${invoice.id}/edit`)}
