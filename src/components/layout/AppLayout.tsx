@@ -25,22 +25,22 @@ const AppLayout = () => {
             <TopBar onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
             <main className="p-6">
               <Routes>
-                {/* Inventory routes */}
-                <Route path="/inventory" element={<Inventory />} />
-                <Route path="/inventory/*" element={<Inventory />} />
+                {/* Inventory routes - relative paths */}
+                <Route index element={<Inventory />} />
+                <Route path="*" element={<Inventory />} />
                 
-                {/* Reports routes */}
-                <Route path="/reports/outstanding-invoices" element={<OutstandingInvoicesReport />} />
-                <Route path="/reports/*" element={<OutstandingInvoicesReport />} />
+                {/* Reports routes - relative paths */}
+                <Route path="outstanding-invoices" element={<OutstandingInvoicesReport />} />
+                <Route path="*" element={<OutstandingInvoicesReport />} />
                 
-                {/* Profile routes */}
-                <Route path="/profile" element={<Profile />} />
-                <Route path="/profile/*" element={<Profile />} />
+                {/* Profile routes - relative paths */}
+                <Route index element={<Profile />} />
+                <Route path="*" element={<Profile />} />
                 
-                {/* Settings routes */}
-                <Route path="/settings" element={<Settings />} />
-                <Route path="/settings/users" element={<Users />} />
-                <Route path="/settings/*" element={<Settings />} />
+                {/* Settings routes - relative paths */}
+                <Route index element={<Settings />} />
+                <Route path="users" element={<Users />} />
+                <Route path="*" element={<Settings />} />
               </Routes>
             </main>
           </div>
@@ -53,22 +53,22 @@ const AppLayout = () => {
           <TopBar />
           <main className="p-4">
             <Routes>
-              {/* Inventory routes */}
-              <Route path="/inventory" element={<Inventory />} />
-              <Route path="/inventory/*" element={<Inventory />} />
+              {/* Inventory routes - relative paths */}
+              <Route index element={<Inventory />} />
+              <Route path="*" element={<Inventory />} />
               
-              {/* Reports routes */}
-              <Route path="/reports/outstanding-invoices" element={<OutstandingInvoicesReport />} />
-              <Route path="/reports/*" element={<OutstandingInvoicesReport />} />
+              {/* Reports routes - relative paths */}
+              <Route path="outstanding-invoices" element={<OutstandingInvoicesReport />} />
+              <Route path="*" element={<OutstandingInvoicesReport />} />
               
-              {/* Profile routes */}
-              <Route path="/profile" element={<Profile />} />
-              <Route path="/profile/*" element={<Profile />} />
+              {/* Profile routes - relative paths */}
+              <Route index element={<Profile />} />
+              <Route path="*" element={<Profile />} />
               
-              {/* Settings routes */}
-              <Route path="/settings" element={<Settings />} />
-              <Route path="/settings/users" element={<Users />} />
-              <Route path="/settings/*" element={<Settings />} />
+              {/* Settings routes - relative paths */}
+              <Route index element={<Settings />} />
+              <Route path="users" element={<Users />} />
+              <Route path="*" element={<Settings />} />
             </Routes>
           </main>
           <MobileNav />
