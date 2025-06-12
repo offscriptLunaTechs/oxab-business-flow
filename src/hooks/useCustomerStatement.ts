@@ -17,6 +17,7 @@ interface InvoiceWithPayments {
   payment_status: 'paid' | 'partially_paid' | 'pending' | 'overdue';
   isOverdue: boolean;
   runningBalance: number;
+  effective_paid_amount: number;
 }
 
 export const useCustomerStatement = (
@@ -127,7 +128,7 @@ export const useCustomerStatement = (
 
     // Calculate totals using hybrid approach
     const totalOutstanding = processedInvoices.reduce((sum, inv) => sum + inv.outstanding_amount, 0);
-    const totalPaid = processedInvoices.reduce((sum, inv) => sum + (inv.effective_paid_amount || 0), 0);
+    const totalPaid = processedInvoices.reduce((sum, inv) => sum + inv.effective_paid_amount, 0);
 
     return {
       invoices: processedInvoices,
