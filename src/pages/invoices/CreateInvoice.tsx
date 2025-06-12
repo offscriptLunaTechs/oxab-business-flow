@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -50,52 +49,61 @@ const CreateInvoice = () => {
   const subtotal = calculateSubtotal();
   const total = isFreeOfCharge ? 0 : subtotal - discount;
 
-  // Function to update item price based on customer pricing
-  const updateItemPriceForCustomer = async (item: Item, customerIdToUse: string, dateToUse: string) => {
-    if (!item.product_id || !customerIdToUse) return item;
-
+  // Function to get customer price for a product
+  const getCustomerPrice = async (customerId: string, productId: string) => {
     try {
-      const { data: customerPrice } = await useCustomerProductPrice(customerIdToUse, item.product_id).refetch();
-      if (customerPrice !== null && customerPrice !== undefined) {
-        return {
-          ...item,
-          price: customerPrice,
-          total: customerPrice * item.quantity
-        };
+      const { data, error } = await supabase
+        .from('customer_pricing')
+        .select('price')
+        .eq('customer_id', customerId)
+        .eq('product_id', productId)
+        .eq('is_active', true)
+        .order('effective_date', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (error || !data) {
+        return null;
       }
+      
+      return data.price;
     } catch (error) {
-      console.warn('Failed to fetch customer price for product:', item.product_id, error);
+      console.warn('Failed to fetch customer price:', error);
+      return null;
     }
-    
-    return item;
   };
 
   // Update all item prices when customer changes
   useEffect(() => {
-    if (customerId && items.length > 0 && date) {
-      const dateString = date.toISOString().split('T')[0];
+    if (customerId && items.length > 0) {
       const updateAllItemPrices = async () => {
         const updatedItems = await Promise.all(
-          items.map(item => updateItemPriceForCustomer(item, customerId, dateString))
+          items.map(async (item) => {
+            const customerPrice = await getCustomerPrice(customerId, item.product_id);
+            if (customerPrice !== null) {
+              return {
+                ...item,
+                price: customerPrice,
+                total: customerPrice * item.quantity
+              };
+            }
+            return item;
+          })
         );
         setItems(updatedItems);
       };
       updateAllItemPrices();
     }
-  }, [customerId, date]);
+  }, [customerId]);
 
   const addItemFromModal = async (product: Product) => {
     let price = product.base_price;
     
     // Try to get customer-specific price if customer is selected
-    if (customerId && date) {
-      try {
-        const { data: customerPrice } = await useCustomerProductPrice(customerId, product.id).refetch();
-        if (customerPrice !== null && customerPrice !== undefined) {
-          price = customerPrice;
-        }
-      } catch (error) {
-        console.warn('Failed to fetch customer price, using base price:', error);
+    if (customerId) {
+      const customerPrice = await getCustomerPrice(customerId, product.id);
+      if (customerPrice !== null) {
+        price = customerPrice;
       }
     }
 
@@ -128,14 +136,10 @@ const CreateInvoice = () => {
         let price = product.base_price;
         
         // Try to get customer-specific price
-        if (customerId && date) {
-          try {
-            const { data: customerPrice } = await useCustomerProductPrice(customerId, value).refetch();
-            if (customerPrice !== null && customerPrice !== undefined) {
-              price = customerPrice;
-            }
-          } catch (error) {
-            console.warn('Failed to fetch customer price, using base price:', error);
+        if (customerId) {
+          const customerPrice = await getCustomerPrice(customerId, value);
+          if (customerPrice !== null) {
+            price = customerPrice;
           }
         }
         
