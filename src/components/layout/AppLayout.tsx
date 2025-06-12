@@ -42,6 +42,8 @@ const AppLayout = () => {
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/settings" element={<Settings />} />
                 <Route path="/settings/users" element={<Users />} />
+                {/* Default route for root path */}
+                <Route path="/" element={<Dashboard />} />
               </Routes>
             </main>
           </div>
@@ -65,6 +67,8 @@ const AppLayout = () => {
               <Route path="/profile" element={<Profile />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/settings/users" element={<Users />} />
+              {/* Default route for root path */}
+              <Route path="/" element={<Dashboard />} />
             </Routes>
           </main>
           <MobileNav />

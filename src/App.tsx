@@ -10,17 +10,6 @@ import AppLayout from "@/components/layout/AppLayout";
 import Index from "./pages/Index";
 import Login from "./pages/auth/Login";
 import AuthCallback from "./pages/auth/AuthCallback";
-import Dashboard from "./pages/dashboard/Dashboard";
-import Customers from "./pages/customers/Customers";
-import Inventory from "./pages/inventory/Inventory";
-import InvoicesList from "./pages/invoices/InvoicesList";
-import InvoiceDetail from "./pages/invoices/InvoiceDetail";
-import CreateInvoice from "./pages/invoices/CreateInvoice";
-import EditInvoice from "./pages/invoices/EditInvoice";
-import OutstandingInvoicesReport from "./pages/reports/OutstandingInvoicesReport";
-import Profile from "./pages/profile/Profile";
-import Settings from "./pages/settings/Settings";
-import Users from "./pages/settings/Users";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -38,87 +27,7 @@ function App() {
               <Route path="/login" element={<Login />} />
               <Route path="/auth/callback" element={<AuthCallback />} />
               <Route
-                path="/dashboard"
-                element={
-                  <ProtectedRoute>
-                    <AppLayout />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/customers"
-                element={
-                  <ProtectedRoute>
-                    <AppLayout />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/inventory"
-                element={
-                  <ProtectedRoute>
-                    <AppLayout />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/invoices"
-                element={
-                  <ProtectedRoute>
-                    <AppLayout />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/invoices/new"
-                element={
-                  <ProtectedRoute>
-                    <AppLayout />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/invoices/:invoiceId"
-                element={
-                  <ProtectedRoute>
-                    <AppLayout />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/invoices/:invoiceId/edit"
-                element={
-                  <ProtectedRoute>
-                    <AppLayout />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/reports/outstanding-invoices"
-                element={
-                  <ProtectedRoute>
-                    <AppLayout />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/profile"
-                element={
-                  <ProtectedRoute>
-                    <AppLayout />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/settings"
-                element={
-                  <ProtectedRoute>
-                    <AppLayout />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/settings/users"
+                path="/*"
                 element={
                   <ProtectedRoute>
                     <AppLayout />

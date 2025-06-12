@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/context/AuthContext";
+import { useAdminUserManagement } from "@/hooks/useAdminUserManagement";
 import {
   Card,
   CardContent,
@@ -38,7 +39,7 @@ import { toast } from "@/components/ui/sonner";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { UserPlus, Mail, UserCog, Shield, AlertCircle } from "lucide-react";
+import { UserPlus, Mail, UserCog, Shield, AlertCircle, RotateCcw } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface UserWithRole {
@@ -49,30 +50,37 @@ interface UserWithRole {
   department?: string;
 }
 
-interface InviteDialogProps {
+interface CreateUserDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onInvite: (email: string, role: string, fullName: string) => Promise<void>;
 }
 
-const InviteUserDialog = ({ open, onOpenChange, onInvite }: InviteDialogProps) => {
+const CreateUserDialog = ({ open, onOpenChange }: CreateUserDialogProps) => {
   const [email, setEmail] = useState("");
   const [role, setRole] = useState("employee");
   const [fullName, setFullName] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [department, setDepartment] = useState("");
+  const { createUser, isCreatingUser } = useAdminUserManagement();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
     
     try {
-      await onInvite(email, role, fullName);
+      await createUser.mutateAsync({
+        email,
+        fullName,
+        role: role as 'admin' | 'manager' | 'employee',
+        department: department || undefined
+      });
+      
+      // Reset form
       setEmail("");
       setRole("employee");
       setFullName("");
+      setDepartment("");
       onOpenChange(false);
-    } finally {
-      setIsLoading(false);
+    } catch (error) {
+      // Error is handled in the mutation
     }
   };
 
@@ -80,9 +88,9 @@ const InviteUserDialog = ({ open, onOpenChange, onInvite }: InviteDialogProps) =
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Invite New User</DialogTitle>
+          <DialogTitle>Create New User</DialogTitle>
           <DialogDescription>
-            Send an invitation email to add a new team member
+            Create a new user account that they can activate by signing up with their email
           </DialogDescription>
         </DialogHeader>
         
@@ -109,6 +117,16 @@ const InviteUserDialog = ({ open, onOpenChange, onInvite }: InviteDialogProps) =
               required
             />
           </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="department">Department (Optional)</Label>
+            <Input
+              id="department"
+              value={department}
+              onChange={(e) => setDepartment(e.target.value)}
+              placeholder="e.g., Sales, IT, Management"
+            />
+          </div>
           
           <div className="space-y-2">
             <Label htmlFor="role">Role</Label>
@@ -128,16 +146,16 @@ const InviteUserDialog = ({ open, onOpenChange, onInvite }: InviteDialogProps) =
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={isLoading}>
-              {isLoading ? (
+            <Button type="submit" disabled={isCreatingUser}>
+              {isCreatingUser ? (
                 <>
                   <LoadingSpinner size="sm" />
-                  <span className="ml-2">Sending...</span>
+                  <span className="ml-2">Creating...</span>
                 </>
               ) : (
                 <>
-                  <Mail className="mr-2 h-4 w-4" />
-                  Send Invitation
+                  <UserPlus className="mr-2 h-4 w-4" />
+                  Create User
                 </>
               )}
             </Button>
@@ -239,11 +257,12 @@ const Users = () => {
   const [users, setUsers] = useState<UserWithRole[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserWithRole | null>(null);
   
   const { user: currentUser, userRole } = useAuth();
+  const { resetPassword, isResettingPassword } = useAdminUserManagement();
 
   const fetchUsers = async () => {
     try {
@@ -272,10 +291,18 @@ const Users = () => {
 
       console.log('User confirmed as admin, fetching users...');
       
-      // Fetch user roles first
+      // Fetch user roles with profile data
       const { data: userRolesData, error: rolesError } = await supabase
         .from('user_roles')
-        .select('user_id, role, created_at');
+        .select(`
+          user_id, 
+          role, 
+          created_at,
+          user_profiles!inner(
+            full_name,
+            department
+          )
+        `);
 
       if (rolesError) {
         console.error('Error fetching user roles:', rolesError);
@@ -285,32 +312,16 @@ const Users = () => {
 
       console.log('User roles data fetched:', userRolesData);
 
-      // Fetch user profiles separately
-      const { data: userProfilesData, error: profilesError } = await supabase
-        .from('user_profiles')
-        .select('user_id, full_name, department');
+      // Transform the data
+      const transformedUsers: UserWithRole[] = userRolesData.map(userRole => ({
+        id: userRole.user_id,
+        created_at: userRole.created_at,
+        role: userRole.role,
+        full_name: userRole.user_profiles?.full_name,
+        department: userRole.user_profiles?.department
+      }));
 
-      if (profilesError) {
-        console.error('Error fetching user profiles:', profilesError);
-        setError(`Failed to load user profiles: ${profilesError.message}`);
-        return;
-      }
-
-      console.log('User profiles data fetched:', userProfilesData);
-
-      // Combine the data
-      const transformedUsers: UserWithRole[] = userRolesData.map(userRole => {
-        const profile = userProfilesData.find(profile => profile.user_id === userRole.user_id);
-        return {
-          id: userRole.user_id,
-          created_at: userRole.created_at,
-          role: userRole.role,
-          full_name: profile?.full_name,
-          department: profile?.department
-        };
-      });
-
-      console.log('Final combined users data:', transformedUsers);
+      console.log('Final transformed users data:', transformedUsers);
       setUsers(transformedUsers);
     } catch (error) {
       console.error('Unexpected error in fetchUsers:', error);
@@ -321,7 +332,6 @@ const Users = () => {
   };
 
   useEffect(() => {
-    // Only attempt to fetch if we have a current user
     if (currentUser) {
       fetchUsers();
     } else {
@@ -361,17 +371,15 @@ const Users = () => {
     }
   };
 
-  const handleInviteUser = async (email: string, role: string, fullName: string) => {
+  const handleResetPassword = async (userId: string) => {
+    // Find user email first (this is a simplified approach - in production you might want to store email in profiles)
+    const userEmail = prompt('Enter the user\'s email address to reset their password:');
+    if (!userEmail) return;
+    
     try {
-      console.log('Creating user invitation for:', email, role, fullName);
-      
-      // For now, just show a message since we can't create users from client side
-      // In a real implementation, this would trigger a server-side function or webhook
-      toast.success(`User invitation created for ${email} with role: ${role}. They will need to sign up separately.`);
-      
+      await resetPassword.mutateAsync({ email: userEmail });
     } catch (error) {
-      console.error('Error in handleInviteUser:', error);
-      toast.error('An unexpected error occurred while creating invitation');
+      // Error is handled in the mutation
     }
   };
 
@@ -455,12 +463,12 @@ const Users = () => {
               User Management
             </CardTitle>
             <CardDescription>
-              Manage user accounts and permissions
+              Create and manage user accounts and permissions
             </CardDescription>
           </div>
-          <Button onClick={() => setInviteDialogOpen(true)}>
+          <Button onClick={() => setCreateDialogOpen(true)}>
             <UserPlus className="mr-2 h-4 w-4" />
-            Invite User
+            Create User
           </Button>
         </CardHeader>
         <CardContent>
@@ -503,14 +511,26 @@ const Users = () => {
                         {new Date(user.created_at).toLocaleDateString()}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleEditUser(user)}
-                          disabled={user.id === currentUser?.id}
-                        >
-                          <UserCog className="h-4 w-4" />
-                        </Button>
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEditUser(user)}
+                            disabled={user.id === currentUser?.id}
+                            title="Edit user role"
+                          >
+                            <UserCog className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleResetPassword(user.id)}
+                            disabled={isResettingPassword}
+                            title="Reset password"
+                          >
+                            <RotateCcw className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -521,10 +541,9 @@ const Users = () => {
         </CardContent>
       </Card>
 
-      <InviteUserDialog
-        open={inviteDialogOpen}
-        onOpenChange={setInviteDialogOpen}
-        onInvite={handleInviteUser}
+      <CreateUserDialog
+        open={createDialogOpen}
+        onOpenChange={setCreateDialogOpen}
       />
 
       <EditUserDialog

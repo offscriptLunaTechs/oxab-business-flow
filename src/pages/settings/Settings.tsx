@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { Link, Outlet, useLocation } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Users as UsersIcon, Settings as SettingsIcon } from "lucide-react";
@@ -10,8 +10,13 @@ const Settings = () => {
   const location = useLocation();
   const [activeTab, setActiveTab] = useState<string>("users");
   
-  // Only show Users component directly if we're on the main settings page
-  const isMainSettingsPage = location.pathname === "/settings";
+  // Check if we're on the users subpage
+  const isUsersPage = location.pathname === "/settings/users";
+  
+  // If we're on the users subpage, just show the Users component
+  if (isUsersPage) {
+    return <Users />;
+  }
 
   return (
     <div className="space-y-6">
@@ -44,30 +49,25 @@ const Settings = () => {
           </TabsTrigger>
         </TabsList>
 
-        {isMainSettingsPage ? (
-          <>
-            <TabsContent value="users" className="space-y-4">
-              <Users />
-            </TabsContent>
-            <TabsContent value="general" className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>General Settings</CardTitle>
-                  <CardDescription>
-                    Configure global system settings for KECC Business System
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-center py-8 text-gray-500">
-                    General settings configuration coming soon...
-                  </p>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </>
-        ) : (
-          <Outlet />
-        )}
+        <TabsContent value="users" className="space-y-4">
+          <Users />
+        </TabsContent>
+        
+        <TabsContent value="general" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>General Settings</CardTitle>
+              <CardDescription>
+                Configure global system settings for KECC Business System
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-center py-8 text-gray-500">
+                General settings configuration coming soon...
+              </p>
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
     </div>
   );

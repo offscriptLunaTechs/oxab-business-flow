@@ -1354,6 +1354,19 @@ export type Database = {
       }
     }
     Functions: {
+      admin_create_user: {
+        Args: {
+          p_email: string
+          p_full_name: string
+          p_role?: string
+          p_department?: string
+        }
+        Returns: Json
+      }
+      admin_reset_user_password: {
+        Args: { p_user_email: string }
+        Returns: Json
+      }
       allocate_payment_to_invoices: {
         Args: { p_payment_id: string; p_customer_id: string; p_amount: number }
         Returns: undefined
