@@ -4,6 +4,7 @@ import { pdf } from '@react-pdf/renderer';
 import { saveAs } from 'file-saver';
 import { OutstandingInvoicesReportPDF } from '@/components/reports/OutstandingInvoicesReportPDF';
 import { OutstandingInvoice } from '@/hooks/useOutstandingInvoices';
+import React from 'react';
 
 interface GeneratePDFParams {
   invoices: OutstandingInvoice[];
@@ -22,7 +23,7 @@ export const useOutstandingInvoicesPDF = () => {
       console.log('Generating Outstanding Invoices PDF...');
       
       const blob = await pdf(
-        OutstandingInvoicesReportPDF({ invoices, filters })
+        React.createElement(OutstandingInvoicesReportPDF, { invoices, filters })
       ).toBlob();
       
       const defaultFilename = `outstanding-invoices-${new Date().toISOString().split('T')[0]}.pdf`;
