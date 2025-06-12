@@ -5,13 +5,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import DesktopSidebar from "./DesktopSidebar";
 import MobileNav from "./MobileNav";
 import TopBar from "./TopBar";
-import Dashboard from "@/pages/dashboard/Dashboard";
-import Customers from "@/pages/customers/Customers";
 import Inventory from "@/pages/inventory/Inventory";
-import InvoicesList from "@/pages/invoices/InvoicesList";
-import InvoiceDetail from "@/pages/invoices/InvoiceDetail";
-import CreateInvoice from "@/pages/invoices/CreateInvoice";
-import EditInvoice from "@/pages/invoices/EditInvoice";
 import OutstandingInvoicesReport from "@/pages/reports/OutstandingInvoicesReport";
 import Profile from "@/pages/profile/Profile";
 import Settings from "@/pages/settings/Settings";
@@ -31,13 +25,22 @@ const AppLayout = () => {
             <TopBar onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
             <main className="p-6">
               <Routes>
-                <Route path="/" element={<Dashboard />} />
-                <Route path="/*" element={<Dashboard />} />
-                <Route index element={<Dashboard />} />
-                <Route path="new" element={<CreateInvoice />} />
-                <Route path=":invoiceId" element={<InvoiceDetail />} />
-                <Route path=":invoiceId/edit" element={<EditInvoice />} />
-                <Route path="outstanding-invoices" element={<OutstandingInvoicesReport />} />
+                {/* Inventory routes */}
+                <Route path="/inventory" element={<Inventory />} />
+                <Route path="/inventory/*" element={<Inventory />} />
+                
+                {/* Reports routes */}
+                <Route path="/reports/outstanding-invoices" element={<OutstandingInvoicesReport />} />
+                <Route path="/reports/*" element={<OutstandingInvoicesReport />} />
+                
+                {/* Profile routes */}
+                <Route path="/profile" element={<Profile />} />
+                <Route path="/profile/*" element={<Profile />} />
+                
+                {/* Settings routes */}
+                <Route path="/settings" element={<Settings />} />
+                <Route path="/settings/users" element={<Users />} />
+                <Route path="/settings/*" element={<Settings />} />
               </Routes>
             </main>
           </div>
@@ -50,13 +53,22 @@ const AppLayout = () => {
           <TopBar />
           <main className="p-4">
             <Routes>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/*" element={<Dashboard />} />
-              <Route index element={<Dashboard />} />
-              <Route path="new" element={<CreateInvoice />} />
-              <Route path=":invoiceId" element={<InvoiceDetail />} />
-              <Route path=":invoiceId/edit" element={<EditInvoice />} />
-              <Route path="outstanding-invoices" element={<OutstandingInvoicesReport />} />
+              {/* Inventory routes */}
+              <Route path="/inventory" element={<Inventory />} />
+              <Route path="/inventory/*" element={<Inventory />} />
+              
+              {/* Reports routes */}
+              <Route path="/reports/outstanding-invoices" element={<OutstandingInvoicesReport />} />
+              <Route path="/reports/*" element={<OutstandingInvoicesReport />} />
+              
+              {/* Profile routes */}
+              <Route path="/profile" element={<Profile />} />
+              <Route path="/profile/*" element={<Profile />} />
+              
+              {/* Settings routes */}
+              <Route path="/settings" element={<Settings />} />
+              <Route path="/settings/users" element={<Users />} />
+              <Route path="/settings/*" element={<Settings />} />
             </Routes>
           </main>
           <MobileNav />
