@@ -3,7 +3,8 @@ import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Download, Mail, Printer } from 'lucide-react';
-import { PDFDownloadLink } from '@react-pdf/renderer';
+import { pdf } from '@react-pdf/renderer';
+import { saveAs } from 'file-saver';
 import { format } from 'date-fns';
 import CustomerStatementPDF from './CustomerStatementPDF';
 import { useToast } from '@/hooks/use-toast';
@@ -34,31 +35,51 @@ export const StatementActions: React.FC<StatementActionsProps> = ({
     });
   };
 
+  const handleDownloadPDF = async () => {
+    if (!customer || invoices.length === 0) return;
+    
+    try {
+      console.log('Generating customer statement PDF...');
+      
+      const pdfElement = React.createElement(CustomerStatementPDF, {
+        customer,
+        invoices,
+        startDate,
+        endDate,
+        totalOutstanding,
+        openingBalance
+      });
+      
+      const blob = await pdf(pdfElement).toBlob();
+      const filename = `statement-${customer.code}-${format(new Date(), 'yyyy-MM-dd')}.pdf`;
+      saveAs(blob, filename);
+      
+      toast({
+        title: "Success",
+        description: "PDF downloaded successfully",
+      });
+    } catch (error) {
+      console.error('PDF generation error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to generate PDF",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <Card>
       <CardContent className="p-4">
         <div className="flex flex-wrap gap-2">
           {customer && invoices.length > 0 && (
-            <PDFDownloadLink
-              document={
-                <CustomerStatementPDF
-                  customer={customer}
-                  invoices={invoices}
-                  startDate={startDate}
-                  endDate={endDate}
-                  totalOutstanding={totalOutstanding}
-                  openingBalance={openingBalance}
-                />
-              }
-              fileName={`statement-${customer.code}-${format(new Date(), 'yyyy-MM-dd')}.pdf`}
+            <Button 
+              onClick={handleDownloadPDF}
+              className="flex items-center gap-2"
             >
-              {({ loading }) => (
-                <Button disabled={loading} className="flex items-center gap-2">
-                  <Download className="h-4 w-4" />
-                  {loading ? 'Generating...' : 'Export PDF'}
-                </Button>
-              )}
-            </PDFDownloadLink>
+              <Download className="h-4 w-4" />
+              Export PDF
+            </Button>
           )}
           
           <Button 

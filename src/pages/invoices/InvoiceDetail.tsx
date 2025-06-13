@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Edit, Download, FileText, User, Calendar, DollarSign } from 'lucide-react';
@@ -16,9 +15,7 @@ import {
 import { useInvoice, useDeleteInvoice, useUpdateInvoice } from '@/hooks/useInvoices';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { format } from 'date-fns';
-import { pdf } from '@react-pdf/renderer';
-import InvoicePDF from '@/components/invoice/InvoicePDF';
-import { saveAs } from 'file-saver';
+import { downloadInvoicePDF } from '@/utils/pdfUtils';
 import { useToast } from '@/hooks/use-toast';
 
 const InvoiceDetail = () => {
@@ -50,8 +47,7 @@ const InvoiceDetail = () => {
     
     try {
       console.log('Generating PDF for invoice:', invoice.id);
-      const blob = await pdf(<InvoicePDF invoice={invoice} />).toBlob();
-      saveAs(blob, `invoice-${invoice.id}.pdf`);
+      await downloadInvoicePDF(invoice);
       toast({
         title: "Success",
         description: "PDF downloaded successfully",
