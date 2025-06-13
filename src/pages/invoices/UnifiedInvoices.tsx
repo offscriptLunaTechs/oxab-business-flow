@@ -32,7 +32,7 @@ const UnifiedInvoices = () => {
   // Search and filter states
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [customerFilter, setCustomerFilter] = useState('');
+  const [customerFilter, setCustomerFilter] = useState('all');
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
   const [minAmount, setMinAmount] = useState<number | undefined>();
@@ -45,7 +45,7 @@ const UnifiedInvoices = () => {
   
   // Outstanding invoices with filters
   const outstandingFilters = {
-    customerId: customerFilter || undefined,
+    customerId: customerFilter !== 'all' ? customerFilter : undefined,
     startDate,
     endDate,
     minAmount,
@@ -61,7 +61,7 @@ const UnifiedInvoices = () => {
     
     const matchesStatus = statusFilter === 'all' || invoice.status === statusFilter;
     
-    const matchesCustomer = !customerFilter || invoice.customer_id === customerFilter;
+    const matchesCustomer = customerFilter === 'all' || invoice.customer_id === customerFilter;
     
     const matchesStartDate = !startDate || new Date(invoice.date) >= startDate;
     const matchesEndDate = !endDate || new Date(invoice.date) <= endDate;
@@ -156,7 +156,7 @@ const UnifiedInvoices = () => {
   const clearFilters = () => {
     setSearchTerm('');
     setStatusFilter('all');
-    setCustomerFilter('');
+    setCustomerFilter('all');
     setStartDate(undefined);
     setEndDate(undefined);
     setMinAmount(undefined);
@@ -219,7 +219,7 @@ const UnifiedInvoices = () => {
                 <SelectValue placeholder="Customer" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Customers</SelectItem>
+                <SelectItem value="all">All Customers</SelectItem>
                 {customers.map((customer) => (
                   <SelectItem key={customer.id} value={customer.id}>
                     {customer.name}
