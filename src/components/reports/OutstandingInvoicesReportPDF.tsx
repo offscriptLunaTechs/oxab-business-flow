@@ -263,12 +263,12 @@ export const OutstandingInvoicesReportPDF: React.FC<OutstandingInvoicesReportPDF
             const daysOverdue = Math.floor((today.getTime() - new Date(invoice.due_date).getTime()) / (1000 * 60 * 60 * 24));
             return (
               <View style={styles.tableRow} key={index}>
-                <Text style={styles.col1}>{invoice.id}</Text>
+                <Text style={styles.col1}>{invoice.invoice_id}</Text>
                 <Text style={styles.col2}>{invoice.customer_name}</Text>
                 <Text style={styles.col3}>
                   {new Date(invoice.due_date).toLocaleDateString('en-GB')}
                 </Text>
-                <Text style={styles.col4}>KWD {Number(invoice.total).toFixed(3)}</Text>
+                <Text style={styles.col4}>KWD {Number(invoice.total_amount).toFixed(3)}</Text>
                 <Text style={[styles.col5, { color: '#dc2626' }]}>
                   KWD {Number(invoice.outstanding_amount).toFixed(3)}
                 </Text>
