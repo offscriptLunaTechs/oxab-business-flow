@@ -16,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useInvoices, useUpdateInvoice } from '@/hooks/useInvoices';
+import { useInvoices, useUpdateInvoice, useInvoice } from '@/hooks/useInvoices';
 import { useOutstandingInvoices } from '@/hooks/useOutstandingInvoices';
 import { useOutstandingInvoicesPDF } from '@/hooks/useOutstandingInvoicesPDF';
 import { useCustomers } from '@/hooks/useCustomers';
@@ -103,13 +103,20 @@ const UnifiedInvoices = () => {
   const handleDownloadInvoicePDF = async (invoiceId: string) => {
     setDownloadingInvoiceId(invoiceId);
     try {
-      // Find the invoice in our data
-      const invoice = allInvoices?.find(inv => inv.id === invoiceId);
-      if (!invoice) {
+      // Find the invoice in our data first to get basic info
+      const basicInvoice = allInvoices?.find(inv => inv.id === invoiceId);
+      if (!basicInvoice) {
         throw new Error('Invoice not found');
       }
       
-      await downloadInvoicePDF(invoice);
+      // Transform the basic invoice data to match InvoiceWithDetails interface
+      const invoiceForPDF = {
+        ...basicInvoice,
+        customer: basicInvoice.customers, // Map customers to customer
+        items: [] // Will be fetched by downloadInvoicePDF function
+      };
+      
+      await downloadInvoicePDF(invoiceForPDF);
       toast({
         title: "Success",
         description: "PDF downloaded successfully",
