@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer';
 import { OutstandingInvoice } from '@/hooks/useOutstandingInvoices';
@@ -104,13 +103,13 @@ const styles = StyleSheet.create({
     borderBottomWidth: 0.5,
     borderBottomColor: '#e5e7eb',
   },
-  col1: { width: '15%' }, // Invoice ID
-  col2: { width: '25%' }, // Customer
-  col3: { width: '12%', textAlign: 'center' }, // Due Date
-  col4: { width: '12%', textAlign: 'right' }, // Total
-  col5: { width: '12%', textAlign: 'right' }, // Outstanding
-  col6: { width: '12%', textAlign: 'center' }, // Days Overdue
-  col7: { width: '12%', textAlign: 'center' }, // Status
+  col1: { width: '15%' },
+  col2: { width: '25%' },
+  col3: { width: '12%', textAlign: 'center' },
+  col4: { width: '12%', textAlign: 'right' },
+  col5: { width: '12%', textAlign: 'right' },
+  col6: { width: '12%', textAlign: 'center' },
+  col7: { width: '12%', textAlign: 'center' },
   agingSection: {
     marginTop: 20,
     padding: 15,
@@ -159,6 +158,25 @@ interface OutstandingInvoicesReportPDFProps {
   };
 }
 
+// Helper component for logo with fallback
+const Logo = () => {
+  try {
+    return (
+      <Image 
+        style={styles.logo}
+        src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/image-860ea59a-d583-4c99-8338-31717d62cc4c.png"
+      />
+    );
+  } catch (error) {
+    // Fallback if logo fails to load
+    return (
+      <View style={[styles.logo, { backgroundColor: '#2d3e87', borderRadius: 8, justifyContent: 'center', alignItems: 'center' }]}>
+        <Text style={{ color: 'white', fontSize: 16, fontWeight: 'bold' }}>KECC</Text>
+      </View>
+    );
+  }
+};
+
 export const OutstandingInvoicesReportPDF: React.FC<OutstandingInvoicesReportPDFProps> = ({
   invoices,
   filters
@@ -192,10 +210,7 @@ export const OutstandingInvoicesReportPDF: React.FC<OutstandingInvoicesReportPDF
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.logoSection}>
-            <Image 
-              style={styles.logo}
-              src="/lovable-uploads/860ea59a-d583-4c99-8338-31717d62cc4c.png"
-            />
+            <Logo />
           </View>
           <View style={styles.company}>
             <Text style={styles.companyName}>KECC</Text>

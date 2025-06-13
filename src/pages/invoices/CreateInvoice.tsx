@@ -17,6 +17,7 @@ import { useCreateInvoice } from '@/hooks/useInvoices';
 import { ProductSelectionModal } from '@/components/invoices/ProductSelectionModal';
 import { Product } from '@/types/invoice';
 import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 interface Item {
   product_id: string;
@@ -30,6 +31,7 @@ interface Item {
 
 const CreateInvoice = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [customerId, setCustomerId] = useState('');
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [dueDate, setDueDate] = useState<Date | undefined>(addDays(new Date(), 30));
@@ -158,7 +160,11 @@ const CreateInvoice = () => {
 
   const handleSubmit = async () => {
     if (!customerId || items.length === 0) {
-      console.error('Customer and items are required');
+      toast({
+        title: "Error",
+        description: "Customer and items are required",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -181,10 +187,20 @@ const CreateInvoice = () => {
     };
 
     try {
-      await createInvoice.mutateAsync(invoiceData);
-      navigate('/invoices');
+      const result = await createInvoice.mutateAsync(invoiceData);
+      toast({
+        title: "Success",
+        description: "Invoice created successfully",
+      });
+      // Redirect to the created invoice view instead of invoices list
+      navigate(`/invoices/${result.id}`);
     } catch (error) {
       console.error('Failed to create invoice', error);
+      toast({
+        title: "Error",
+        description: "Failed to create invoice",
+        variant: "destructive",
+      });
     }
   };
 

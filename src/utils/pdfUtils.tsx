@@ -1,5 +1,4 @@
 
-
 import { pdf } from '@react-pdf/renderer';
 import { saveAs } from 'file-saver';
 import { supabase } from '@/integrations/supabase/client';
@@ -10,9 +9,24 @@ export const downloadInvoicePDF = async (invoice: InvoiceWithDetails) => {
   try {
     console.log('Starting PDF generation for invoice:', invoice.id);
     
-    // If invoice doesn't have items, fetch them
-    if (!invoice.items || invoice.items.length === 0) {
-      console.log('Fetching invoice items for PDF generation');
+    // Ensure we have complete invoice data with items
+    let completeInvoice = invoice;
+    
+    // If invoice doesn't have items or customer data, fetch them
+    if (!invoice.items || invoice.items.length === 0 || !invoice.customer) {
+      console.log('Fetching complete invoice data for PDF generation');
+      
+      // Fetch complete invoice with customer and items
+      const { data: invoiceData, error: invoiceError } = await supabase
+        .from('invoices')
+        .select(`
+          *,
+          customers!invoices_customer_id_fkey(*)
+        `)
+        .eq('id', invoice.id)
+        .single();
+      
+      if (invoiceError) throw invoiceError;
       
       const { data: items, error: itemsError } = await supabase
         .from('invoice_items')
@@ -24,22 +38,34 @@ export const downloadInvoicePDF = async (invoice: InvoiceWithDetails) => {
       
       if (itemsError) throw itemsError;
       
-      invoice.items = items.map(item => ({
-        ...item,
-        product: item.products
-      }));
+      completeInvoice = {
+        ...invoiceData,
+        customer: invoiceData.customers,
+        items: items.map(item => ({
+          ...item,
+          product: item.products
+        }))
+      };
     }
     
-    // Create the PDF blob - pass component directly
-    const blob = await pdf(<InvoicePDF invoice={invoice} />).toBlob();
+    // Validate we have required data
+    if (!completeInvoice.customer) {
+      throw new Error('Customer information is required for PDF generation');
+    }
+    
+    if (!completeInvoice.items || completeInvoice.items.length === 0) {
+      throw new Error('Invoice items are required for PDF generation');
+    }
+    
+    // Create the PDF blob
+    const blob = await pdf(<InvoicePDF invoice={completeInvoice} />).toBlob();
     
     // Download the file
-    saveAs(blob, `invoice-${invoice.id}.pdf`);
+    saveAs(blob, `invoice-${completeInvoice.id}.pdf`);
     
     console.log('PDF generated successfully');
   } catch (error) {
     console.error('Error generating PDF:', error);
-    throw new Error('Failed to generate PDF');
+    throw new Error(`Failed to generate PDF: ${error.message}`);
   }
 };
-

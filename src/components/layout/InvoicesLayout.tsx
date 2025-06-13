@@ -5,7 +5,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import DesktopSidebar from "./DesktopSidebar";
 import MobileNav from "./MobileNav";
 import TopBar from "./TopBar";
-import InvoicesList from "@/pages/invoices/InvoicesList";
+import UnifiedInvoices from "@/pages/invoices/UnifiedInvoices";
 import InvoiceDetail from "@/pages/invoices/InvoiceDetail";
 import CreateInvoice from "@/pages/invoices/CreateInvoice";
 import EditInvoice from "@/pages/invoices/EditInvoice";
@@ -24,7 +24,7 @@ const InvoicesLayout = () => {
             <TopBar onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
             <main className="p-6">
               <Routes>
-                <Route index element={<InvoicesList />} />
+                <Route index element={<UnifiedInvoices />} />
                 <Route path="new" element={<CreateInvoice />} />
                 <Route path=":invoiceId" element={<InvoiceDetail />} />
                 <Route path=":invoiceId/edit" element={<EditInvoice />} />
@@ -40,7 +40,7 @@ const InvoicesLayout = () => {
           <TopBar />
           <main className="p-4">
             <Routes>
-              <Route index element={<InvoicesList />} />
+              <Route index element={<UnifiedInvoices />} />
               <Route path="new" element={<CreateInvoice />} />
               <Route path=":invoiceId" element={<InvoiceDetail />} />
               <Route path=":invoiceId/edit" element={<EditInvoice />} />

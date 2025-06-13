@@ -1,5 +1,4 @@
 
-
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer';
 import { InvoiceWithDetails } from '@/types/invoice';
@@ -200,16 +199,32 @@ interface InvoicePDFProps {
   invoice: InvoiceWithDetails;
 }
 
+// Helper component for logo with fallback
+const Logo = () => {
+  try {
+    return (
+      <Image 
+        style={styles.logo}
+        src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/image-860ea59a-d583-4c99-8338-31717d62cc4c.png"
+      />
+    );
+  } catch (error) {
+    // Fallback if logo fails to load
+    return (
+      <View style={[styles.logo, { backgroundColor: '#2d3e87', borderRadius: 8, justifyContent: 'center', alignItems: 'center' }]}>
+        <Text style={{ color: 'white', fontSize: 16, fontWeight: 'bold' }}>KECC</Text>
+      </View>
+    );
+  }
+};
+
 const InvoicePDF: React.FC<InvoicePDFProps> = ({ invoice }) => (
   <Document>
     <Page size="A4" style={styles.page}>
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.logoSection}>
-          <Image 
-            style={styles.logo}
-            src="/lovable-uploads/860ea59a-d583-4c99-8338-31717d62cc4c.png"
-          />
+          <Logo />
         </View>
         <View style={styles.company}>
           <Text style={styles.companyName}>KECC</Text>
@@ -321,4 +336,3 @@ const InvoicePDF: React.FC<InvoicePDFProps> = ({ invoice }) => (
 );
 
 export default InvoicePDF;
-
