@@ -2,7 +2,6 @@
 import { useMutation } from '@tanstack/react-query';
 import { pdf } from '@react-pdf/renderer';
 import { saveAs } from 'file-saver';
-import React from 'react';
 import { OutstandingInvoicesReportPDF } from '@/components/reports/OutstandingInvoicesReportPDF';
 import { OutstandingInvoice } from '@/hooks/useOutstandingInvoices';
 
@@ -22,13 +21,8 @@ export const useOutstandingInvoicesPDF = () => {
     mutationFn: async ({ invoices, filters, filename }: GeneratePDFParams) => {
       console.log('Generating Outstanding Invoices PDF...');
       
-      // Create the PDF document using React.createElement
-      const pdfElement = React.createElement(OutstandingInvoicesReportPDF, { 
-        invoices, 
-        filters 
-      });
-      
-      const blob = await pdf(pdfElement).toBlob();
+      // Create the PDF document - pass component directly
+      const blob = await pdf(<OutstandingInvoicesReportPDF invoices={invoices} filters={filters} />).toBlob();
       
       const defaultFilename = `outstanding-invoices-${new Date().toISOString().split('T')[0]}.pdf`;
       saveAs(blob, filename || defaultFilename);

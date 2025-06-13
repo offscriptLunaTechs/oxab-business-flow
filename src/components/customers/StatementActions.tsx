@@ -41,16 +41,18 @@ export const StatementActions: React.FC<StatementActionsProps> = ({
     try {
       console.log('Generating customer statement PDF...');
       
-      const pdfElement = React.createElement(CustomerStatementPDF, {
-        customer,
-        invoices,
-        startDate,
-        endDate,
-        totalOutstanding,
-        openingBalance
-      });
+      // Create the PDF document - pass component directly
+      const blob = await pdf(
+        <CustomerStatementPDF
+          customer={customer}
+          invoices={invoices}
+          startDate={startDate}
+          endDate={endDate}
+          totalOutstanding={totalOutstanding}
+          openingBalance={openingBalance}
+        />
+      ).toBlob();
       
-      const blob = await pdf(pdfElement).toBlob();
       const filename = `statement-${customer.code}-${format(new Date(), 'yyyy-MM-dd')}.pdf`;
       saveAs(blob, filename);
       
