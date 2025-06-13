@@ -21,7 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useInvoices, useDeleteInvoice, useUpdateInvoice } from '@/hooks/useInvoices';
+import { useInvoices, useDeleteInvoice, useUpdateInvoice, useInvoice } from '@/hooks/useInvoices';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { format } from 'date-fns';
 import { downloadInvoicePDF } from '@/utils/pdfUtils';
@@ -31,6 +31,7 @@ const InvoicesList = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [downloadingInvoiceId, setDownloadingInvoiceId] = useState<string | null>(null);
   const { toast } = useToast();
   
   const { data: invoices, isLoading, error } = useInvoices();
@@ -75,19 +76,37 @@ const InvoicesList = () => {
     }
   };
 
-  const handleDownloadPDF = async (invoice: any) => {
+  const handleDownloadPDF = async (invoiceId: string) => {
+    setDownloadingInvoiceId(invoiceId);
     try {
-      await downloadInvoicePDF(invoice);
+      console.log('Fetching complete invoice data for PDF generation:', invoiceId);
+      
+      // Fetch complete invoice data with items
+      const response = await fetch(`/api/invoices/${invoiceId}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch invoice details');
+      }
+      
+      const completeInvoice = await response.json();
+      
+      if (!completeInvoice.items || completeInvoice.items.length === 0) {
+        throw new Error('Invoice items not found');
+      }
+      
+      await downloadInvoicePDF(completeInvoice);
       toast({
         title: "Success",
         description: "PDF downloaded successfully",
       });
     } catch (error) {
+      console.error('PDF generation error:', error);
       toast({
         title: "Error",
         description: "Failed to generate PDF",
         variant: "destructive",
       });
+    } finally {
+      setDownloadingInvoiceId(null);
     }
   };
 
@@ -229,10 +248,14 @@ const InvoicesList = () => {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleDownloadPDF(invoice)}
-                            disabled={updateInvoiceMutation.isPending}
+                            onClick={() => handleDownloadPDF(invoice.id)}
+                            disabled={downloadingInvoiceId === invoice.id}
                           >
-                            <Download className="h-4 w-4" />
+                            {downloadingInvoiceId === invoice.id ? (
+                              <LoadingSpinner size="sm" />
+                            ) : (
+                              <Download className="h-4 w-4" />
+                            )}
                           </Button>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>

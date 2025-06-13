@@ -1,6 +1,7 @@
 
+
 import React from 'react';
-import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
+import { Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer';
 import { InvoiceWithDetails } from '@/types/invoice';
 
 // Create styles matching KECC format
@@ -21,6 +22,15 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#e5e7eb',
     paddingBottom: 20,
+    alignItems: 'flex-start',
+  },
+  logoSection: {
+    marginRight: 20,
+  },
+  logo: {
+    width: 60,
+    height: 60,
+    marginBottom: 10,
   },
   company: {
     flex: 1,
@@ -195,6 +205,12 @@ const InvoicePDF: React.FC<InvoicePDFProps> = ({ invoice }) => (
     <Page size="A4" style={styles.page}>
       {/* Header */}
       <View style={styles.header}>
+        <View style={styles.logoSection}>
+          <Image 
+            style={styles.logo}
+            src="/lovable-uploads/860ea59a-d583-4c99-8338-31717d62cc4c.png"
+          />
+        </View>
         <View style={styles.company}>
           <Text style={styles.companyName}>KECC</Text>
           <Text style={styles.companyDetails}>
@@ -305,3 +321,4 @@ const InvoicePDF: React.FC<InvoicePDFProps> = ({ invoice }) => (
 );
 
 export default InvoicePDF;
+
