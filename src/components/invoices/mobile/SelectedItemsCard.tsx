@@ -1,0 +1,89 @@
+
+import React from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Trash2 } from 'lucide-react';
+import { Item } from '@/hooks/useMobileInvoiceForm';
+
+interface SelectedItemsCardProps {
+  items: Item[];
+  updateItemQuantity: (index: number, quantity: number) => void;
+  updateItemPrice: (index: number, price: number) => void;
+  removeItem: (index: number) => void;
+}
+
+const SelectedItemsCard = ({
+  items,
+  updateItemQuantity,
+  updateItemPrice,
+  removeItem
+}: SelectedItemsCardProps) => {
+  if (items.length === 0) return null;
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-lg">Selected Items ({items.length})</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+          {items.map((item, index) => (
+            <div key={index} className="border rounded-lg p-4 bg-gray-50">
+              {/* Product Info */}
+              <div className="flex justify-between items-start mb-3">
+                <div className="flex-1">
+                  <div className="font-medium text-sm">{item.product_name}</div>
+                  <div className="text-xs text-gray-600">SKU: {item.product_sku}</div>
+                  <div className="text-xs text-gray-600">Size: {item.product_size}</div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => removeItem(index)}
+                  className="text-red-600 hover:text-red-700 p-2"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+              
+              {/* Quantity and Price Controls */}
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <Label className="text-xs font-medium text-gray-700">Quantity</Label>
+                  <Input
+                    type="number"
+                    value={item.quantity}
+                    onChange={(e) => updateItemQuantity(index, parseInt(e.target.value) || 1)}
+                    min="1"
+                    className="h-10 text-center text-base"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs font-medium text-gray-700">Price</Label>
+                  <Input
+                    type="number"
+                    value={item.price}
+                    onChange={(e) => updateItemPrice(index, parseFloat(e.target.value) || 0)}
+                    step="0.001"
+                    min="0"
+                    className="h-10 text-center text-base"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs font-medium text-gray-700">Total</Label>
+                  <div className="h-10 px-3 py-2 bg-white border rounded-md flex items-center justify-center text-base font-medium">
+                    {item.total.toFixed(3)}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
+export default SelectedItemsCard;
