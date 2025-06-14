@@ -12,7 +12,6 @@ import { useSkuMonthlyMovements, useSkuStockLevels } from "@/hooks/useSkuAnalyti
 import { useInventoryReportPDF } from "@/hooks/useInventoryReportPDF";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { useToast } from "@/hooks/use-toast";
-import SkuMovementCharts from "./SkuMovementCharts";
 
 interface InventoryReportsProps {
   products: ProductWithInventory[];
@@ -145,16 +144,6 @@ const InventoryReports = ({ products }: InventoryReportsProps) => {
       </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Monthly Movement Analysis by SKU - Now with Charts */}
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>Monthly Movement Analysis by SKU</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <SkuMovementCharts skuMovements={skuMovements || []} />
-          </CardContent>
-        </Card>
-
         {/* Stock Levels by SKU */}
         <Card>
           <CardHeader>
