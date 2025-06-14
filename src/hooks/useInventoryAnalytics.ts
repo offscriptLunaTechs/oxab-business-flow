@@ -1,4 +1,3 @@
-
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -12,6 +11,7 @@ export interface MonthlyMovement {
 export interface TopMovingProduct {
   product_name: string;
   sku: string;
+  size: string;
   total_moved: number;
   movement_type: string;
   percentage: number;
@@ -52,18 +52,67 @@ export const useTopMovingProducts = (limit: number = 10, days: number = 30) => {
     queryFn: async (): Promise<TopMovingProduct[]> => {
       console.log('Fetching top moving products...');
       
-      const { data, error } = await supabase.rpc('get_top_moving_products', {
-        p_limit: limit,
-        p_days: days
-      });
+      // Use a custom query to get product details including size
+      const { data, error } = await supabase
+        .from('stock_movements')
+        .select(`
+          quantity,
+          movement_type,
+          products!inner(
+            name,
+            sku,
+            size
+          )
+        `)
+        .eq('movement_type', 'out')
+        .gte('created_at', new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString())
+        .order('created_at', { ascending: false });
 
       if (error) {
         console.error('Top moving products error:', error);
         throw new Error(`Failed to fetch top moving products: ${error.message}`);
       }
 
-      console.log('Top moving products loaded:', data?.length || 0, 'records');
-      return data || [];
+      // Group by product and calculate totals
+      const productMovements = new Map<string, {
+        product_name: string;
+        sku: string;
+        size: string;
+        total_moved: number;
+      }>();
+
+      let totalQuantity = 0;
+
+      data?.forEach(movement => {
+        const key = `${movement.products.sku}-${movement.products.size}`;
+        const existing = productMovements.get(key);
+        
+        if (existing) {
+          existing.total_moved += movement.quantity;
+        } else {
+          productMovements.set(key, {
+            product_name: movement.products.name,
+            sku: movement.products.sku,
+            size: movement.products.size,
+            total_moved: movement.quantity
+          });
+        }
+        
+        totalQuantity += movement.quantity;
+      });
+
+      // Convert to array and sort by total moved
+      const sortedProducts = Array.from(productMovements.values())
+        .sort((a, b) => b.total_moved - a.total_moved)
+        .slice(0, limit)
+        .map(product => ({
+          ...product,
+          movement_type: 'out' as const,
+          percentage: totalQuantity > 0 ? Math.round((product.total_moved / totalQuantity) * 100) : 0
+        }));
+
+      console.log('Top moving products loaded:', sortedProducts.length, 'records');
+      return sortedProducts;
     },
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,

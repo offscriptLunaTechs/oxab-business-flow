@@ -179,23 +179,27 @@ const InventoryReports = ({ products }: InventoryReportsProps) => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <TrendingUp className="h-5 w-5" />
-            Top Moving Products (This Month)
+            Top Moving Products (Last 30 Days)
           </CardTitle>
         </CardHeader>
         <CardContent>
           {topMovers && topMovers.length > 0 ? (
             <div className="space-y-4">
               {topMovers.map((item, index) => (
-                <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                <div key={`${item.sku}-${item.size}`} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                   <div className="flex items-center gap-4">
                     <div className="text-2xl font-bold text-gray-400">
                       #{index + 1}
                     </div>
                     <div>
                       <h4 className="font-semibold text-gray-900">{item.product_name}</h4>
-                      <p className="text-sm text-gray-600">
-                        {item.total_moved.toLocaleString()} units moved
-                      </p>
+                      <div className="flex items-center gap-3 text-sm text-gray-600">
+                        <span className="font-medium">SKU: {item.sku}</span>
+                        <span className="text-gray-400">•</span>
+                        <span>Size: {item.size}</span>
+                        <span className="text-gray-400">•</span>
+                        <span>{item.total_moved.toLocaleString()} units moved</span>
+                      </div>
                     </div>
                   </div>
                   <div className="text-right">
