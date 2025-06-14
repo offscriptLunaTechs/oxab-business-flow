@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus } from 'lucide-react';
@@ -10,7 +9,9 @@ import { useOutstandingInvoicesPDF } from '@/hooks/useOutstandingInvoicesPDF';
 import { useCustomers } from '@/hooks/useCustomers';
 import { downloadInvoicePDF } from '@/utils/pdfUtils';
 import { useToast } from '@/hooks/use-toast';
+import { useIsMobile } from '@/hooks/use-mobile';
 import InvoiceFilters from '@/components/invoices/InvoiceFilters';
+import MobileInvoiceFilters from '@/components/invoices/MobileInvoiceFilters';
 import AllInvoicesTab from '@/components/invoices/AllInvoicesTab';
 import OutstandingInvoicesTab from '@/components/invoices/OutstandingInvoicesTab';
 import ReportsTab from '@/components/invoices/ReportsTab';
@@ -18,6 +19,7 @@ import ReportsTab from '@/components/invoices/ReportsTab';
 const UnifiedInvoices = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const isMobile = useIsMobile();
   
   // Search and filter states
   const [searchTerm, setSearchTerm] = useState('');
@@ -129,6 +131,8 @@ const UnifiedInvoices = () => {
     );
   }
 
+  const FilterComponent = isMobile ? MobileInvoiceFilters : InvoiceFilters;
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -147,7 +151,7 @@ const UnifiedInvoices = () => {
       </div>
 
       {/* Filters */}
-      <InvoiceFilters
+      <FilterComponent
         searchTerm={searchTerm}
         setSearchTerm={setSearchTerm}
         statusFilter={statusFilter}

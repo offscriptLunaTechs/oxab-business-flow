@@ -17,11 +17,13 @@ import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { format } from 'date-fns';
 import { downloadInvoicePDF } from '@/utils/pdfUtils';
 import { useToast } from '@/hooks/use-toast';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const InvoiceDetail = () => {
   const { invoiceId } = useParams<{ invoiceId: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const isMobile = useIsMobile();
   
   console.log('InvoiceDetail - invoiceId from params:', invoiceId);
   
@@ -127,7 +129,7 @@ const InvoiceDetail = () => {
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex items-center space-x-4">
           <Button
             variant="ghost"
@@ -139,13 +141,15 @@ const InvoiceDetail = () => {
             Back to Invoices
           </Button>
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Invoice {invoice.id}</h1>
+            <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">Invoice {invoice.id}</h1>
             <p className="text-gray-600">Created on {format(new Date(invoice.created_at), 'MMM dd, yyyy')}</p>
           </div>
         </div>
-        <div className="flex gap-2">
+        
+        {/* Mobile: Stack action buttons vertically */}
+        <div className={`flex gap-2 ${isMobile ? 'flex-col' : 'flex-row'}`}>
           <Select value={invoice.status} onValueChange={handleStatusUpdate}>
-            <SelectTrigger className="w-40">
+            <SelectTrigger className={isMobile ? 'w-full' : 'w-40'}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -158,20 +162,21 @@ const InvoiceDetail = () => {
           <Button
             variant="outline"
             onClick={() => navigate(`/invoices/${invoice.id}/edit`)}
+            className={isMobile ? 'w-full' : ''}
           >
             <Edit className="h-4 w-4 mr-2" />
             Edit
           </Button>
-          <Button onClick={handleDownloadPDF}>
+          <Button onClick={handleDownloadPDF} className={isMobile ? 'w-full' : ''}>
             <Download className="h-4 w-4 mr-2" />
             Download PDF
           </Button>
         </div>
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-6">
+      <div className={`grid gap-6 ${isMobile ? 'grid-cols-1' : 'lg:grid-cols-3'}`}>
         {/* Invoice Information */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className={`space-y-6 ${isMobile ? 'order-2' : 'lg:col-span-2'}`}>
           {/* Invoice Details */}
           <Card>
             <CardHeader>
@@ -180,7 +185,7 @@ const InvoiceDetail = () => {
                 Invoice Details
               </CardTitle>
             </CardHeader>
-            <CardContent className="grid grid-cols-2 gap-4">
+            <CardContent className={`grid gap-4 ${isMobile ? 'grid-cols-1' : 'grid-cols-2'}`}>
               <div>
                 <label className="text-sm font-medium text-gray-600">Invoice Date</label>
                 <p className="font-semibold">{format(new Date(invoice.date), 'MMM dd, yyyy')}</p>
@@ -210,33 +215,69 @@ const InvoiceDetail = () => {
               <CardTitle>Invoice Items</CardTitle>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Product</TableHead>
-                    <TableHead>SKU</TableHead>
-                    <TableHead className="text-right">Qty</TableHead>
-                    <TableHead className="text-right">Price</TableHead>
-                    <TableHead className="text-right">Total</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
+              {/* Mobile: Convert table to cards */}
+              {isMobile ? (
+                <div className="space-y-4">
                   {invoice.items?.map((item) => (
-                    <TableRow key={item.id}>
-                      <TableCell>
-                        <div>
-                          <p className="font-medium">{item.product?.name}</p>
-                          <p className="text-sm text-gray-500">{item.product?.description}</p>
+                    <Card key={item.id} className="border border-gray-200">
+                      <CardContent className="p-4">
+                        <div className="space-y-2">
+                          <div>
+                            <p className="font-medium">{item.product?.name}</p>
+                            <p className="text-sm text-gray-500">{item.product?.description}</p>
+                          </div>
+                          <div className="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                              <span className="text-gray-600">SKU:</span>
+                              <span className="ml-1">{item.product?.sku}</span>
+                            </div>
+                            <div>
+                              <span className="text-gray-600">Qty:</span>
+                              <span className="ml-1">{item.quantity}</span>
+                            </div>
+                            <div>
+                              <span className="text-gray-600">Price:</span>
+                              <span className="ml-1">KD {Number(item.price).toFixed(3)}</span>
+                            </div>
+                            <div>
+                              <span className="text-gray-600">Total:</span>
+                              <span className="ml-1 font-medium">KD {Number(item.total).toFixed(3)}</span>
+                            </div>
+                          </div>
                         </div>
-                      </TableCell>
-                      <TableCell>{item.product?.sku}</TableCell>
-                      <TableCell className="text-right">{item.quantity}</TableCell>
-                      <TableCell className="text-right">KD {Number(item.price).toFixed(3)}</TableCell>
-                      <TableCell className="text-right font-medium">KD {Number(item.total).toFixed(3)}</TableCell>
-                    </TableRow>
+                      </CardContent>
+                    </Card>
                   ))}
-                </TableBody>
-              </Table>
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Product</TableHead>
+                      <TableHead>SKU</TableHead>
+                      <TableHead className="text-right">Qty</TableHead>
+                      <TableHead className="text-right">Price</TableHead>
+                      <TableHead className="text-right">Total</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {invoice.items?.map((item) => (
+                      <TableRow key={item.id}>
+                        <TableCell>
+                          <div>
+                            <p className="font-medium">{item.product?.name}</p>
+                            <p className="text-sm text-gray-500">{item.product?.description}</p>
+                          </div>
+                        </TableCell>
+                        <TableCell>{item.product?.sku}</TableCell>
+                        <TableCell className="text-right">{item.quantity}</TableCell>
+                        <TableCell className="text-right">KD {Number(item.price).toFixed(3)}</TableCell>
+                        <TableCell className="text-right font-medium">KD {Number(item.total).toFixed(3)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
               
               {/* Totals */}
               <div className="border-t mt-4 pt-4 space-y-2">
@@ -266,7 +307,7 @@ const InvoiceDetail = () => {
         </div>
 
         {/* Customer Information */}
-        <div className="space-y-6">
+        <div className={`space-y-6 ${isMobile ? 'order-1' : ''}`}>
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center">
