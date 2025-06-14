@@ -1,20 +1,21 @@
 
 import { useState, useMemo } from "react";
-import { Search, Package, AlertTriangle, CheckCircle, Edit } from "lucide-react";
+import { Search, Package, AlertTriangle, CheckCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ProductWithInventory } from "@/hooks/useProducts";
+import StockAdjustmentModal from "./StockAdjustmentModal";
 
 interface StockLevelsTableProps {
   products: ProductWithInventory[];
   searchTerm: string;
   onSearchChange: (term: string) => void;
+  onStockUpdate?: () => void;
 }
 
-const StockLevelsTable = ({ products, searchTerm, onSearchChange }: StockLevelsTableProps) => {
+const StockLevelsTable = ({ products, searchTerm, onSearchChange, onStockUpdate }: StockLevelsTableProps) => {
   const [sortField, setSortField] = useState<'name' | 'stock_level' | 'base_price'>('name');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
@@ -80,6 +81,12 @@ const StockLevelsTable = ({ products, searchTerm, onSearchChange }: StockLevelsT
         return <Package className="h-4 w-4 text-orange-600" />;
       default:
         return <CheckCircle className="h-4 w-4 text-green-600" />;
+    }
+  };
+
+  const handleStockUpdate = () => {
+    if (onStockUpdate) {
+      onStockUpdate();
     }
   };
 
@@ -169,9 +176,10 @@ const StockLevelsTable = ({ products, searchTerm, onSearchChange }: StockLevelsT
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Button variant="ghost" size="sm">
-                        <Edit className="h-4 w-4" />
-                      </Button>
+                      <StockAdjustmentModal 
+                        product={product} 
+                        onSuccess={handleStockUpdate}
+                      />
                     </TableCell>
                   </TableRow>
                 );

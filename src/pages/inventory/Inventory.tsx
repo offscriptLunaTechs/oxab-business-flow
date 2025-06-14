@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useProducts } from "@/hooks/useProducts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,7 +12,7 @@ import InventoryStats from "@/components/inventory/InventoryStats";
 
 const Inventory = () => {
   const [searchTerm, setSearchTerm] = useState('');
-  const { data: products, isLoading, error } = useProducts(searchTerm);
+  const { data: products, isLoading, error, refetch } = useProducts(searchTerm);
 
   if (isLoading) {
     return (
@@ -34,6 +33,11 @@ const Inventory = () => {
   const lowStockCount = products?.filter(p => p.is_low_stock).length || 0;
   const totalProducts = products?.length || 0;
   const totalValue = products?.reduce((sum, p) => sum + (p.stock_level || 0) * p.base_price, 0) || 0;
+
+  const handleStockUpdate = () => {
+    // Refetch products data after stock adjustment
+    refetch();
+  };
 
   return (
     <div className="space-y-6">
@@ -87,6 +91,7 @@ const Inventory = () => {
             products={products || []}
             searchTerm={searchTerm}
             onSearchChange={setSearchTerm}
+            onStockUpdate={handleStockUpdate}
           />
         </TabsContent>
 
