@@ -33,12 +33,14 @@ const Inventory = () => {
     );
   }
 
-  const lowStockCount = products?.filter(p => p.is_low_stock).length || 0;
+  // Filter active products for stats - discontinued products should not count towards low stock
+  const activeProducts = products?.filter(p => !p.is_discontinued) || [];
+  const lowStockCount = activeProducts.filter(p => p.is_low_stock).length;
   const totalProducts = products?.length || 0;
-  const totalValue = products?.reduce((sum, p) => sum + (p.stock_level || 0) * p.base_price, 0) || 0;
+  const totalActiveProducts = activeProducts.length;
+  const totalValue = activeProducts.reduce((sum, p) => sum + (p.stock_level || 0) * p.base_price, 0);
 
   const handleStockUpdate = () => {
-    // Refresh all inventory data and refetch products
     refreshInventoryData();
     refetch();
   };
@@ -55,7 +57,7 @@ const Inventory = () => {
 
       {/* Stats Cards */}
       <InventoryStats 
-        totalProducts={totalProducts}
+        totalProducts={totalActiveProducts}
         lowStockCount={lowStockCount}
         totalValue={totalValue}
       />

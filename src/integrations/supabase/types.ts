@@ -618,6 +618,7 @@ export type Database = {
           pack_size: number | null
           size: string
           sku: string
+          status: string
           trademark: string | null
           updated_at: string
         }
@@ -630,6 +631,7 @@ export type Database = {
           pack_size?: number | null
           size: string
           sku: string
+          status?: string
           trademark?: string | null
           updated_at?: string
         }
@@ -642,6 +644,7 @@ export type Database = {
           pack_size?: number | null
           size?: string
           sku?: string
+          status?: string
           trademark?: string | null
           updated_at?: string
         }

@@ -14,9 +14,11 @@ interface LowStockAlertsProps {
 const LowStockAlerts = ({ products }: LowStockAlertsProps) => {
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
 
-  const lowStockProducts = products.filter(p => p.is_low_stock);
-  const outOfStockProducts = products.filter(p => (p.stock_level || 0) === 0);
-  const criticalStockProducts = products.filter(p => {
+  // Only include active products in low stock alerts - exclude discontinued items
+  const activeProducts = products.filter(p => !p.is_discontinued);
+  const lowStockProducts = activeProducts.filter(p => p.is_low_stock);
+  const outOfStockProducts = activeProducts.filter(p => (p.stock_level || 0) === 0);
+  const criticalStockProducts = activeProducts.filter(p => {
     const stockLevel = p.stock_level || 0;
     const reorderLevel = p.inventory?.reorder_level || 10;
     return stockLevel > 0 && stockLevel <= Math.floor(reorderLevel / 2);
@@ -25,7 +27,7 @@ const LowStockAlerts = ({ products }: LowStockAlertsProps) => {
   const getReorderRecommendation = (product: ProductWithInventory) => {
     const currentStock = product.stock_level || 0;
     const reorderLevel = product.inventory?.reorder_level || 10;
-    const recommendedOrder = Math.max(reorderLevel * 2, 50); // Recommend 2x reorder level or minimum 50 units
+    const recommendedOrder = Math.max(reorderLevel * 2, 50);
     
     return {
       recommendedQuantity: recommendedOrder,
@@ -43,7 +45,6 @@ const LowStockAlerts = ({ products }: LowStockAlertsProps) => {
   };
 
   const handleBulkReorder = () => {
-    // Implementation for bulk reorder functionality
     console.log('Creating bulk reorder for:', selectedItems);
   };
 
@@ -68,8 +69,11 @@ const LowStockAlerts = ({ products }: LowStockAlertsProps) => {
       <Card>
         <CardContent className="text-center py-12">
           <Package className="h-16 w-16 text-green-500 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">All Stock Levels Good!</h3>
-          <p className="text-gray-600">No products require immediate attention.</p>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">All Active Stock Levels Good!</h3>
+          <p className="text-gray-600">No active products require immediate attention.</p>
+          <p className="text-sm text-gray-500 mt-2">
+            Note: Discontinued products are excluded from stock alerts
+          </p>
         </CardContent>
       </Card>
     );
@@ -81,9 +85,13 @@ const LowStockAlerts = ({ products }: LowStockAlertsProps) => {
       <Alert>
         <AlertTriangle className="h-4 w-4" />
         <AlertDescription>
-          You have <strong>{lowStockProducts.length}</strong> products with low stock levels, including{' '}
+          You have <strong>{lowStockProducts.length}</strong> active products with low stock levels, including{' '}
           <strong>{outOfStockProducts.length}</strong> out of stock and{' '}
           <strong>{criticalStockProducts.length}</strong> critically low items.
+          <br />
+          <span className="text-sm text-gray-600 mt-1 block">
+            Discontinued products are excluded from these alerts.
+          </span>
         </AlertDescription>
       </Alert>
 
@@ -134,7 +142,7 @@ const LowStockAlerts = ({ products }: LowStockAlertsProps) => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <AlertTriangle className="h-5 w-5 text-orange-600" />
-            Low Stock Items ({lowStockProducts.length})
+            Low Stock Items ({lowStockProducts.length} active products)
           </CardTitle>
         </CardHeader>
         <CardContent>

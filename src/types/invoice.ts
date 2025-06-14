@@ -1,52 +1,33 @@
-
-
-export interface Invoice {
+export interface User {
   id: string;
-  customer_id: string;
-  date: string;
-  due_date: string;
-  subtotal: number;
-  tax: number;
-  discount: number;
-  total: number;
-  status: string; // Changed from union type to string to match database
-  notes?: string;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface InvoiceItem {
-  id: string;
-  invoice_id: string;
-  product_id: string;
-  quantity: number;
-  price: number;
-  total: number;
-  created_at: string;
-  updated_at: string;
+  email: string;
+  name: string;
+  role: 'admin' | 'manager' | 'employee';
+  avatar?: string;
 }
 
 export interface Customer {
   id: string;
   name: string;
   code: string;
-  customer_type: string; // Changed from union type to string to match database
+  phone: string;
   email?: string;
-  phone?: string;
+  customer_type: 'wholesale' | 'retail';
   address?: string;
   created_at: string;
-  updated_at: string;
+  updated_at?: string;
 }
 
 export interface Product {
   id: string;
   name: string;
   sku: string;
-  base_price: number;
   size: string;
+  base_price: number;
   pack_size?: number;
   trademark?: string;
   description?: string;
+  status: 'active' | 'discontinued' | 'inactive';
   created_at: string;
   updated_at: string;
 }
@@ -57,11 +38,35 @@ export interface InventoryItem {
   quantity: number;
   reorder_level: number;
   last_updated: string;
-  last_restock_date?: string;
+  created_at: string;
   notes?: string;
+  last_restock_date?: string;
 }
 
-export interface InvoiceWithDetails extends Invoice {
-  customer: Customer;
-  items: (InvoiceItem & { product: Product })[];
+export interface Invoice {
+  id: string;
+  invoice_number: string;
+  customer_id: string;
+  customer_name: string;
+  status: 'draft' | 'pending' | 'paid' | 'cancelled';
+  total: number;
+  items: InvoiceItem[];
+  created_at: string;
+  due_date?: string;
+}
+
+export interface InvoiceItem {
+  id: string;
+  product_id: string;
+  product_name: string;
+  quantity: number;
+  unit_price: number;
+  total: number;
+}
+
+export interface DashboardStats {
+  todayInvoices: number;
+  pendingInvoices: number;
+  lowStockItems: number;
+  totalRevenue: number;
 }

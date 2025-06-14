@@ -1,5 +1,6 @@
+
 import { useState, useMemo } from "react";
-import { Search, Package, AlertTriangle, CheckCircle } from "lucide-react";
+import { Search, Package, AlertTriangle, CheckCircle, Ban } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -62,6 +63,11 @@ const StockLevelsTable = ({ products, searchTerm, onSearchChange, onStockUpdate 
   };
 
   const getStockStatus = (product: ProductWithInventory) => {
+    // Check discontinued status first
+    if (product.is_discontinued) {
+      return { status: 'discontinued', color: 'bg-gray-100 text-gray-600', label: 'Discontinued' };
+    }
+    
     const stockLevel = product.stock_level || 0;
     const reorderLevel = product.inventory?.reorder_level || 10;
 
@@ -76,6 +82,8 @@ const StockLevelsTable = ({ products, searchTerm, onSearchChange, onStockUpdate 
 
   const getStockIcon = (status: string) => {
     switch (status) {
+      case 'discontinued':
+        return <Ban className="h-4 w-4 text-gray-600" />;
       case 'out':
         return <AlertTriangle className="h-4 w-4 text-red-600" />;
       case 'low':
@@ -86,7 +94,6 @@ const StockLevelsTable = ({ products, searchTerm, onSearchChange, onStockUpdate 
   };
 
   const handleStockUpdate = () => {
-    // Refresh all inventory data and trigger parent callback
     refreshInventoryData();
     if (onStockUpdate) {
       onStockUpdate();
@@ -168,21 +175,25 @@ const StockLevelsTable = ({ products, searchTerm, onSearchChange, onStockUpdate 
                     <TableCell className="font-mono text-sm">{product.sku}</TableCell>
                     <TableCell>
                       <div className="font-semibold">
-                        {stockLevel.toLocaleString()}
+                        {product.is_discontinued ? '-' : stockLevel.toLocaleString()}
                       </div>
                     </TableCell>
-                    <TableCell>{reorderLevel}</TableCell>
+                    <TableCell>
+                      {product.is_discontinued ? '-' : reorderLevel}
+                    </TableCell>
                     <TableCell>KD {product.base_price.toFixed(3)}</TableCell>
                     <TableCell>
                       <div className="font-medium">
-                        KD {stockValue.toFixed(2)}
+                        {product.is_discontinued ? '-' : `KD ${stockValue.toFixed(2)}`}
                       </div>
                     </TableCell>
                     <TableCell>
-                      <StockAdjustmentModal 
-                        product={product} 
-                        onSuccess={handleStockUpdate}
-                      />
+                      {!product.is_discontinued && (
+                        <StockAdjustmentModal 
+                          product={product} 
+                          onSuccess={handleStockUpdate}
+                        />
+                      )}
                     </TableCell>
                   </TableRow>
                 );
