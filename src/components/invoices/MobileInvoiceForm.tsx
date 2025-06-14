@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { DatePicker } from '@/components/ui/date-picker';
-import { Plus, Trash2, Search, ArrowLeft, ArrowRight, Check } from 'lucide-react';
+import { Plus, Trash2, Search, ArrowLeft, ArrowRight, Check, Package } from 'lucide-react';
 import { addDays } from 'date-fns';
 import { useProducts } from '@/hooks/useProducts';
 import { useCustomers } from '@/hooks/useCustomers';
@@ -16,6 +15,7 @@ import { useCreateInvoice } from '@/hooks/useInvoices';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Product } from '@/types/invoice';
+import { ProductSelectionModal } from '@/components/invoices/ProductSelectionModal';
 
 interface Item {
   product_id: string;
@@ -41,6 +41,7 @@ const MobileInvoiceForm = () => {
   const [discount, setDiscount] = useState(0);
   const [isFreeOfCharge, setIsFreeOfCharge] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [isProductModalOpen, setIsProductModalOpen] = useState(false);
 
   const { data: products = [] } = useProducts();
   const { data: customers = [] } = useCustomers();
@@ -48,7 +49,7 @@ const MobileInvoiceForm = () => {
 
   const filteredProducts = products.filter(product =>
     product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product.sku.toLowerCase().includes(searchTerm.toLowerCase())
+    (product.sku && product.sku.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   const getCustomerPrice = async (customerId: string, productId: string) => {
@@ -66,11 +67,13 @@ const MobileInvoiceForm = () => {
       if (error || !data) return null;
       return data.price;
     } catch (error) {
+      console.warn('Failed to fetch customer price:', error);
       return null;
     }
   };
 
-  const addProduct = async (product: Product) => {
+  // Called when selecting a product from the inline search results
+  const addProductFromSearch = async (product: Product) => {
     let price = product.base_price;
     
     if (customerId) {
@@ -90,7 +93,30 @@ const MobileInvoiceForm = () => {
       product_sku: product.sku,
     };
     setItems([...items, newItem]);
-    setSearchTerm('');
+    setSearchTerm(''); // Clear search term after selection
+  };
+
+  // Called when selecting a product from the modal
+  const addItemFromModal = async (product: Product) => {
+    let price = product.base_price;
+    if (customerId) {
+      const customerPrice = await getCustomerPrice(customerId, product.id);
+      if (customerPrice !== null) {
+        price = customerPrice;
+      }
+    }
+    const newItem: Item = {
+      product_id: product.id,
+      quantity: 1,
+      price: price,
+      total: price,
+      product_name: product.name,
+      product_size: product.size,
+      product_sku: product.sku,
+    };
+    setItems(prevItems => [...prevItems, newItem]);
+    // Modal handles its own closing, but we can clear search term
+    setSearchTerm(''); 
   };
 
   const updateItemQuantity = (index: number, quantity: number) => {
@@ -271,25 +297,36 @@ const MobileInvoiceForm = () => {
                 <div className="space-y-6">
                   <div>
                     <Label className="text-lg font-medium">Add Products</Label>
-                    <p className="text-sm text-gray-600 mb-4">Search and add products to the invoice</p>
+                    <p className="text-sm text-gray-600 mb-4">Search or browse products to add to the invoice</p>
                     
-                    <div className="relative mb-4">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                      <Input
-                        placeholder="Search products..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-10 h-12 text-lg"
-                      />
+                    <div className="flex space-x-2 mb-4">
+                      <div className="relative flex-grow">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                        <Input
+                          placeholder="Search products..."
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                          className="pl-10 h-12 text-lg"
+                        />
+                      </div>
+                      <Button 
+                        variant="outline" 
+                        onClick={() => setIsProductModalOpen(true)} 
+                        className="h-12 px-3 sm:px-4"
+                        aria-label="Browse products"
+                      >
+                        <Package className="h-5 w-5 sm:mr-2" /> 
+                        <span className="hidden sm:inline">Browse</span>
+                      </Button>
                     </div>
 
-                    {searchTerm && (
+                    {searchTerm && filteredProducts.length > 0 && (
                       <div className="max-h-60 overflow-y-auto border rounded-lg">
                         {filteredProducts.map((product) => (
                           <div
                             key={product.id}
                             className="p-4 border-b last:border-b-0 hover:bg-gray-50 cursor-pointer"
-                            onClick={() => addProduct(product)}
+                            onClick={() => addProductFromSearch(product)}
                           >
                             <div className="font-medium">{product.name}</div>
                             <div className="text-sm text-gray-600">SKU: {product.sku} | Size: {product.size}</div>
@@ -298,6 +335,9 @@ const MobileInvoiceForm = () => {
                         ))}
                       </div>
                     )}
+                     {searchTerm && filteredProducts.length === 0 && (
+                        <p className="text-sm text-gray-500 text-center py-4">No products found for "{searchTerm}". Try browsing.</p>
+                     )}
                   </div>
 
                   {items.length > 0 && (
@@ -351,6 +391,12 @@ const MobileInvoiceForm = () => {
                       </div>
                     </div>
                   )}
+                   {items.length === 0 && !searchTerm && (
+                     <div className="text-center py-8 border-2 border-dashed rounded-lg">
+                       <p className="text-gray-500 mb-2">No items added yet.</p>
+                       <p className="text-sm text-gray-500">Search above or browse products to add them.</p>
+                     </div>
+                   )}
                 </div>
               )}
 
@@ -519,6 +565,12 @@ const MobileInvoiceForm = () => {
           )}
         </div>
       </div>
+      {/* Product Selection Modal */}
+      <ProductSelectionModal
+        isOpen={isProductModalOpen}
+        onClose={() => setIsProductModalOpen(false)}
+        onSelectProduct={addItemFromModal}
+      />
     </div>
   );
 };
