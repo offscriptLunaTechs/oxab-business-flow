@@ -1,4 +1,5 @@
 
+import React from 'react';
 import { pdf } from '@react-pdf/renderer';
 import { saveAs } from 'file-saver';
 import InventoryReportPDF from '@/components/inventory/InventoryReportPDF';
