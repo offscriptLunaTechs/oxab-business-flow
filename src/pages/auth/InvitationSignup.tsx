@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -140,8 +141,8 @@ const InvitationSignup = () => {
         throw new Error('Failed to process invitation');
       }
 
-      // Type guard for the response
-      const result = invitationResult as InvitationSignupResult;
+      // Properly type the response by converting through unknown first
+      const result = invitationResult as unknown as InvitationSignupResult;
       
       if (!result?.success) {
         throw new Error(result?.error || 'Failed to process invitation');
