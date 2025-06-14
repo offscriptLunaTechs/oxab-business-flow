@@ -53,7 +53,7 @@ const InvoiceDetail = () => {
     try {
       await updateInvoiceMutation.mutateAsync({
         invoiceId: invoice.id,
-        invoiceData: { status: newStatus }
+        invoiceData: { status: newStatus as 'draft' | 'pending' | 'paid' | 'cancelled' | 'overdue' }
       });
       toast({
         title: "Success",

@@ -53,7 +53,7 @@ const AllInvoicesTab = ({
     try {
       await updateInvoiceMutation.mutateAsync({
         invoiceId,
-        invoiceData: { status: newStatus }
+        invoiceData: { status: newStatus as 'draft' | 'pending' | 'paid' | 'cancelled' | 'overdue' }
       });
       toast({
         title: "Success",
@@ -146,7 +146,7 @@ const AllInvoicesTab = ({
               {filteredInvoices.map((invoice) => (
                 <TableRow key={invoice.id}>
                   <TableCell className="font-medium">{invoice.id}</TableCell>
-                  <TableCell>{invoice.customers?.name}</TableCell>
+                  <TableCell>{invoice.customer?.name}</TableCell>
                   <TableCell>
                     {format(new Date(invoice.date), 'MMM dd, yyyy')}
                   </TableCell>

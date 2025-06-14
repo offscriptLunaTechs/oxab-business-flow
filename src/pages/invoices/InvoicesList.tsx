@@ -40,7 +40,7 @@ const InvoicesList = () => {
   const filteredInvoices = invoices?.filter(invoice => {
     const matchesSearch = searchTerm === '' || 
       invoice.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      invoice.customers?.name.toLowerCase().includes(searchTerm.toLowerCase());
+      invoice.customer?.name.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesStatus = statusFilter === 'all' || invoice.status === statusFilter;
     
@@ -61,7 +61,7 @@ const InvoicesList = () => {
     try {
       await updateInvoiceMutation.mutateAsync({
         invoiceId,
-        invoiceData: { status: newStatus }
+        invoiceData: { status: newStatus as 'draft' | 'pending' | 'paid' | 'cancelled' | 'overdue' }
       });
       toast({
         title: "Success",
@@ -81,19 +81,13 @@ const InvoicesList = () => {
     try {
       console.log('Fetching complete invoice data for PDF generation:', invoiceId);
       
-      // Fetch complete invoice data with items
-      const response = await fetch(`/api/invoices/${invoiceId}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch invoice details');
+      // Find the invoice in our current data
+      const basicInvoice = invoices?.find(inv => inv.id === invoiceId);
+      if (!basicInvoice) {
+        throw new Error('Invoice not found');
       }
       
-      const completeInvoice = await response.json();
-      
-      if (!completeInvoice.items || completeInvoice.items.length === 0) {
-        throw new Error('Invoice items not found');
-      }
-      
-      await downloadInvoicePDF(completeInvoice);
+      await downloadInvoicePDF(basicInvoice);
       toast({
         title: "Success",
         description: "PDF downloaded successfully",
@@ -216,7 +210,7 @@ const InvoicesList = () => {
                   {filteredInvoices.map((invoice) => (
                     <TableRow key={invoice.id}>
                       <TableCell className="font-medium">{invoice.id}</TableCell>
-                      <TableCell>{invoice.customers?.name}</TableCell>
+                      <TableCell>{invoice.customer?.name}</TableCell>
                       <TableCell>
                         {format(new Date(invoice.date), 'MMM dd, yyyy')}
                       </TableCell>

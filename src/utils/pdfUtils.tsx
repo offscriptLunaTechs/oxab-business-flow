@@ -1,7 +1,10 @@
+
 import React from "react";
 import { Document, Page, Text, View, StyleSheet, Font } from "@react-pdf/renderer";
 import { format } from "date-fns";
 import { InvoiceWithDetails } from "@/types/invoice";
+import { pdf } from '@react-pdf/renderer';
+import { saveAs } from 'file-saver';
 
 // Register fonts for better PDF rendering
 Font.register({
@@ -38,7 +41,6 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
   table: {
-    display: 'table',
     width: 'auto',
     borderStyle: 'solid',
     borderWidth: 1,
@@ -207,3 +209,8 @@ export const InvoicePDF: React.FC<InvoicePDFProps> = ({ invoice }) => (
     </Page>
   </Document>
 );
+
+export const downloadInvoicePDF = async (invoice: InvoiceWithDetails) => {
+  const blob = await pdf(<InvoicePDF invoice={invoice} />).toBlob();
+  saveAs(blob, `invoice-${invoice.id}.pdf`);
+};
