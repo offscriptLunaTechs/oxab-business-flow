@@ -1403,6 +1403,23 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: Json
       }
+      get_inventory_variance_summary: {
+        Args: { p_months?: number }
+        Returns: {
+          positive_variance: number
+          negative_variance: number
+          net_variance: number
+        }[]
+      }
+      get_monthly_inventory_movements: {
+        Args: { p_months?: number }
+        Returns: {
+          month: string
+          inbound: number
+          outbound: number
+          variance: number
+        }[]
+      }
       get_outstanding_invoices_report: {
         Args: {
           p_customer_id?: string
@@ -1425,6 +1442,16 @@ export type Database = {
           aging_bucket: string
           status: string
           payment_status: string
+        }[]
+      }
+      get_top_moving_products: {
+        Args: { p_limit?: number; p_days?: number }
+        Returns: {
+          product_name: string
+          sku: string
+          total_moved: number
+          movement_type: string
+          percentage: number
         }[]
       }
       get_user_role_safe: {

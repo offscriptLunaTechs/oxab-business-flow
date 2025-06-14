@@ -5,7 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DatePicker } from "@/components/ui/date-picker";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { ProductWithInventory } from "@/hooks/useProducts";
+import { useMonthlyMovements, useTopMovingProducts, useVarianceSummary } from "@/hooks/useInventoryAnalytics";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
 interface InventoryReportsProps {
@@ -17,22 +19,10 @@ const InventoryReports = ({ products }: InventoryReportsProps) => {
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
   const [endDate, setEndDate] = useState<Date | undefined>(undefined);
 
-  // Mock data for demonstration - in real app this would come from analytics hooks
-  const monthlyData = [
-    { month: 'Jan', inbound: 2400, outbound: 1800, variance: 600 },
-    { month: 'Feb', inbound: 1800, outbound: 2200, variance: -400 },
-    { month: 'Mar', inbound: 3200, outbound: 2800, variance: 400 },
-    { month: 'Apr', inbound: 2800, outbound: 2600, variance: 200 },
-    { month: 'May', inbound: 3600, outbound: 3200, variance: 400 },
-    { month: 'Jun', inbound: 2200, outbound: 1900, variance: 300 },
-  ];
-
-  const topMovers = [
-    { name: 'OXAB 500ml', moved: 850, type: 'out', percentage: 35 },
-    { name: 'OXAB 330ml', moved: 720, type: 'out', percentage: 30 },
-    { name: 'OXAB 1L', moved: 480, type: 'out', percentage: 20 },
-    { name: 'OXAB 200ml', moved: 360, type: 'out', percentage: 15 },
-  ];
+  // Fetch real data using our new hooks
+  const { data: monthlyData, isLoading: monthlyLoading, error: monthlyError } = useMonthlyMovements(6);
+  const { data: topMovers, isLoading: topMoversLoading, error: topMoversError } = useTopMovingProducts(4, 30);
+  const { data: varianceSummary, isLoading: varianceLoading, error: varianceError } = useVarianceSummary(6);
 
   const stockDistribution = [
     { name: 'In Stock', value: products.filter(p => !p.is_low_stock).length, color: '#10B981' },
@@ -41,8 +31,8 @@ const InventoryReports = ({ products }: InventoryReportsProps) => {
   ];
 
   const handleExportReport = () => {
-    // Implementation for exporting reports
     console.log('Exporting report:', reportType);
+    // TODO: Implement actual export functionality
   };
 
   // Custom render function for variance bars
@@ -60,6 +50,26 @@ const InventoryReports = ({ products }: InventoryReportsProps) => {
       />
     );
   };
+
+  // Loading state
+  if (monthlyLoading || topMoversLoading || varianceLoading) {
+    return (
+      <div className="flex justify-center items-center min-h-96">
+        <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
+
+  // Error state
+  if (monthlyError || topMoversError || varianceError) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-red-600">
+          Error loading reports: {monthlyError?.message || topMoversError?.message || varianceError?.message}
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -125,7 +135,7 @@ const InventoryReports = ({ products }: InventoryReportsProps) => {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={monthlyData}>
+              <BarChart data={monthlyData || []}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="month" />
                 <YAxis />
@@ -173,29 +183,35 @@ const InventoryReports = ({ products }: InventoryReportsProps) => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {topMovers.map((item, index) => (
-              <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                <div className="flex items-center gap-4">
-                  <div className="text-2xl font-bold text-gray-400">
-                    #{index + 1}
+          {topMovers && topMovers.length > 0 ? (
+            <div className="space-y-4">
+              {topMovers.map((item, index) => (
+                <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                  <div className="flex items-center gap-4">
+                    <div className="text-2xl font-bold text-gray-400">
+                      #{index + 1}
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-gray-900">{item.product_name}</h4>
+                      <p className="text-sm text-gray-600">
+                        {item.total_moved.toLocaleString()} units moved
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h4 className="font-semibold text-gray-900">{item.name}</h4>
-                    <p className="text-sm text-gray-600">
-                      {item.moved.toLocaleString()} units moved
-                    </p>
+                  <div className="text-right">
+                    <div className="text-lg font-semibold text-blue-600">
+                      {item.percentage}%
+                    </div>
+                    <div className="text-sm text-gray-500">of total movement</div>
                   </div>
                 </div>
-                <div className="text-right">
-                  <div className="text-lg font-semibold text-blue-600">
-                    {item.percentage}%
-                  </div>
-                  <div className="text-sm text-gray-500">of total movement</div>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-gray-500">
+              No movement data available for this period
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -206,7 +222,7 @@ const InventoryReports = ({ products }: InventoryReportsProps) => {
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={monthlyData}>
+            <BarChart data={monthlyData || []}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="month" />
               <YAxis />
@@ -216,15 +232,22 @@ const InventoryReports = ({ products }: InventoryReportsProps) => {
           </ResponsiveContainer>
           <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
             <div className="text-center p-3 bg-green-50 rounded-lg">
-              <div className="text-lg font-semibold text-green-600">+1,500</div>
+              <div className="text-lg font-semibold text-green-600">
+                +{varianceSummary?.positive_variance?.toLocaleString() || '0'}
+              </div>
               <div className="text-gray-600">Positive Variance</div>
             </div>
             <div className="text-center p-3 bg-red-50 rounded-lg">
-              <div className="text-lg font-semibold text-red-600">-400</div>
+              <div className="text-lg font-semibold text-red-600">
+                {varianceSummary?.negative_variance?.toLocaleString() || '0'}
+              </div>
               <div className="text-gray-600">Negative Variance</div>
             </div>
             <div className="text-center p-3 bg-blue-50 rounded-lg">
-              <div className="text-lg font-semibold text-blue-600">+1,100</div>
+              <div className="text-lg font-semibold text-blue-600">
+                {varianceSummary?.net_variance && varianceSummary.net_variance >= 0 ? '+' : ''}
+                {varianceSummary?.net_variance?.toLocaleString() || '0'}
+              </div>
               <div className="text-gray-600">Net Variance</div>
             </div>
           </div>
