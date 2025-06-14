@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Eye, Edit, Download, MoreHorizontal } from 'lucide-react';
+import { Eye, Edit, Download, MoreHorizontal, Delete as DeleteIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -33,6 +33,8 @@ interface MobileInvoiceCardProps {
   onDownload: (id: string) => void;
   onStatusUpdate: (id: string, status: string) => void;
   isUpdating: boolean;
+  onDelete?: () => void;
+  isDeleting?: boolean;
 }
 
 const MobileInvoiceCard = ({
@@ -43,6 +45,8 @@ const MobileInvoiceCard = ({
   onDownload,
   onStatusUpdate,
   isUpdating,
+  onDelete,
+  isDeleting,
 }: MobileInvoiceCardProps) => {
   const isOverdue = invoice.status === 'overdue' || 
     (invoice.status === 'pending' && new Date(invoice.due_date) < new Date());
@@ -91,6 +95,20 @@ const MobileInvoiceCard = ({
               >
                 Mark as Overdue
               </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              {onDelete &&
+                <DropdownMenuItem 
+                  onClick={(e) => {
+                    e.preventDefault();
+                    onDelete();
+                  }}
+                  disabled={isDeleting}
+                  className="text-red-600"
+                >
+                  {isDeleting ? <LoadingSpinner size="sm" className="mr-2" /> : <DeleteIcon className="mr-2 h-4 w-4" />}
+                  Delete Invoice
+                </DropdownMenuItem>
+              }
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -101,15 +119,11 @@ const MobileInvoiceCard = ({
             {invoice.customers?.name || 'Unknown Customer'}
           </span>
         </div>
-
-        {/* Amount */}
         <div className="mb-3">
           <span className="text-2xl font-bold text-green-600">
             KWD {Number(invoice.total).toFixed(3)}
           </span>
         </div>
-
-        {/* Dates */}
         <div className="grid grid-cols-2 gap-4 mb-4 text-sm text-gray-600">
           <div>
             <span className="block text-xs uppercase tracking-wide font-medium">Invoice Date</span>
@@ -122,8 +136,6 @@ const MobileInvoiceCard = ({
             </span>
           </div>
         </div>
-
-        {/* Action buttons */}
         <div className="flex gap-2">
           <Button
             variant="outline"

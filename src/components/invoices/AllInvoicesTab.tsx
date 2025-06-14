@@ -1,7 +1,6 @@
-
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FileText, Eye, Edit, Download, MoreHorizontal } from 'lucide-react';
+import { FileText, Eye, Edit, Download, MoreHorizontal, Delete } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -21,6 +20,8 @@ import { useUpdateInvoice } from '@/hooks/useInvoices';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
 import MobileInvoiceCard from './MobileInvoiceCard';
+import { AlertDialog, AlertDialogContent, AlertDialogTitle, AlertDialogDescription, AlertDialogCancel, AlertDialogAction, AlertDialogHeader, AlertDialogFooter, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { useDeleteInvoice } from "@/hooks/useInvoices";
 
 interface Invoice {
   id: string;
@@ -48,6 +49,10 @@ const AllInvoicesTab = ({
   const { toast } = useToast();
   const isMobile = useIsMobile();
   const updateInvoiceMutation = useUpdateInvoice();
+  const deleteInvoiceMutation = useDeleteInvoice();
+
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
   const handleStatusUpdate = async (invoiceId: string, newStatus: string) => {
     try {
@@ -65,6 +70,26 @@ const AllInvoicesTab = ({
         description: "Failed to update invoice status",
         variant: "destructive",
       });
+    }
+  };
+
+  const handleDeleteInvoice = async (invoiceId: string) => {
+    try {
+      await deleteInvoiceMutation.mutateAsync(invoiceId);
+      toast({
+        title: "Deleted",
+        description: "Invoice deleted successfully",
+      });
+      setDeleteDialogOpen(false);
+      setPendingDeleteId(null);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete invoice",
+        variant: "destructive",
+      });
+      setDeleteDialogOpen(false);
+      setPendingDeleteId(null);
     }
   };
 
@@ -112,14 +137,37 @@ const AllInvoicesTab = ({
               onDownload={onDownloadInvoicePDF}
               onStatusUpdate={handleStatusUpdate}
               isUpdating={updateInvoiceMutation.isPending}
+              onDelete={() => { setPendingDeleteId(invoice.id); setDeleteDialogOpen(true); }}
+              isDeleting={deleteInvoiceMutation.isPending && pendingDeleteId === invoice.id}
             />
           ))}
         </div>
+        {/* Shared AlertDialog for delete confirmation */}
+        <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Invoice?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete this invoice? This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={deleteInvoiceMutation.isPending}>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => pendingDeleteId && handleDeleteInvoice(pendingDeleteId)}
+                disabled={deleteInvoiceMutation.isPending}
+              >
+                {deleteInvoiceMutation.isPending ? <LoadingSpinner size="sm" /> : <Delete className="mr-2 h-4 w-4" />}
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     );
   }
 
-  // Desktop view with table
+  // Table (desktop) view
   return (
     <Card>
       <CardHeader>
@@ -220,6 +268,21 @@ const AllInvoicesTab = ({
                           >
                             Mark as Overdue
                           </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <AlertDialogTrigger asChild>
+                            <DropdownMenuItem
+                              onSelect={(e) => {
+                                e.preventDefault();
+                                setPendingDeleteId(invoice.id);
+                                setDeleteDialogOpen(true);
+                              }}
+                              disabled={deleteInvoiceMutation.isPending}
+                              className="text-red-600"
+                            >
+                              <Delete className="mr-2 h-4 w-4" />
+                              Delete Invoice
+                            </DropdownMenuItem>
+                          </AlertDialogTrigger>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
@@ -229,6 +292,27 @@ const AllInvoicesTab = ({
             </TableBody>
           </Table>
         </div>
+        {/* Delete confirm dialog for desktop */}
+        <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Invoice?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete this invoice? This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={deleteInvoiceMutation.isPending}>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => pendingDeleteId && handleDeleteInvoice(pendingDeleteId)}
+                disabled={deleteInvoiceMutation.isPending}
+              >
+                {deleteInvoiceMutation.isPending ? <LoadingSpinner size="sm" /> : <Delete className="mr-2 h-4 w-4" />}
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </CardContent>
     </Card>
   );
