@@ -122,7 +122,7 @@ serve(async (req) => {
         p_full_name: fullName,
         p_role: role,
         p_department: department || null,
-        p_called_by_service: true, // This is the key fix - tell the function this is a service call
+        p_called_by_service: true, // This tells the function this is an authorized service call
       });
 
     if (provisionError) {
@@ -140,8 +140,8 @@ serve(async (req) => {
       );
     }
 
-    if (!provisionResult.success) {
-      console.error('Provision function returned error:', provisionResult.error);
+    if (!provisionResult || !provisionResult.success) {
+      console.error('Provision function returned error:', provisionResult?.error || 'Unknown error');
       
       // Clean up - delete the user we just created since provisioning failed
       await supabaseAdmin.auth.admin.deleteUser(newUser.user.id);
@@ -149,7 +149,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ 
           error: 'Failed to provision user profile and role', 
-          details: provisionResult.error 
+          details: provisionResult?.error || 'Unknown provisioning error'
         }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
