@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FileText, Search, Filter, Plus, Eye, Edit, Download, Calendar, MoreHorizontal, AlertTriangle } from 'lucide-react';
@@ -22,10 +21,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useInvoices, useDeleteInvoice, useUpdateInvoice, useInvoice } from '@/hooks/useInvoices';
+import { useInvoices, useDeleteInvoice, useUpdateInvoice } from '@/hooks/useInvoices';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { format } from 'date-fns';
 import { downloadInvoicePDF } from '@/utils/pdfUtils';
+import { fetchCompleteInvoiceForPDF } from '@/utils/invoicePdfHelper';
 import { useToast } from '@/hooks/use-toast';
 
 const InvoicesList = () => {
@@ -80,15 +80,15 @@ const InvoicesList = () => {
   const handleDownloadPDF = async (invoiceId: string) => {
     setDownloadingInvoiceId(invoiceId);
     try {
-      console.log('Fetching complete invoice data for PDF generation:', invoiceId);
+      console.log('Downloading PDF for invoice:', invoiceId);
       
-      // Find the invoice in our current data
-      const basicInvoice = invoices?.find(inv => inv.id === invoiceId);
-      if (!basicInvoice) {
-        throw new Error('Invoice not found');
-      }
+      // Fetch the complete invoice with all related data
+      const completeInvoice = await fetchCompleteInvoiceForPDF(invoiceId);
       
-      await downloadInvoicePDF(basicInvoice);
+      console.log('Complete invoice data for PDF:', completeInvoice);
+      console.log('Invoice items count:', completeInvoice.items?.length || 0);
+      
+      await downloadInvoicePDF(completeInvoice);
       toast({
         title: "Success",
         description: "PDF downloaded successfully",
@@ -97,7 +97,7 @@ const InvoicesList = () => {
       console.error('PDF generation error:', error);
       toast({
         title: "Error",
-        description: "Failed to generate PDF",
+        description: `Failed to generate PDF: ${error instanceof Error ? error.message : 'Unknown error'}`,
         variant: "destructive",
       });
     } finally {

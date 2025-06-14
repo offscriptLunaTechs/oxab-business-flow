@@ -1,9 +1,9 @@
-
 import React from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useOutstandingInvoices } from '@/hooks/useOutstandingInvoices';
 import { useOutstandingInvoicesPDF } from '@/hooks/useOutstandingInvoicesPDF';
 import { downloadInvoicePDF } from '@/utils/pdfUtils';
+import { fetchCompleteInvoiceForPDF } from '@/utils/invoicePdfHelper';
 import { useToast } from '@/hooks/use-toast';
 import AllInvoicesTab from './AllInvoicesTab';
 import OutstandingInvoicesTab from './OutstandingInvoicesTab';
@@ -40,18 +40,24 @@ const InvoiceTabsContainer = ({
   const handleDownloadInvoicePDF = async (invoiceId: string) => {
     setDownloadingInvoiceId(invoiceId);
     try {
-      const basicInvoice = allInvoices?.find(inv => inv.id === invoiceId);
-      if (!basicInvoice) {
-        throw new Error('Invoice not found');
+      console.log('Downloading PDF for invoice:', invoiceId);
+      
+      // Fetch the complete invoice with all related data
+      const completeInvoice = await fetchCompleteInvoiceForPDF(invoiceId);
+      
+      console.log('Complete invoice data for PDF:', completeInvoice);
+      console.log('Invoice items count:', completeInvoice.items?.length || 0);
+      
+      if (!completeInvoice.items || completeInvoice.items.length === 0) {
+        console.warn('Warning: Invoice has no items');
+        toast({
+          title: "Warning",
+          description: "This invoice has no items. The PDF will be generated anyway.",
+          variant: "default",
+        });
       }
       
-      const invoiceForPDF = {
-        ...basicInvoice,
-        customer: basicInvoice.customers,
-        items: []
-      };
-      
-      await downloadInvoicePDF(invoiceForPDF);
+      await downloadInvoicePDF(completeInvoice);
       toast({
         title: "Success",
         description: "PDF downloaded successfully",
@@ -60,7 +66,7 @@ const InvoiceTabsContainer = ({
       console.error('PDF generation error:', error);
       toast({
         title: "Error",
-        description: "Failed to generate PDF",
+        description: `Failed to generate PDF: ${error instanceof Error ? error.message : 'Unknown error'}`,
         variant: "destructive",
       });
     } finally {
