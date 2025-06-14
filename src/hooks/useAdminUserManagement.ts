@@ -27,22 +27,24 @@ export const useAdminUserManagement = () => {
 
   const createUser = useMutation({
     mutationFn: async ({ email, fullName, role, department }: CreateUserParams) => {
-      console.log('Creating user with admin function:', { email, fullName, role, department });
+      console.log('Creating user with Edge Function:', { email, fullName, role, department });
       
-      const { data, error } = await supabase.rpc('admin_create_user', {
-        p_email: email,
-        p_full_name: fullName,
-        p_role: role,
-        p_department: department
+      const { data, error } = await supabase.functions.invoke('admin-create-user', {
+        body: {
+          email,
+          fullName,
+          role,
+          department
+        }
       });
 
       if (error) {
-        console.error('Error creating user:', error);
+        console.error('Error calling admin-create-user function:', error);
         throw error;
       }
 
       console.log('User creation response:', data);
-      return data as unknown as AdminFunctionResponse;
+      return data as AdminFunctionResponse;
     },
     onSuccess: (data) => {
       if (data.success) {

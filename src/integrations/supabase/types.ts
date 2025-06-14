@@ -1366,6 +1366,15 @@ export type Database = {
         }
         Returns: Json
       }
+      admin_provision_profile_and_role: {
+        Args: {
+          p_auth_user_id: string
+          p_full_name: string
+          p_role: string
+          p_department?: string
+        }
+        Returns: Json
+      }
       admin_reset_user_password: {
         Args: { p_user_email: string }
         Returns: Json
