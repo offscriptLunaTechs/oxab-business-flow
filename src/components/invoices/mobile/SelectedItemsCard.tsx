@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Trash2 } from 'lucide-react';
-import { Item } from '@/hooks/useMobileInvoiceForm';
+import { Item } from '@/hooks/invoices/useInvoiceItems';
 
 interface SelectedItemsCardProps {
   items: Item[];
