@@ -1,3 +1,4 @@
+
 export interface User {
   id: string;
   email: string;
@@ -45,23 +46,32 @@ export interface InventoryItem {
 
 export interface Invoice {
   id: string;
-  invoice_number: string;
   customer_id: string;
-  customer_name: string;
-  status: 'draft' | 'pending' | 'paid' | 'cancelled';
+  date: string;
+  due_date: string;
+  status: 'draft' | 'pending' | 'paid' | 'cancelled' | 'overdue';
+  subtotal: number;
+  tax: number;
+  discount: number;
   total: number;
-  items: InvoiceItem[];
+  notes?: string;
   created_at: string;
-  due_date?: string;
+  updated_at: string;
 }
 
 export interface InvoiceItem {
   id: string;
+  invoice_id: string;
   product_id: string;
-  product_name: string;
   quantity: number;
-  unit_price: number;
+  price: number;
   total: number;
+  product?: Product;
+}
+
+export interface InvoiceWithDetails extends Invoice {
+  customer: Customer;
+  items: InvoiceItem[];
 }
 
 export interface DashboardStats {

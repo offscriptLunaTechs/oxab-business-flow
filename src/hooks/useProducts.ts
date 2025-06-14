@@ -55,6 +55,7 @@ export const useProducts = (searchTerm?: string) => {
         
         return {
           ...product,
+          status: product.status as 'active' | 'discontinued' | 'inactive',
           inventory: inventoryRecord || null,
           stock_level: stockLevel,
           is_low_stock: !isDiscontinued && stockLevel <= reorderLevel,
@@ -106,6 +107,7 @@ export const useProduct = (productId: string) => {
       
       return {
         ...data,
+        status: data.status as 'active' | 'discontinued' | 'inactive',
         inventory: inventoryRecord || null,
         stock_level: stockLevel,
         is_low_stock: !isDiscontinued && stockLevel <= reorderLevel,
