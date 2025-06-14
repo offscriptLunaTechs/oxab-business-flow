@@ -6,6 +6,7 @@ import InvoiceFilters from '@/components/invoices/InvoiceFilters';
 import MobileInvoiceFilters from '@/components/invoices/MobileInvoiceFilters';
 import InvoicesHeader from '@/components/invoices/InvoicesHeader';
 import InvoiceTabsContainer from '@/components/invoices/InvoiceTabsContainer';
+import MobileInvoicesList from '@/components/invoices/MobileInvoicesList';
 
 const UnifiedInvoices = () => {
   const isMobile = useIsMobile();
@@ -42,7 +43,23 @@ const UnifiedInvoices = () => {
     );
   }
 
-  const FilterComponent = isMobile ? MobileInvoiceFilters : InvoiceFilters;
+  // Mobile version with simplified interface
+  if (isMobile) {
+    return (
+      <div className="p-4">
+        <MobileInvoicesList
+          invoices={filteredInvoices}
+          isLoading={invoicesLoading}
+          searchTerm={searchTerm}
+          onSearchChange={setSearchTerm}
+          onRefresh={() => window.location.reload()}
+        />
+      </div>
+    );
+  }
+
+  // Desktop version with full features
+  const FilterComponent = InvoiceFilters;
 
   return (
     <div className="space-y-6">

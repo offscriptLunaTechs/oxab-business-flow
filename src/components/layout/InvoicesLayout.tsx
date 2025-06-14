@@ -36,9 +36,9 @@ const InvoicesLayout = () => {
 
       {/* Mobile Layout */}
       {isMobile && (
-        <div className="min-h-screen pb-16">
+        <div className="min-h-screen pb-20 bg-gray-50">
           <TopBar />
-          <main className="p-4">
+          <main className="min-h-[calc(100vh-80px)] bg-gray-50">
             <Routes>
               <Route index element={<UnifiedInvoices />} />
               <Route path="new" element={<CreateInvoice />} />

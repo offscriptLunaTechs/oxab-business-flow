@@ -29,7 +29,7 @@ const MobileNav = () => {
   }
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-2">
+    <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-2 py-2 z-50 safe-area-pb">
       <nav className="flex items-center justify-around">
         {navigation.map((item) => {
           const isActive = location.pathname.startsWith(item.href);
@@ -38,14 +38,22 @@ const MobileNav = () => {
               key={item.name}
               to={item.href}
               className={cn(
-                "flex flex-col items-center py-2 px-3 text-xs font-medium transition-colors min-w-0",
+                "flex flex-col items-center py-2 px-3 text-xs font-medium transition-all duration-200 min-w-0 min-h-[60px] justify-center rounded-lg active:scale-95",
                 isActive
-                  ? "text-blue-600"
-                  : "text-gray-600"
+                  ? "text-blue-600 bg-blue-50"
+                  : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
               )}
             >
-              <item.icon className="h-6 w-6 mb-1" />
-              <span className="truncate">{item.name}</span>
+              <item.icon className={cn(
+                "mb-1 transition-all duration-200",
+                isActive ? "h-7 w-7" : "h-6 w-6"
+              )} />
+              <span className={cn(
+                "truncate transition-all duration-200",
+                isActive ? "font-semibold" : "font-medium"
+              )}>
+                {item.name}
+              </span>
             </Link>
           );
         })}

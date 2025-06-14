@@ -1,4 +1,7 @@
+
 import React from 'react';
+import { useIsMobile } from '@/hooks/use-mobile';
+import MobileInvoiceForm from '@/components/invoices/MobileInvoiceForm';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,7 +13,6 @@ import { Plus, Trash2, Search } from 'lucide-react';
 import { addDays } from 'date-fns';
 import { useProducts } from '@/hooks/useProducts';
 import { useCustomers } from '@/hooks/useCustomers';
-import { useCustomerProductPrice } from '@/hooks/useCustomerPricing';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCreateInvoice } from '@/hooks/useInvoices';
@@ -30,6 +32,14 @@ interface Item {
 }
 
 const CreateInvoice = () => {
+  const isMobile = useIsMobile();
+  
+  // If mobile, use the mobile-optimized form
+  if (isMobile) {
+    return <MobileInvoiceForm />;
+  }
+
+  // Desktop version continues with existing implementation
   const navigate = useNavigate();
   const { toast } = useToast();
   const [customerId, setCustomerId] = useState('');
