@@ -77,50 +77,7 @@ const styles = StyleSheet.create({
 });
 
 interface InvoicePDFProps {
-  invoice: {
-    id: string;
-    date: string;
-    due_date: string;
-    status: string;
-    subtotal: number;
-    tax: number;
-    discount: number;
-    total: number;
-    notes?: string;
-    customer: {
-      id: string;
-      name: string;
-      code: string;
-      email?: string;
-      phone?: string;
-      address?: string;
-      customer_type: 'wholesale' | 'retail';
-      loyalty_points: number;
-      created_at: string;
-      updated_at?: string;
-    };
-    items: Array<{
-      id: string;
-      invoice_id: string;
-      product_id: string;
-      quantity: number;
-      price: number;
-      total: number;
-      product?: {
-        id: string;
-        name: string;
-        sku: string;
-        size: string;
-        base_price: number;
-        pack_size?: number;
-        trademark?: string;
-        description?: string;
-        status: 'active' | 'discontinued' | 'inactive';
-        created_at: string;
-        updated_at: string;
-      };
-    }>;
-  };
+  invoice: InvoiceWithDetails;
 }
 
 export const InvoicePDF: React.FC<InvoicePDFProps> = ({ invoice }) => (

@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FileText, Search, Filter, Plus, Eye, Edit, Download, Calendar, MoreHorizontal, AlertTriangle } from 'lucide-react';
@@ -40,7 +41,7 @@ const InvoicesList = () => {
   const filteredInvoices = invoices?.filter(invoice => {
     const matchesSearch = searchTerm === '' || 
       invoice.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      invoice.customer?.name.toLowerCase().includes(searchTerm.toLowerCase());
+      invoice.customers?.name.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesStatus = statusFilter === 'all' || invoice.status === statusFilter;
     
@@ -210,7 +211,7 @@ const InvoicesList = () => {
                   {filteredInvoices.map((invoice) => (
                     <TableRow key={invoice.id}>
                       <TableCell className="font-medium">{invoice.id}</TableCell>
-                      <TableCell>{invoice.customer?.name}</TableCell>
+                      <TableCell>{invoice.customers?.name}</TableCell>
                       <TableCell>
                         {format(new Date(invoice.date), 'MMM dd, yyyy')}
                       </TableCell>

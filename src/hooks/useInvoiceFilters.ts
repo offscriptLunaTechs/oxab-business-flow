@@ -21,7 +21,7 @@ export const useInvoiceFilters = () => {
   const filteredInvoices = allInvoices?.filter(invoice => {
     const matchesSearch = searchTerm === '' || 
       invoice.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      invoice.customer?.name.toLowerCase().includes(searchTerm.toLowerCase());
+      invoice.customers?.name.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesStatus = statusFilter === 'all' || invoice.status === statusFilter;
     

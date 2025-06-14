@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FileText, Eye, Edit, Download, MoreHorizontal } from 'lucide-react';
@@ -146,7 +145,7 @@ const AllInvoicesTab = ({
               {filteredInvoices.map((invoice) => (
                 <TableRow key={invoice.id}>
                   <TableCell className="font-medium">{invoice.id}</TableCell>
-                  <TableCell>{invoice.customer?.name}</TableCell>
+                  <TableCell>{invoice.customers?.name}</TableCell>
                   <TableCell>
                     {format(new Date(invoice.date), 'MMM dd, yyyy')}
                   </TableCell>
