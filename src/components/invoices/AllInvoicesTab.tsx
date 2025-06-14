@@ -269,20 +269,19 @@ const AllInvoicesTab = ({
                             Mark as Overdue
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
-                          <AlertDialogTrigger asChild>
-                            <DropdownMenuItem
-                              onSelect={(e) => {
-                                e.preventDefault();
-                                setPendingDeleteId(invoice.id);
-                                setDeleteDialogOpen(true);
-                              }}
-                              disabled={deleteInvoiceMutation.isPending}
-                              className="text-red-600"
-                            >
-                              <Delete className="mr-2 h-4 w-4" />
-                              Delete Invoice
-                            </DropdownMenuItem>
-                          </AlertDialogTrigger>
+                          {/* --- FIX: Remove AlertDialogTrigger, open by state --- */}
+                          <DropdownMenuItem
+                            onSelect={e => {
+                              e.preventDefault();
+                              setPendingDeleteId(invoice.id);
+                              setDeleteDialogOpen(true);
+                            }}
+                            disabled={deleteInvoiceMutation.isPending}
+                            className="text-red-600"
+                          >
+                            <Delete className="mr-2 h-4 w-4" />
+                            Delete Invoice
+                          </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
