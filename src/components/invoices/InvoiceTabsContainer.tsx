@@ -1,6 +1,7 @@
+
 import React from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useOutstandingInvoices } from '@/hooks/useOutstandingInvoices';
+import { useOutstandingInvoices, useCustomerSummaries, OutstandingInvoice } from '@/hooks/useOutstandingInvoices'; // Added useCustomerSummaries and OutstandingInvoice
 import { useOutstandingInvoicesPDF } from '@/hooks/useOutstandingInvoicesPDF';
 import { downloadInvoicePDF } from '@/utils/pdfUtils';
 import { fetchCompleteInvoiceForPDF } from '@/utils/invoicePdfHelper';
@@ -34,7 +35,12 @@ const InvoiceTabsContainer = ({
   const { toast } = useToast();
   
   // Outstanding invoices with filters
-  const { data: outstandingInvoices = [], isLoading: outstandingLoading } = useOutstandingInvoices(outstandingFilters);
+  const { data: outstandingInvoicesData = [], isLoading: outstandingLoading } = useOutstandingInvoices(outstandingFilters);
+  
+  // Ensure outstandingInvoices is always an array, even if data is undefined initially
+  const outstandingInvoices: OutstandingInvoice[] = outstandingInvoicesData || [];
+
+  const customerSummaries = useCustomerSummaries(outstandingInvoices); // Calculate customerSummaries
   const generateOutstandingPDF = useOutstandingInvoicesPDF();
 
   const handleDownloadInvoicePDF = async (invoiceId: string) => {
@@ -79,6 +85,7 @@ const InvoiceTabsContainer = ({
       await generateOutstandingPDF.mutateAsync({
         invoices: outstandingInvoices,
         filters: outstandingFilters,
+        customerSummaries: customerSummaries, // Pass customerSummaries here
       });
       toast({
         title: "Success",
@@ -132,3 +139,4 @@ const InvoiceTabsContainer = ({
 };
 
 export default InvoiceTabsContainer;
+
