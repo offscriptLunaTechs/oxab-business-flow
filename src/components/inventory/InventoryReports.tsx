@@ -12,6 +12,7 @@ import { useSkuMonthlyMovements, useSkuStockLevels } from "@/hooks/useSkuAnalyti
 import { useInventoryReportPDF } from "@/hooks/useInventoryReportPDF";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { useToast } from "@/hooks/use-toast";
+import SkuMovementCharts from "./SkuMovementCharts";
 
 interface InventoryReportsProps {
   products: ProductWithInventory[];
@@ -67,21 +68,6 @@ const InventoryReports = ({ products }: InventoryReportsProps) => {
     value: item.current_stock,
     color: `hsl(${(index * 137.5) % 360}, 70%, 50%)` // Generate colors
   })) || [];
-
-  // Group movements by SKU for display
-  const movementsBySku = skuMovements?.reduce((acc, movement) => {
-    const key = `${movement.sku}-${movement.size}`;
-    if (!acc[key]) {
-      acc[key] = {
-        sku: movement.sku,
-        product_name: movement.product_name,
-        size: movement.size,
-        movements: []
-      };
-    }
-    acc[key].movements.push(movement);
-    return acc;
-  }, {} as Record<string, any>) || {};
 
   // Loading state
   if (movementsLoading || stockLoading || topMoversLoading) {
@@ -159,41 +145,13 @@ const InventoryReports = ({ products }: InventoryReportsProps) => {
       </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Monthly Movement Analysis by SKU */}
-        <Card>
+        {/* Monthly Movement Analysis by SKU - Now with Charts */}
+        <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle>Monthly Movement Analysis by SKU</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4 max-h-80 overflow-y-auto">
-              {Object.values(movementsBySku).slice(0, 8).map((skuData: any) => (
-                <div key={`${skuData.sku}-${skuData.size}`} className="p-4 bg-gray-50 rounded-lg">
-                  <div className="flex justify-between items-start mb-2">
-                    <div>
-                      <h4 className="font-semibold text-gray-900">{skuData.product_name}</h4>
-                      <p className="text-sm text-gray-600">SKU: {skuData.sku} | Size: {skuData.size}</p>
-                    </div>
-                  </div>
-                  <div className="flex gap-4 text-sm">
-                    {skuData.movements.map((movement: any, idx: number) => (
-                      <div key={idx} className="flex items-center gap-2">
-                        <span className="text-gray-600">{movement.month}:</span>
-                        <span className={`font-semibold ${
-                          movement.net_movement >= 0 ? 'text-green-600' : 'text-red-600'
-                        }`}>
-                          {movement.net_movement >= 0 ? '+' : ''}{movement.net_movement}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-            {Object.keys(movementsBySku).length === 0 && (
-              <div className="text-center py-8 text-gray-500">
-                No movement data available for this period
-              </div>
-            )}
+            <SkuMovementCharts skuMovements={skuMovements || []} />
           </CardContent>
         </Card>
 
