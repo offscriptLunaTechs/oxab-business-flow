@@ -15,13 +15,16 @@ import { StatementFilters } from './StatementFilters';
 import { StatementActions } from './StatementActions';
 import { subDays, subMonths, startOfMonth, endOfMonth, startOfYear } from 'date-fns';
 import { useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 export const CustomerAccountSummary = () => {
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
   const [startDate, setStartDate] = useState<Date>(subDays(new Date(), 90));
   const [endDate, setEndDate] = useState<Date>(new Date());
   const queryClient = useQueryClient();
-  
+  const { toast } = useToast();
+
   // Ensure payment data is synchronized
   const { refreshPaymentData } = usePaymentDataSync();
 
@@ -62,6 +65,41 @@ export const CustomerAccountSummary = () => {
         setEndDate(now);
         break;
     }
+  };
+
+  // New: Set range for all unpaid invoices
+  const setAllUnpaidRange = async () => {
+    if (!selectedCustomerId) {
+      toast({ title: "Select a customer", description: "Please select a customer first.", variant: "destructive" });
+      return;
+    }
+
+    // Query earliest unpaid invoice date for this customer
+    const { data, error } = await supabase
+      .from('invoices')
+      .select('date')
+      .eq('customer_id', selectedCustomerId)
+      .neq('status', 'paid')
+      .order('date', { ascending: true })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      toast({ title: "Error", description: "Failed to load unpaid invoices", variant: "destructive" });
+      return;
+    }
+
+    if (!data) {
+      toast({ title: "No unpaid invoices", description: "This customer has no unpaid invoices.", variant: "info" });
+      return;
+    }
+
+    setStartDate(new Date(data.date));
+    setEndDate(new Date());
+    toast({
+      title: "All unpaid",
+      description: "Showing unpaid invoices from " + new Date(data.date).toLocaleDateString() + " to today.",
+    });
   };
 
   const handlePaymentAdded = () => {
@@ -141,6 +179,9 @@ export const CustomerAccountSummary = () => {
                         </Button>
                         <Button size="sm" variant="outline" onClick={() => setDateRange('allTime')}>
                           All Time
+                        </Button>
+                        <Button size="sm" variant="default" onClick={setAllUnpaidRange}>
+                          All unpaid
                         </Button>
                       </div>
                     </div>
