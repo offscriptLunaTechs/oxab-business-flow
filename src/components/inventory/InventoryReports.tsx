@@ -7,8 +7,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { DatePicker } from "@/components/ui/date-picker";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { ProductWithInventory } from "@/hooks/useProducts";
-import { useMonthlyMovements, useTopMovingProducts, useVarianceSummary } from "@/hooks/useInventoryAnalytics";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { useTopMovingProducts } from "@/hooks/useInventoryAnalytics";
+import { useSkuMonthlyMovements, useSkuStockLevels } from "@/hooks/useSkuAnalytics";
+import { useInventoryReportPDF } from "@/hooks/useInventoryReportPDF";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
+import { useToast } from "@/hooks/use-toast";
 
 interface InventoryReportsProps {
   products: ProductWithInventory[];
@@ -18,41 +21,70 @@ const InventoryReports = ({ products }: InventoryReportsProps) => {
   const [reportType, setReportType] = useState("monthly");
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
   const [endDate, setEndDate] = useState<Date | undefined>(undefined);
+  const { toast } = useToast();
 
-  // Fetch real data using our new hooks
-  const { data: monthlyData, isLoading: monthlyLoading, error: monthlyError } = useMonthlyMovements(6);
-  const { data: topMovers, isLoading: topMoversLoading, error: topMoversError } = useTopMovingProducts(4, 30);
-  const { data: varianceSummary, isLoading: varianceLoading, error: varianceError } = useVarianceSummary(6);
+  // Fetch data using our new hooks
+  const { data: skuMovements, isLoading: movementsLoading, error: movementsError } = useSkuMonthlyMovements(6);
+  const { data: skuStockLevels, isLoading: stockLoading, error: stockError } = useSkuStockLevels();
+  const { data: topMovers, isLoading: topMoversLoading, error: topMoversError } = useTopMovingProducts(10, 30);
+  
+  const { generatePDF } = useInventoryReportPDF();
 
-  const stockDistribution = [
-    { name: 'In Stock', value: products.filter(p => !p.is_low_stock).length, color: '#10B981' },
-    { name: 'Low Stock', value: products.filter(p => p.is_low_stock && (p.stock_level || 0) > 0).length, color: '#F59E0B' },
-    { name: 'Out of Stock', value: products.filter(p => (p.stock_level || 0) === 0).length, color: '#EF4444' },
-  ];
+  const handleExportReport = async () => {
+    try {
+      if (!skuMovements || !skuStockLevels || !topMovers) {
+        toast({
+          title: "Export Error",
+          description: "Please wait for data to load before exporting",
+          variant: "destructive",
+        });
+        return;
+      }
 
-  const handleExportReport = () => {
-    console.log('Exporting report:', reportType);
-    // TODO: Implement actual export functionality
+      await generatePDF({
+        skuMovements,
+        skuStockLevels,
+        topMovers,
+      });
+
+      toast({
+        title: "Export Successful",
+        description: "Inventory report has been downloaded",
+      });
+    } catch (error) {
+      console.error('Export error:', error);
+      toast({
+        title: "Export Failed",
+        description: "Failed to generate PDF report",
+        variant: "destructive",
+      });
+    }
   };
 
-  // Custom render function for variance bars
-  const renderVarianceBar = (props: any) => {
-    const { payload, x, y, width, height } = props;
-    const fill = payload.variance >= 0 ? "#10B981" : "#EF4444";
-    
-    return (
-      <rect
-        x={x}
-        y={y}
-        width={width}
-        height={height}
-        fill={fill}
-      />
-    );
-  };
+  // Prepare data for pie chart (top 10 SKUs by stock level)
+  const stockChartData = skuStockLevels?.slice(0, 10).map((item, index) => ({
+    name: `${item.sku} (${item.size})`,
+    value: item.current_stock,
+    color: `hsl(${(index * 137.5) % 360}, 70%, 50%)` // Generate colors
+  })) || [];
+
+  // Group movements by SKU for display
+  const movementsBySku = skuMovements?.reduce((acc, movement) => {
+    const key = `${movement.sku}-${movement.size}`;
+    if (!acc[key]) {
+      acc[key] = {
+        sku: movement.sku,
+        product_name: movement.product_name,
+        size: movement.size,
+        movements: []
+      };
+    }
+    acc[key].movements.push(movement);
+    return acc;
+  }, {} as Record<string, any>) || {};
 
   // Loading state
-  if (monthlyLoading || topMoversLoading || varianceLoading) {
+  if (movementsLoading || stockLoading || topMoversLoading) {
     return (
       <div className="flex justify-center items-center min-h-96">
         <LoadingSpinner size="lg" />
@@ -61,11 +93,11 @@ const InventoryReports = ({ products }: InventoryReportsProps) => {
   }
 
   // Error state
-  if (monthlyError || topMoversError || varianceError) {
+  if (movementsError || stockError || topMoversError) {
     return (
       <div className="text-center py-8">
         <p className="text-red-600">
-          Error loading reports: {monthlyError?.message || topMoversError?.message || varianceError?.message}
+          Error loading reports: {movementsError?.message || stockError?.message || topMoversError?.message}
         </p>
       </div>
     );
@@ -93,7 +125,6 @@ const InventoryReports = ({ products }: InventoryReportsProps) => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="monthly">Monthly Summary</SelectItem>
-                  <SelectItem value="variance">Variance Analysis</SelectItem>
                   <SelectItem value="movement">Movement Analysis</SelectItem>
                   <SelectItem value="valuation">Stock Valuation</SelectItem>
                 </SelectContent>
@@ -128,48 +159,74 @@ const InventoryReports = ({ products }: InventoryReportsProps) => {
       </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Monthly Movement Chart */}
+        {/* Monthly Movement Analysis by SKU */}
         <Card>
           <CardHeader>
-            <CardTitle>Monthly Movement Analysis</CardTitle>
+            <CardTitle>Monthly Movement Analysis by SKU</CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={monthlyData || []}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="inbound" name="Inbound" fill="#10B981" />
-                <Bar dataKey="outbound" name="Outbound" fill="#EF4444" />
-              </BarChart>
-            </ResponsiveContainer>
+            <div className="space-y-4 max-h-80 overflow-y-auto">
+              {Object.values(movementsBySku).slice(0, 8).map((skuData: any) => (
+                <div key={`${skuData.sku}-${skuData.size}`} className="p-4 bg-gray-50 rounded-lg">
+                  <div className="flex justify-between items-start mb-2">
+                    <div>
+                      <h4 className="font-semibold text-gray-900">{skuData.product_name}</h4>
+                      <p className="text-sm text-gray-600">SKU: {skuData.sku} | Size: {skuData.size}</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-4 text-sm">
+                    {skuData.movements.map((movement: any, idx: number) => (
+                      <div key={idx} className="flex items-center gap-2">
+                        <span className="text-gray-600">{movement.month}:</span>
+                        <span className={`font-semibold ${
+                          movement.net_movement >= 0 ? 'text-green-600' : 'text-red-600'
+                        }`}>
+                          {movement.net_movement >= 0 ? '+' : ''}{movement.net_movement}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+            {Object.keys(movementsBySku).length === 0 && (
+              <div className="text-center py-8 text-gray-500">
+                No movement data available for this period
+              </div>
+            )}
           </CardContent>
         </Card>
 
-        {/* Stock Distribution */}
+        {/* Stock Levels by SKU */}
         <Card>
           <CardHeader>
-            <CardTitle>Stock Status Distribution</CardTitle>
+            <CardTitle>Current Stock Levels by SKU</CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={stockDistribution}
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={100}
-                  dataKey="value"
-                  label={({ name, value }) => `${name}: ${value}`}
-                >
-                  {stockDistribution.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
+            {stockChartData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={stockChartData}
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={100}
+                    dataKey="value"
+                    label={({ name, value }) => `${name}: ${value}`}
+                    labelLine={false}
+                  >
+                    {stockChartData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(value) => [`${value} units`, 'Stock Level']} />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                No stock data available
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -216,45 +273,6 @@ const InventoryReports = ({ products }: InventoryReportsProps) => {
               No movement data available for this period
             </div>
           )}
-        </CardContent>
-      </Card>
-
-      {/* Variance Analysis */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Monthly Variance Analysis</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={monthlyData || []}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="month" />
-              <YAxis />
-              <Tooltip />
-              <Bar dataKey="variance" name="Net Variance" shape={renderVarianceBar} />
-            </BarChart>
-          </ResponsiveContainer>
-          <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-            <div className="text-center p-3 bg-green-50 rounded-lg">
-              <div className="text-lg font-semibold text-green-600">
-                +{varianceSummary?.positive_variance?.toLocaleString() || '0'}
-              </div>
-              <div className="text-gray-600">Positive Variance</div>
-            </div>
-            <div className="text-center p-3 bg-red-50 rounded-lg">
-              <div className="text-lg font-semibold text-red-600">
-                {varianceSummary?.negative_variance?.toLocaleString() || '0'}
-              </div>
-              <div className="text-gray-600">Negative Variance</div>
-            </div>
-            <div className="text-center p-3 bg-blue-50 rounded-lg">
-              <div className="text-lg font-semibold text-blue-600">
-                {varianceSummary?.net_variance && varianceSummary.net_variance >= 0 ? '+' : ''}
-                {varianceSummary?.net_variance?.toLocaleString() || '0'}
-              </div>
-              <div className="text-gray-600">Net Variance</div>
-            </div>
-          </div>
         </CardContent>
       </Card>
     </div>

@@ -1444,6 +1444,28 @@ export type Database = {
           payment_status: string
         }[]
       }
+      get_sku_monthly_movements: {
+        Args: { p_months?: number }
+        Returns: {
+          sku: string
+          product_name: string
+          size: string
+          month: string
+          net_movement: number
+          inbound: number
+          outbound: number
+        }[]
+      }
+      get_sku_stock_levels: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          sku: string
+          product_name: string
+          size: string
+          current_stock: number
+          stock_value: number
+        }[]
+      }
       get_top_moving_products: {
         Args: { p_limit?: number; p_days?: number }
         Returns: {
