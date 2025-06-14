@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import MobileInvoiceForm from '@/components/invoices/MobileInvoiceForm';
@@ -47,7 +48,7 @@ const CreateInvoice = () => {
   const { data: customers = [] } = useCustomers();
   const createInvoice = useCreateInvoice();
 
-  // If mobile, use the mobile-optimized form - but after all hooks are called
+  // Now that all hooks are called, we can do conditional rendering
   if (isMobile) {
     return <MobileInvoiceForm />;
   }
