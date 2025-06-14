@@ -58,6 +58,10 @@ export const InviteUserDialog = ({ open, onOpenChange }: InviteUserDialogProps) 
     }
   };
 
+  const handleRoleChange = (value: string) => {
+    setRole(value as 'admin' | 'manager' | 'employee');
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
@@ -86,7 +90,7 @@ export const InviteUserDialog = ({ open, onOpenChange }: InviteUserDialogProps) 
           
           <div className="space-y-2">
             <Label htmlFor="role">Role *</Label>
-            <Select value={role} onValueChange={setRole}>
+            <Select value={role} onValueChange={handleRoleChange}>
               <SelectTrigger id="role">
                 <SelectValue />
               </SelectTrigger>

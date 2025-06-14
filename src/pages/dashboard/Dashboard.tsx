@@ -6,7 +6,7 @@ import StatsCard from "@/components/dashboard/StatsCard";
 import { useDashboardStats } from "@/hooks/useDashboardStats";
 import { usePaymentDataSync } from "@/hooks/usePaymentDataSync";
 import { DashboardSkeleton } from "@/components/ui/skeletons";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/context/AuthContext";
 import { useInvitations } from "@/hooks/useInvitations";
 
 const Dashboard = () => {
@@ -109,7 +109,7 @@ const Dashboard = () => {
       <div className="bg-white rounded-lg p-6 shadow-sm border">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">Welcome back! </h1>
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">Welcome back! </h1>
             <p className="text-gray-600">
               Here's what's happening with your business today.
             </p>

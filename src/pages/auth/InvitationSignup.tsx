@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -17,6 +16,13 @@ interface InvitationData {
   role: string;
   department?: string;
   custom_message?: string;
+}
+
+interface InvitationSignupResult {
+  success: boolean;
+  error?: string;
+  role?: string;
+  department?: string;
 }
 
 const InvitationSignup = () => {
@@ -130,8 +136,15 @@ const InvitationSignup = () => {
           p_user_id: authData.user.id
         });
 
-      if (invitationError || !invitationResult?.success) {
-        throw new Error(invitationResult?.error || 'Failed to process invitation');
+      if (invitationError) {
+        throw new Error('Failed to process invitation');
+      }
+
+      // Type guard for the response
+      const result = invitationResult as InvitationSignupResult;
+      
+      if (!result?.success) {
+        throw new Error(result?.error || 'Failed to process invitation');
       }
 
       toast.success('Account created successfully! You can now sign in.');
