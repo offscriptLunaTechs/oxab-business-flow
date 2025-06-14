@@ -205,7 +205,7 @@ const Logo = () => {
     return (
       <Image 
         style={styles.logo}
-        src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/image-860ea59a-d583-4c99-8338-31717d62cc4c.png"
+        src="/lovable-uploads/0f41341e-a03a-4655-abb9-136f9cfe8276.png"
       />
     );
   } catch (error) {
