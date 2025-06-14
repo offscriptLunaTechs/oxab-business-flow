@@ -5,6 +5,8 @@ import DesktopSidebar from "./DesktopSidebar";
 import MobileNav from "./MobileNav";
 import TopBar from "./TopBar";
 import Customers from "@/pages/customers/Customers";
+import { MobileCustomerTabs } from "@/components/customers/mobile/MobileCustomerTabs";
+import { MobileCustomerAccountSummary } from "@/components/customers/mobile/MobileCustomerAccountSummary";
 
 const CustomersLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -29,8 +31,12 @@ const CustomersLayout = () => {
       {isMobile && (
         <div className="min-h-screen pb-16">
           <TopBar />
-          <main className="p-4">
-            <Customers />
+          <main className="bg-gray-50">
+            {/* Mobile Account Summary */}
+            <MobileCustomerAccountSummary />
+            
+            {/* Mobile Customer Management */}
+            <MobileCustomerTabs />
           </main>
           <MobileNav />
         </div>

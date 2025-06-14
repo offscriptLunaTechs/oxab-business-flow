@@ -2,8 +2,17 @@
 import React from 'react';
 import { CustomerTabs } from '@/components/customers/CustomerTabs';
 import { CustomerAccountSummary } from '@/components/customers/CustomerAccountSummary';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const Customers = () => {
+  const isMobile = useIsMobile();
+
+  // On mobile, the layout is handled by CustomersLayout
+  // This component is only used for desktop
+  if (isMobile) {
+    return null;
+  }
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
