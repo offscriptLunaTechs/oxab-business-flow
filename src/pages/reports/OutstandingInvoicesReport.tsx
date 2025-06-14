@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { FileText, Download, Filter, Search, AlertTriangle, Clock, DollarSign, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -8,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DatePicker } from '@/components/ui/date-picker';
-import { useOutstandingInvoices, useCustomerSummaries, OutstandingInvoicesFilters } from '@/hooks/useOutstandingInvoices';
+import { useOutstandingInvoices, useCustomerSummaries, OutstandingInvoicesFilters, CustomerSummary } from '@/hooks/useOutstandingInvoices';
 import { useOutstandingInvoicesPDF } from '@/hooks/useOutstandingInvoicesPDF';
 import { useCustomers } from '@/hooks/useCustomers';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
@@ -48,7 +47,7 @@ const OutstandingInvoicesReport = () => {
     return filtered;
   }, [invoices, searchTerm, minAmountFilter]);
 
-  const customerSummaries = useCustomerSummaries(filteredInvoices);
+  const customerSummaries: CustomerSummary[] = useCustomerSummaries(filteredInvoices);
 
   // Calculate summary statistics
   const totalOutstanding = filteredInvoices.reduce((sum, inv) => sum + inv.outstanding_amount, 0);
@@ -84,6 +83,7 @@ const OutstandingInvoicesReport = () => {
           endDate: filters.endDate,
           minAmount: filters.minAmount,
         },
+        customerSummaries: customerSummaries, // Pass customer summaries here
       });
       
       toast({
@@ -235,6 +235,13 @@ const OutstandingInvoicesReport = () => {
                     <TableCell>{format(new Date(customer.oldest_invoice_date), 'MMM dd, yyyy')}</TableCell>
                   </TableRow>
                 ))}
+                {customerSummaries.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center text-gray-500">
+                      No customer data to display.
+                    </TableCell>
+                  </TableRow>
+                )}
               </TableBody>
             </Table>
           </div>

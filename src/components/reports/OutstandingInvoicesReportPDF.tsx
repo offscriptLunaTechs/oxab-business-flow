@@ -1,6 +1,6 @@
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer';
-import { OutstandingInvoice } from '@/hooks/useOutstandingInvoices';
+import { OutstandingInvoice, CustomerSummary } from '@/hooks/useOutstandingInvoices';
 
 const styles = StyleSheet.create({
   page: {
@@ -86,6 +86,40 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#dc2626',
   },
+  customerSummarySection: {
+    marginTop: 10,
+    marginBottom: 20,
+    padding: 10,
+    backgroundColor: '#f3f4f6',
+    borderRadius: 5,
+  },
+  customerSummaryTitle: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    color: '#1f2937',
+  },
+  customerSummaryTableHeader: {
+    flexDirection: 'row',
+    backgroundColor: '#e5e7eb',
+    color: '#1f2937',
+    padding: 6,
+    fontWeight: 'bold',
+    fontSize: 9,
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#d1d5db',
+  },
+  customerSummaryTableRow: {
+    flexDirection: 'row',
+    paddingVertical: 5,
+    paddingHorizontal: 6,
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#e5e7eb',
+    fontSize: 9,
+  },
+  csColCustomer: { width: '50%' },
+  csColInvoices: { width: '20%', textAlign: 'right' },
+  csColAmount: { width: '30%', textAlign: 'right' },
   table: {
     marginBottom: 20,
   },
@@ -156,6 +190,7 @@ interface OutstandingInvoicesReportPDFProps {
     endDate?: Date;
     minAmount?: number;
   };
+  customerSummaries: CustomerSummary[];
 }
 
 // Helper component for logo with fallback
@@ -179,7 +214,8 @@ const Logo = () => {
 
 export const OutstandingInvoicesReportPDF: React.FC<OutstandingInvoicesReportPDFProps> = ({
   invoices,
-  filters
+  filters,
+  customerSummaries
 }) => {
   const totalOutstanding = invoices.reduce((sum, invoice) => sum + invoice.outstanding_amount, 0);
   const totalInvoices = invoices.length;
@@ -244,7 +280,7 @@ export const OutstandingInvoicesReportPDF: React.FC<OutstandingInvoicesReportPDF
           </View>
         )}
 
-        {/* Summary Section */}
+        {/* Overall Summary Section */}
         <View style={styles.summarySection}>
           <View style={styles.summaryGrid}>
             <View style={styles.summaryItem}>
@@ -261,6 +297,25 @@ export const OutstandingInvoicesReportPDF: React.FC<OutstandingInvoicesReportPDF
             </View>
           </View>
         </View>
+
+        {/* Customer Summary Section */}
+        {customerSummaries && customerSummaries.length > 0 && (
+          <View style={styles.customerSummarySection}>
+            <Text style={styles.customerSummaryTitle}>Customer Outstanding Summary</Text>
+            <View style={styles.customerSummaryTableHeader}>
+              <Text style={styles.csColCustomer}>Customer (Code)</Text>
+              <Text style={styles.csColInvoices}># Invoices</Text>
+              <Text style={styles.csColAmount}>Total Outstanding</Text>
+            </View>
+            {customerSummaries.map((summary, index) => (
+              <View style={styles.customerSummaryTableRow} key={index}>
+                <Text style={styles.csColCustomer}>{summary.customer_name} ({summary.customer_code})</Text>
+                <Text style={styles.csColInvoices}>{summary.invoice_count}</Text>
+                <Text style={styles.csColAmount}>KWD {summary.total_outstanding.toFixed(3)}</Text>
+              </View>
+            ))}
+          </View>
+        )}
 
         {/* Outstanding Invoices Table */}
         <View style={styles.table}>
