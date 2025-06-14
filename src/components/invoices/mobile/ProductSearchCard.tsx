@@ -21,6 +21,11 @@ const ProductSearchCard = ({
   addProductFromSearch,
   setIsProductModalOpen
 }: ProductSearchCardProps) => {
+  const handleProductClick = (product: Product) => {
+    addProductFromSearch(product);
+    setSearchTerm('');
+  };
+
   return (
     <Card>
       <CardHeader className="pb-3">
@@ -61,7 +66,7 @@ const ProductSearchCard = ({
               <div
                 key={product.id}
                 className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 cursor-pointer"
-                onClick={() => addProductFromSearch(product)}
+                onClick={() => handleProductClick(product)}
               >
                 <div className="flex-1">
                   <div className="flex items-center">

@@ -4,9 +4,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Search, Plus, ChevronLeft, ChevronRight, PackageX, TrendingUp } from 'lucide-react';
+import { Search, Plus, ChevronRight, PackageX, TrendingUp } from 'lucide-react';
 import { useProducts, ProductWithInventory } from '@/hooks/useProducts';
-import { supabase } from '@/integrations/supabase/client';
+import { useTopSellingProducts } from '@/hooks/invoices/useTopSellingProducts';
 
 interface ProductSelectionModalProps {
   isOpen: boolean;
@@ -17,50 +17,9 @@ interface ProductSelectionModalProps {
 export const ProductSelectionModal = ({ isOpen, onClose, onSelectProduct }: ProductSelectionModalProps) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState<'popular' | 'oxab' | 'others'>('popular');
-  const [topSellingProducts, setTopSellingProducts] = useState<string[]>([]);
   
   const { data: allProducts = [], isLoading } = useProducts(searchTerm);
-
-  // Fetch top-selling products
-  useEffect(() => {
-    const fetchTopSellingProducts = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('invoice_items')
-          .select(`
-            product_id,
-            quantity,
-            invoices!inner(date)
-          `)
-          .gte('invoices.date', new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0])
-          .order('invoices.date', { ascending: false });
-
-        if (error) {
-          console.warn('Could not fetch top-selling products:', error);
-          return;
-        }
-
-        const productSales = new Map<string, number>();
-        data?.forEach(item => {
-          const current = productSales.get(item.product_id) || 0;
-          productSales.set(item.product_id, current + item.quantity);
-        });
-
-        const sortedProducts = Array.from(productSales.entries())
-          .sort((a, b) => b[1] - a[1])
-          .slice(0, 15)
-          .map(([productId]) => productId);
-
-        setTopSellingProducts(sortedProducts);
-      } catch (error) {
-        console.warn('Error fetching top-selling products:', error);
-      }
-    };
-
-    if (isOpen) {
-      fetchTopSellingProducts();
-    }
-  }, [isOpen]);
+  const topSellingProducts = useTopSellingProducts();
 
   const popularProducts = allProducts
     .filter(product => topSellingProducts.includes(product.id) && product.status === 'active')
@@ -96,6 +55,7 @@ export const ProductSelectionModal = ({ isOpen, onClose, onSelectProduct }: Prod
 
   const handleProductSelect = (product: ProductWithInventory) => {
     onSelectProduct(product);
+    setSearchTerm('');
   };
 
   return (

@@ -1,8 +1,5 @@
 
 import React from 'react';
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
 import MobileInvoiceForm from '@/components/invoices/MobileInvoiceForm';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,156 +10,45 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { DatePicker } from '@/components/ui/date-picker';
 import { Plus, Trash2, Search } from 'lucide-react';
-import { addDays } from 'date-fns';
-import { useProducts } from '@/hooks/useProducts';
 import { useCustomers } from '@/hooks/useCustomers';
 import { useCreateInvoice } from '@/hooks/useInvoices';
 import { ProductSelectionModal } from '@/components/invoices/ProductSelectionModal';
+import { useInvoiceFormState } from '@/hooks/invoices/useInvoiceFormState';
+import { useInvoiceItems } from '@/hooks/invoices/useInvoiceItems';
+import { useToast } from '@/hooks/use-toast';
+import { useNavigate } from 'react-router-dom';
 import { Product } from '@/types/invoice';
-import { supabase } from '@/integrations/supabase/client';
-
-interface Item {
-  product_id: string;
-  quantity: number;
-  price: number;
-  total: number;
-  product_name?: string;
-  product_size?: string;
-  product_sku?: string;
-}
 
 const CreateInvoice = () => {
   // Call ALL hooks at the top level - never conditionally
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { data: products = [] } = useProducts();
   const { data: customers = [] } = useCustomers();
   const createInvoice = useCreateInvoice();
 
-  // State hooks
-  const [customerId, setCustomerId] = useState('');
-  const [date, setDate] = useState<Date | undefined>(new Date());
-  const [dueDate, setDueDate] = useState<Date | undefined>(addDays(new Date(), 30));
-  const [items, setItems] = useState<Item[]>([]);
-  const [notes, setNotes] = useState('');
-  const [discount, setDiscount] = useState(0);
-  const [isFreeOfCharge, setIsFreeOfCharge] = useState(false);
-  const [isProductModalOpen, setIsProductModalOpen] = useState(false);
-
-  // Function to get customer price for a product
-  const getCustomerPrice = async (customerId: string, productId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('customer_pricing')
-        .select('price')
-        .eq('customer_id', customerId)
-        .eq('product_id', productId)
-        .eq('is_active', true)
-        .order('effective_date', { ascending: false })
-        .limit(1)
-        .single();
-
-      if (error || !data) {
-        return null;
-      }
-      
-      return data.price;
-    } catch (error) {
-      console.warn('Failed to fetch customer price:', error);
-      return null;
-    }
-  };
-
-  // Update all item prices when customer changes
-  useEffect(() => {
-    if (customerId && items.length > 0) {
-      const updateAllItemPrices = async () => {
-        const updatedItems = await Promise.all(
-          items.map(async (item) => {
-            const customerPrice = await getCustomerPrice(customerId, item.product_id);
-            if (customerPrice !== null) {
-              return {
-                ...item,
-                price: customerPrice,
-                total: customerPrice * item.quantity
-              };
-            }
-            return item;
-          })
-        );
-        setItems(updatedItems);
-      };
-      updateAllItemPrices();
-    }
-  }, [customerId]);
-
-  // Helper functions
-  const calculateSubtotal = () => {
-    return items.reduce((acc, item) => acc + item.total, 0);
-  };
+  // Use the new refactored hooks
+  const formState = useInvoiceFormState();
+  const invoiceItems = useInvoiceItems(formState.customerId);
 
   const addItemFromModal = async (product: Product) => {
-    let price = product.base_price;
-    
-    // Try to get customer-specific price if customer is selected
-    if (customerId) {
-      const customerPrice = await getCustomerPrice(customerId, product.id);
-      if (customerPrice !== null) {
-        price = customerPrice;
-      }
-    }
-
-    const newItem: Item = {
-      product_id: product.id,
-      quantity: 1,
-      price: price,
-      total: price,
-      product_name: product.name,
-      product_size: product.size,
-      product_sku: product.sku,
-    };
-    setItems([...items, newItem]);
+    await invoiceItems.addItemFromModal(product);
   };
 
   const removeItem = (index: number) => {
-    const newItems = [...items];
-    newItems.splice(index, 1);
-    setItems(newItems);
+    invoiceItems.removeItem(index);
   };
 
   const updateItem = async (index: number, field: string, value: any) => {
-    const newItems = [...items];
-    newItems[index][field] = value;
-
-    // If product_id is updated, fetch the product and update the details
-    if (field === 'product_id') {
-      const product = products.find((p) => p.id === value);
-      if (product) {
-        let price = product.base_price;
-        
-        // Try to get customer-specific price
-        if (customerId) {
-          const customerPrice = await getCustomerPrice(customerId, value);
-          if (customerPrice !== null) {
-            price = customerPrice;
-          }
-        }
-        
-        newItems[index].price = price;
-        newItems[index].product_name = product.name;
-        newItems[index].product_size = product.size;
-        newItems[index].product_sku = product.sku;
-      }
+    if (field === 'quantity') {
+      invoiceItems.updateItemQuantity(index, parseInt(value) || 0);
+    } else if (field === 'price') {
+      invoiceItems.updateItemPrice(index, parseFloat(value) || 0);
     }
-
-    // Recalculate total
-    newItems[index].total = newItems[index].quantity * newItems[index].price;
-    setItems(newItems);
   };
 
   const handleSubmit = async () => {
-    if (!customerId || items.length === 0) {
+    if (!formState.customerId || invoiceItems.items.length === 0) {
       toast({
         title: "Error",
         description: "Customer and items are required",
@@ -171,24 +57,24 @@ const CreateInvoice = () => {
       return;
     }
 
-    const subtotal = calculateSubtotal();
-    const total = isFreeOfCharge ? 0 : subtotal - discount;
+    const subtotal = invoiceItems.calculateSubtotal();
+    const total = formState.isFreeOfCharge ? 0 : subtotal - formState.discount;
 
     const invoiceData = {
-      customer_id: customerId,
-      date: date ? date.toISOString().split('T')[0] : '',
-      due_date: dueDate ? dueDate.toISOString().split('T')[0] : '',
+      customer_id: formState.customerId,
+      date: formState.date ? formState.date.toISOString().split('T')[0] : '',
+      due_date: formState.dueDate ? formState.dueDate.toISOString().split('T')[0] : '',
       subtotal: subtotal,
       tax: 0, // No tax in Kuwait
-      discount: discount,
+      discount: formState.discount,
       total: total,
       status: 'pending',
-      notes: isFreeOfCharge ? `${notes}\n[FREE OF CHARGE]`.trim() : notes,
-      items: items.map(item => ({
+      notes: formState.isFreeOfCharge ? `${formState.notes}\n[FREE OF CHARGE]`.trim() : formState.notes,
+      items: invoiceItems.items.map(item => ({
         product_id: item.product_id,
         quantity: item.quantity,
-        price: isFreeOfCharge ? 0 : item.price,
-        total: isFreeOfCharge ? 0 : item.total
+        price: formState.isFreeOfCharge ? 0 : item.price,
+        total: formState.isFreeOfCharge ? 0 : item.total
       }))
     };
 
@@ -198,7 +84,6 @@ const CreateInvoice = () => {
         title: "Success",
         description: "Invoice created successfully",
       });
-      // Redirect to the created invoice view instead of invoices list
       navigate(`/invoices/${result.id}`);
     } catch (error) {
       console.error('Failed to create invoice', error);
@@ -211,8 +96,8 @@ const CreateInvoice = () => {
   };
 
   // Calculate values
-  const subtotal = calculateSubtotal();
-  const total = isFreeOfCharge ? 0 : subtotal - discount;
+  const subtotal = invoiceItems.calculateSubtotal();
+  const total = formState.isFreeOfCharge ? 0 : subtotal - formState.discount;
 
   // NOW we can safely do conditional rendering since all hooks have been called
   if (isMobile) {
@@ -230,7 +115,7 @@ const CreateInvoice = () => {
           {/* Customer Selection */}
           <div>
             <Label htmlFor="customer">Customer</Label>
-            <Select value={customerId} onValueChange={setCustomerId}>
+            <Select value={formState.customerId} onValueChange={formState.setCustomerId}>
               <SelectTrigger>
                 <SelectValue placeholder="Select a customer" />
               </SelectTrigger>
@@ -249,16 +134,16 @@ const CreateInvoice = () => {
             <div>
               <Label>Date</Label>
               <DatePicker
-                date={date}
-                onDateChange={setDate}
+                date={formState.date}
+                onDateChange={formState.setDate}
                 placeholder="Pick invoice date"
               />
             </div>
             <div>
               <Label>Due Date</Label>
               <DatePicker
-                date={dueDate}
-                onDateChange={setDueDate}
+                date={formState.dueDate}
+                onDateChange={formState.setDueDate}
                 placeholder="Pick due date"
               />
             </div>
@@ -272,7 +157,7 @@ const CreateInvoice = () => {
                 type="button" 
                 variant="outline" 
                 size="sm" 
-                onClick={() => setIsProductModalOpen(true)}
+                onClick={() => formState.setIsProductModalOpen(true)}
                 className="flex items-center space-x-2"
               >
                 <Search className="h-4 w-4" />
@@ -280,13 +165,13 @@ const CreateInvoice = () => {
               </Button>
             </div>
 
-            {items.length === 0 ? (
+            {invoiceItems.items.length === 0 ? (
               <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
                 <p className="text-gray-500 mb-4">No items added yet</p>
                 <Button 
                   type="button" 
                   variant="outline" 
-                  onClick={() => setIsProductModalOpen(true)}
+                  onClick={() => formState.setIsProductModalOpen(true)}
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   Add First Item
@@ -294,7 +179,7 @@ const CreateInvoice = () => {
               </div>
             ) : (
               <div className="space-y-2">
-                {items.map((item, index) => (
+                {invoiceItems.items.map((item, index) => (
                   <div key={index} className="grid grid-cols-12 gap-4 py-3 px-4 border rounded-lg bg-gray-50">
                     <div className="col-span-5">
                       <div className="space-y-1">
@@ -309,7 +194,7 @@ const CreateInvoice = () => {
                       <Input
                         type="number"
                         value={item.quantity}
-                        onChange={(e) => updateItem(index, 'quantity', parseInt(e.target.value) || 0)}
+                        onChange={(e) => updateItem(index, 'quantity', e.target.value)}
                         className="h-8"
                         min="1"
                       />
@@ -320,7 +205,7 @@ const CreateInvoice = () => {
                       <Input
                         type="number"
                         value={item.price}
-                        onChange={(e) => updateItem(index, 'price', parseFloat(e.target.value) || 0)}
+                        onChange={(e) => updateItem(index, 'price', e.target.value)}
                         className="h-8"
                         step="0.01"
                       />
@@ -354,7 +239,7 @@ const CreateInvoice = () => {
                   type="button" 
                   variant="outline" 
                   size="sm" 
-                  onClick={() => setIsProductModalOpen(true)}
+                  onClick={() => formState.setIsProductModalOpen(true)}
                   className="w-full mt-4"
                 >
                   <Plus className="h-4 w-4 mr-2" />
@@ -367,7 +252,7 @@ const CreateInvoice = () => {
           {/* Notes */}
           <div>
             <Label htmlFor="notes">Notes</Label>
-            <Input id="notes" value={notes} onChange={(e) => setNotes(e.target.value)} />
+            <Input id="notes" value={formState.notes} onChange={(e) => formState.setNotes(e.target.value)} />
           </div>
 
           {/* Free of Charge and Discount */}
@@ -375,8 +260,8 @@ const CreateInvoice = () => {
             <div className="flex items-center space-x-2">
               <Checkbox
                 id="free-of-charge"
-                checked={isFreeOfCharge}
-                onCheckedChange={(checked) => setIsFreeOfCharge(checked === true)}
+                checked={formState.isFreeOfCharge}
+                onCheckedChange={(checked) => formState.setIsFreeOfCharge(checked === true)}
               />
               <Label htmlFor="free-of-charge" className="text-sm font-medium">
                 Free of Charge
@@ -387,9 +272,9 @@ const CreateInvoice = () => {
               <Input
                 type="number"
                 id="discount"
-                value={discount}
-                onChange={(e) => setDiscount(parseFloat(e.target.value) || 0)}
-                disabled={isFreeOfCharge}
+                value={formState.discount}
+                onChange={(e) => formState.setDiscount(parseFloat(e.target.value) || 0)}
+                disabled={formState.isFreeOfCharge}
                 step="0.01"
               />
             </div>
@@ -407,9 +292,9 @@ const CreateInvoice = () => {
                 type="number" 
                 value={total.toFixed(2)} 
                 readOnly 
-                className={`bg-gray-50 ${isFreeOfCharge ? 'text-green-600 font-bold' : ''}`}
+                className={`bg-gray-50 ${formState.isFreeOfCharge ? 'text-green-600 font-bold' : ''}`}
               />
-              {isFreeOfCharge && (
+              {formState.isFreeOfCharge && (
                 <p className="text-xs text-green-600 mt-1">This invoice is marked as free of charge</p>
               )}
             </div>
@@ -418,7 +303,7 @@ const CreateInvoice = () => {
           {/* Submit Button */}
           <Button 
             onClick={handleSubmit} 
-            disabled={createInvoice.isPending || !customerId || items.length === 0}
+            disabled={createInvoice.isPending || !formState.customerId || invoiceItems.items.length === 0}
             className="w-full"
           >
             {createInvoice.isPending ? 'Creating...' : 'Create Invoice'}
@@ -428,8 +313,8 @@ const CreateInvoice = () => {
 
       {/* Product Selection Modal */}
       <ProductSelectionModal
-        isOpen={isProductModalOpen}
-        onClose={() => setIsProductModalOpen(false)}
+        isOpen={formState.isProductModalOpen}
+        onClose={() => formState.setIsProductModalOpen(false)}
         onSelectProduct={addItemFromModal}
       />
     </div>
