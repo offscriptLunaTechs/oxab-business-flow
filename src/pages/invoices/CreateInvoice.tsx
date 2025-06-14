@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import MobileInvoiceForm from '@/components/invoices/MobileInvoiceForm';
@@ -33,13 +32,6 @@ interface Item {
 
 const CreateInvoice = () => {
   const isMobile = useIsMobile();
-  
-  // If mobile, use the mobile-optimized form
-  if (isMobile) {
-    return <MobileInvoiceForm />;
-  }
-
-  // Desktop version continues with existing implementation
   const navigate = useNavigate();
   const { toast } = useToast();
   const [customerId, setCustomerId] = useState('');
@@ -55,6 +47,12 @@ const CreateInvoice = () => {
   const { data: customers = [] } = useCustomers();
   const createInvoice = useCreateInvoice();
 
+  // If mobile, use the mobile-optimized form - but after all hooks are called
+  if (isMobile) {
+    return <MobileInvoiceForm />;
+  }
+
+  // Desktop version continues with existing implementation
   const calculateSubtotal = () => {
     return items.reduce((acc, item) => acc + item.total, 0);
   };
