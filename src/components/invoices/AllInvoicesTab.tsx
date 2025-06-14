@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FileText, Eye, Edit, Download, MoreHorizontal } from 'lucide-react';
@@ -23,7 +24,7 @@ import MobileInvoiceCard from './MobileInvoiceCard';
 
 interface Invoice {
   id: string;
-  customers?: { name: string };
+  customer?: { name: string };
   date: string;
   due_date: string;
   status: string;
@@ -145,7 +146,7 @@ const AllInvoicesTab = ({
               {filteredInvoices.map((invoice) => (
                 <TableRow key={invoice.id}>
                   <TableCell className="font-medium">{invoice.id}</TableCell>
-                  <TableCell>{invoice.customers?.name}</TableCell>
+                  <TableCell>{invoice.customer?.name}</TableCell>
                   <TableCell>
                     {format(new Date(invoice.date), 'MMM dd, yyyy')}
                   </TableCell>

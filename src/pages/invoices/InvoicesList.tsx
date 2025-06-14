@@ -41,7 +41,7 @@ const InvoicesList = () => {
   const filteredInvoices = invoices?.filter(invoice => {
     const matchesSearch = searchTerm === '' || 
       invoice.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      invoice.customers?.name.toLowerCase().includes(searchTerm.toLowerCase());
+      invoice.customer?.name.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesStatus = statusFilter === 'all' || invoice.status === statusFilter;
     
@@ -211,7 +211,7 @@ const InvoicesList = () => {
                   {filteredInvoices.map((invoice) => (
                     <TableRow key={invoice.id}>
                       <TableCell className="font-medium">{invoice.id}</TableCell>
-                      <TableCell>{invoice.customers?.name}</TableCell>
+                      <TableCell>{invoice.customer?.name}</TableCell>
                       <TableCell>
                         {format(new Date(invoice.date), 'MMM dd, yyyy')}
                       </TableCell>
