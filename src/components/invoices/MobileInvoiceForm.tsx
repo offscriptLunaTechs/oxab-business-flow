@@ -30,16 +30,16 @@ const MobileInvoiceForm = () => {
     setSearchTerm,
     isProductModalOpen,
     setIsProductModalOpen,
-    
+
     // Computed values
     subtotal,
     total,
     displayProducts,
-    
+
     // Data
     customers,
     createInvoice,
-    
+
     // Actions
     addProductFromSearch,
     addItemFromModal,
@@ -47,7 +47,7 @@ const MobileInvoiceForm = () => {
     updateItemPrice,
     removeItem,
     handleSubmit,
-    
+
     // Navigation
     navigate
   } = useMobileInvoiceForm();
@@ -56,8 +56,8 @@ const MobileInvoiceForm = () => {
     <div className="min-h-screen bg-gray-50 relative">
       <MobileInvoiceHeader onBack={() => navigate('/invoices')} />
 
-      {/* Main Content with proper bottom padding for fixed button */}
-      <div className="p-4 space-y-6 pb-32">
+      {/* Main Content with proper bottom padding for fixed/sticky button */}
+      <div className="p-4 space-y-6 pb-44 sm:pb-32">
         <CustomerSelectionCard
           customerId={customerId}
           setCustomerId={setCustomerId}
@@ -100,12 +100,34 @@ const MobileInvoiceForm = () => {
         />
       </div>
 
-      {/* Fixed Bottom Submit Button - Higher z-index and safer positioning */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t shadow-lg z-50 safe-area-inset-bottom">
+      {/* Fixed/Sticky Bottom Submit Button - now extremely robust */}
+      <div
+        className={`
+          md:fixed md:bottom-0 md:left-0 md:right-0
+          md:z-[100] z-[99]
+          bottom-0 left-0 right-0
+          border-t
+          bg-white
+          shadow-2xl
+          pb-[env(safe-area-inset-bottom)] 
+          px-4
+          sm:px-4
+          ${createInvoice.isPending ? 'opacity-95' : 'opacity-100'}
+        `}
+        style={{
+          position: 'sticky',
+          bottom: 0,
+          // Add fallback for older browsers:
+          paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 1rem)',
+          border: '2px solid #dc2626',        // TEMP debug: thick red border
+          background: '#fff1f1',               // TEMP debug: pale red background
+        }}
+        data-debug="Button should be always visible"
+      >
         <Button
           onClick={handleSubmit}
           disabled={createInvoice.isPending || !customerId || items.length === 0}
-          className="w-full h-14 text-lg font-medium bg-blue-600 hover:bg-blue-700"
+          className="w-full h-16 text-lg font-bold bg-blue-600 hover:bg-blue-700 shadow-xl"
         >
           {createInvoice.isPending ? 'Creating...' : 'Create Invoice'}
         </Button>
