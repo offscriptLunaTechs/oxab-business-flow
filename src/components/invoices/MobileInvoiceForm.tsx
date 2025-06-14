@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { DatePicker } from '@/components/ui/date-picker';
-import { Plus, Trash2, Search, ArrowLeft, ArrowRight, Check, Package } from 'lucide-react';
+import { Plus, Trash2, Search, ArrowLeft, Package } from 'lucide-react';
 import { addDays } from 'date-fns';
 import { useProducts } from '@/hooks/useProducts';
 import { useCustomers } from '@/hooks/useCustomers';
@@ -27,12 +28,9 @@ interface Item {
   product_sku?: string;
 }
 
-type Step = 'customer' | 'items' | 'details' | 'review';
-
 const MobileInvoiceForm = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [currentStep, setCurrentStep] = useState<Step>('customer');
   const [customerId, setCustomerId] = useState('');
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [dueDate, setDueDate] = useState<Date | undefined>(addDays(new Date(), 30));
@@ -43,14 +41,17 @@ const MobileInvoiceForm = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
 
-  const { data: products = [] } = useProducts();
+  const { data: products = [] } = useProducts(searchTerm);
   const { data: customers = [] } = useCustomers();
   const createInvoice = useCreateInvoice();
 
-  const filteredProducts = products.filter(product =>
-    product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (product.sku && product.sku.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  // Show some default products when no search term
+  const displayProducts = searchTerm ? 
+    products.filter(product =>
+      product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (product.sku && product.sku.toLowerCase().includes(searchTerm.toLowerCase()))
+    ) : 
+    products.slice(0, 6); // Show first 6 products by default
 
   const getCustomerPrice = async (customerId: string, productId: string) => {
     try {
@@ -72,7 +73,29 @@ const MobileInvoiceForm = () => {
     }
   };
 
-  // Called when selecting a product from the inline search results
+  // Update item prices when customer changes
+  useEffect(() => {
+    if (customerId && items.length > 0) {
+      const updateAllItemPrices = async () => {
+        const updatedItems = await Promise.all(
+          items.map(async (item) => {
+            const customerPrice = await getCustomerPrice(customerId, item.product_id);
+            if (customerPrice !== null) {
+              return {
+                ...item,
+                price: customerPrice,
+                total: customerPrice * item.quantity
+              };
+            }
+            return item;
+          })
+        );
+        setItems(updatedItems);
+      };
+      updateAllItemPrices();
+    }
+  }, [customerId]);
+
   const addProductFromSearch = async (product: Product) => {
     let price = product.base_price;
     
@@ -93,10 +116,9 @@ const MobileInvoiceForm = () => {
       product_sku: product.sku,
     };
     setItems([...items, newItem]);
-    setSearchTerm(''); // Clear search term after selection
+    setSearchTerm('');
   };
 
-  // Called when selecting a product from the modal
   const addItemFromModal = async (product: Product) => {
     let price = product.base_price;
     if (customerId) {
@@ -115,14 +137,20 @@ const MobileInvoiceForm = () => {
       product_sku: product.sku,
     };
     setItems(prevItems => [...prevItems, newItem]);
-    // Modal handles its own closing, but we can clear search term
     setSearchTerm(''); 
   };
 
   const updateItemQuantity = (index: number, quantity: number) => {
     const newItems = [...items];
-    newItems[index].quantity = quantity;
-    newItems[index].total = quantity * newItems[index].price;
+    newItems[index].quantity = Math.max(1, quantity);
+    newItems[index].total = newItems[index].quantity * newItems[index].price;
+    setItems(newItems);
+  };
+
+  const updateItemPrice = (index: number, price: number) => {
+    const newItems = [...items];
+    newItems[index].price = Math.max(0, price);
+    newItems[index].total = newItems[index].quantity * newItems[index].price;
     setItems(newItems);
   };
 
@@ -182,389 +210,272 @@ const MobileInvoiceForm = () => {
     }
   };
 
-  const canProceedToNext = () => {
-    switch (currentStep) {
-      case 'customer':
-        return customerId !== '';
-      case 'items':
-        return items.length > 0;
-      case 'details':
-        return true;
-      case 'review':
-        return true;
-      default:
-        return false;
-    }
-  };
-
-  const steps = [
-    { key: 'customer', label: 'Customer' },
-    { key: 'items', label: 'Items' },
-    { key: 'details', label: 'Details' },
-    { key: 'review', label: 'Review' }
-  ];
-
-  const currentStepIndex = steps.findIndex(step => step.key === currentStep);
-
-  const goToNextStep = () => {
-    if (currentStepIndex < steps.length - 1) {
-      setCurrentStep(steps[currentStepIndex + 1].key as Step);
-    }
-  };
-
-  const goToPreviousStep = () => {
-    if (currentStepIndex > 0) {
-      setCurrentStep(steps[currentStepIndex - 1].key as Step);
-    }
-  };
-
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
-      <div className="max-w-2xl mx-auto">
-        <div className="flex items-center mb-6">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate('/invoices')}
-            className="mr-4"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <h1 className="text-2xl font-bold">Create Invoice</h1>
+    <div className="min-h-screen bg-gray-50 pb-20">
+      {/* Sticky Header */}
+      <div className="sticky top-0 z-10 bg-white border-b shadow-sm">
+        <div className="flex items-center justify-between p-4">
+          <div className="flex items-center">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate('/invoices')}
+              className="mr-3 p-2"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <h1 className="text-xl font-bold">Create Invoice</h1>
+          </div>
         </div>
+      </div>
 
+      <div className="p-4 space-y-6">
+        {/* Customer Selection */}
         <Card>
-          <CardContent className="p-6">
-            {/* Step Indicator */}
-            <div className="flex justify-between mb-6">
-              {steps.map((step, index) => (
-                <div
-                  key={step.key}
-                  className={`flex items-center ${index < steps.length - 1 ? 'flex-1' : ''}`}
-                >
-                  <div
-                    className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                      currentStep === step.key
-                        ? 'bg-blue-600 text-white'
-                        : currentStepIndex > index
-                        ? 'bg-green-600 text-white'
-                        : 'bg-gray-200 text-gray-600'
-                    }`}
-                  >
-                    {currentStepIndex > index ? (
-                      <Check className="h-4 w-4" />
-                    ) : (
-                      index + 1
-                    )}
-                  </div>
-                  <span className="ml-2 text-sm font-medium text-gray-700 hidden sm:block">
-                    {step.label}
-                  </span>
-                  {index < steps.length - 1 && (
-                    <div className="flex-1 h-px bg-gray-200 mx-4 hidden sm:block" />
-                  )}
-                </div>
-              ))}
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg">Customer</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Select value={customerId} onValueChange={setCustomerId}>
+              <SelectTrigger className="h-12 text-base">
+                <SelectValue placeholder="Select a customer" />
+              </SelectTrigger>
+              <SelectContent>
+                {customers.map((customer) => (
+                  <SelectItem key={customer.id} value={customer.id} className="py-3">
+                    <div>
+                      <div className="font-medium">{customer.name}</div>
+                      <div className="text-sm text-gray-500">{customer.code}</div>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </CardContent>
+        </Card>
+
+        {/* Product Search & Add */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg">Add Products</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Search and Browse */}
+            <div className="flex space-x-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                <Input
+                  placeholder="Search products..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 h-12 text-base"
+                />
+              </div>
+              <Button 
+                variant="outline" 
+                onClick={() => setIsProductModalOpen(true)} 
+                className="h-12 px-4"
+              >
+                <Package className="h-5 w-5 mr-2" /> 
+                Browse
+              </Button>
             </div>
 
-            {/* Step Content */}
-            <div className="space-y-6">
-              {currentStep === 'customer' && (
-                <div className="space-y-6">
-                  <div>
-                    <Label htmlFor="customer" className="text-lg font-medium">Select Customer</Label>
-                    <p className="text-sm text-gray-600 mb-4">Choose the customer for this invoice</p>
-                    <Select value={customerId} onValueChange={setCustomerId}>
-                      <SelectTrigger className="h-12 text-lg">
-                        <SelectValue placeholder="Select a customer" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {customers.map((customer) => (
-                          <SelectItem key={customer.id} value={customer.id} className="py-3">
-                            <div>
-                              <div className="font-medium">{customer.name}</div>
-                              <div className="text-sm text-gray-500">{customer.code}</div>
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+            {/* Product Results */}
+            {displayProducts.length > 0 && (
+              <div className="space-y-2 max-h-64 overflow-y-auto">
+                {displayProducts.map((product) => (
+                  <div
+                    key={product.id}
+                    className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 cursor-pointer"
+                    onClick={() => addProductFromSearch(product)}
+                  >
+                    <div className="flex-1">
+                      <div className="font-medium text-sm">{product.name}</div>
+                      <div className="text-xs text-gray-600">SKU: {product.sku} • Size: {product.size}</div>
+                      <div className="text-sm font-medium text-blue-600">KWD {product.base_price.toFixed(3)}</div>
+                    </div>
+                    <Button size="sm" variant="ghost" className="p-2">
+                      <Plus className="h-4 w-4" />
+                    </Button>
                   </div>
-                </div>
-              )}
+                ))}
+              </div>
+            )}
 
-              {currentStep === 'items' && (
-                <div className="space-y-6">
-                  <div>
-                    <Label className="text-lg font-medium">Add Products</Label>
-                    <p className="text-sm text-gray-600 mb-4">Search or browse products to add to the invoice</p>
-                    
-                    <div className="flex space-x-2 mb-4">
-                      <div className="relative flex-grow">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                        <Input
-                          placeholder="Search products..."
-                          value={searchTerm}
-                          onChange={(e) => setSearchTerm(e.target.value)}
-                          className="pl-10 h-12 text-lg"
-                        />
+            {searchTerm && displayProducts.length === 0 && (
+              <p className="text-sm text-gray-500 text-center py-4">No products found. Try browsing or different search terms.</p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Selected Items */}
+        {items.length > 0 && (
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg">Selected Items ({items.length})</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {items.map((item, index) => (
+                  <div key={index} className="border rounded-lg p-4 bg-gray-50">
+                    {/* Product Info */}
+                    <div className="flex justify-between items-start mb-3">
+                      <div className="flex-1">
+                        <div className="font-medium text-sm">{item.product_name}</div>
+                        <div className="text-xs text-gray-600">SKU: {item.product_sku}</div>
+                        <div className="text-xs text-gray-600">Size: {item.product_size}</div>
                       </div>
-                      <Button 
-                        variant="outline" 
-                        onClick={() => setIsProductModalOpen(true)} 
-                        className="h-12 px-3 sm:px-4"
-                        aria-label="Browse products"
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeItem(index)}
+                        className="text-red-600 hover:text-red-700 p-2"
                       >
-                        <Package className="h-5 w-5 sm:mr-2" /> 
-                        <span className="hidden sm:inline">Browse</span>
+                        <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
-
-                    {searchTerm && filteredProducts.length > 0 && (
-                      <div className="max-h-60 overflow-y-auto border rounded-lg">
-                        {filteredProducts.map((product) => (
-                          <div
-                            key={product.id}
-                            className="p-4 border-b last:border-b-0 hover:bg-gray-50 cursor-pointer"
-                            onClick={() => addProductFromSearch(product)}
-                          >
-                            <div className="font-medium">{product.name}</div>
-                            <div className="text-sm text-gray-600">SKU: {product.sku} | Size: {product.size}</div>
-                            <div className="text-sm font-medium text-blue-600">KWD {product.base_price.toFixed(3)}</div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                     {searchTerm && filteredProducts.length === 0 && (
-                        <p className="text-sm text-gray-500 text-center py-4">No products found for "{searchTerm}". Try browsing.</p>
-                     )}
-                  </div>
-
-                  {items.length > 0 && (
-                    <div>
-                      <Label className="text-lg font-medium">Selected Items ({items.length})</Label>
-                      <div className="space-y-3 mt-4">
-                        {items.map((item, index) => (
-                          <Card key={index} className="p-4">
-                            <div className="flex justify-between items-start mb-3">
-                              <div className="flex-1">
-                                <div className="font-medium">{item.product_name}</div>
-                                <div className="text-sm text-gray-600">SKU: {item.product_sku}</div>
-                                <div className="text-sm text-gray-600">Size: {item.product_size}</div>
-                              </div>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => removeItem(index)}
-                                className="text-red-600 hover:text-red-700"
-                              >
-                                <Trash2 className="h-5 w-5" />
-                              </Button>
-                            </div>
-                            
-                            <div className="flex items-center space-x-4">
-                              <div className="flex-1">
-                                <Label className="text-sm">Quantity</Label>
-                                <Input
-                                  type="number"
-                                  value={item.quantity}
-                                  onChange={(e) => updateItemQuantity(index, parseInt(e.target.value) || 1)}
-                                  min="1"
-                                  className="h-10"
-                                />
-                              </div>
-                              <div className="flex-1">
-                                <Label className="text-sm">Price</Label>
-                                <div className="h-10 px-3 py-2 bg-gray-50 border rounded-md flex items-center">
-                                  KWD {item.price.toFixed(3)}
-                                </div>
-                              </div>
-                              <div className="flex-1">
-                                <Label className="text-sm">Total</Label>
-                                <div className="h-10 px-3 py-2 bg-gray-50 border rounded-md flex items-center font-medium">
-                                  KWD {item.total.toFixed(3)}
-                                </div>
-                              </div>
-                            </div>
-                          </Card>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                   {items.length === 0 && !searchTerm && (
-                     <div className="text-center py-8 border-2 border-dashed rounded-lg">
-                       <p className="text-gray-500 mb-2">No items added yet.</p>
-                       <p className="text-sm text-gray-500">Search above or browse products to add them.</p>
-                     </div>
-                   )}
-                </div>
-              )}
-
-              {currentStep === 'details' && (
-                <div className="space-y-6">
-                  <div>
-                    <Label className="text-lg font-medium">Invoice Details</Label>
-                    <p className="text-sm text-gray-600 mb-4">Set dates and additional options</p>
-                  </div>
-
-                  <div className="grid grid-cols-1 gap-6">
-                    <div>
-                      <Label className="text-base font-medium">Invoice Date</Label>
-                      <DatePicker
-                        date={date}
-                        onDateChange={setDate}
-                        placeholder="Pick invoice date"
-                      />
-                    </div>
                     
-                    <div>
-                      <Label className="text-base font-medium">Due Date</Label>
-                      <DatePicker
-                        date={dueDate}
-                        onDateChange={setDueDate}
-                        placeholder="Pick due date"
-                      />
-                    </div>
-
-                    <div>
-                      <Label htmlFor="notes" className="text-base font-medium">Notes</Label>
-                      <Input
-                        id="notes"
-                        value={notes}
-                        onChange={(e) => setNotes(e.target.value)}
-                        placeholder="Add any notes..."
-                        className="h-12"
-                      />
-                    </div>
-
-                    <div className="flex items-center space-x-3">
-                      <Checkbox
-                        id="free-of-charge"
-                        checked={isFreeOfCharge}
-                        onCheckedChange={(checked) => setIsFreeOfCharge(checked === true)}
-                      />
-                      <Label htmlFor="free-of-charge" className="text-base font-medium">
-                        Mark as Free of Charge
-                      </Label>
-                    </div>
-
-                    <div>
-                      <Label htmlFor="discount" className="text-base font-medium">Discount Amount</Label>
-                      <Input
-                        type="number"
-                        id="discount"
-                        value={discount}
-                        onChange={(e) => setDiscount(parseFloat(e.target.value) || 0)}
-                        disabled={isFreeOfCharge}
-                        step="0.001"
-                        className="h-12"
-                        placeholder="0.000"
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {currentStep === 'review' && (
-                <div className="space-y-6">
-                  <div>
-                    <Label className="text-lg font-medium">Review Invoice</Label>
-                    <p className="text-sm text-gray-600 mb-4">Review all details before creating the invoice</p>
-                  </div>
-
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Customer</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      {customers.find(c => c.id === customerId)?.name}
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Items ({items.length})</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-2">
-                        {items.map((item, index) => (
-                          <div key={index} className="flex justify-between">
-                            <div>
-                              <div className="font-medium">{item.product_name}</div>
-                              <div className="text-sm text-gray-600">Qty: {item.quantity}</div>
-                            </div>
-                            <div className="text-right">
-                              <div className="font-medium">KWD {item.total.toFixed(3)}</div>
-                            </div>
-                          </div>
-                        ))}
+                    {/* Quantity and Price Controls */}
+                    <div className="grid grid-cols-3 gap-3">
+                      <div>
+                        <Label className="text-xs font-medium text-gray-700">Quantity</Label>
+                        <Input
+                          type="number"
+                          value={item.quantity}
+                          onChange={(e) => updateItemQuantity(index, parseInt(e.target.value) || 1)}
+                          min="1"
+                          className="h-10 text-center text-base"
+                        />
                       </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Summary</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-2">
-                        <div className="flex justify-between">
-                          <span>Subtotal</span>
-                          <span>KWD {subtotal.toFixed(3)}</span>
-                        </div>
-                        {discount > 0 && (
-                          <div className="flex justify-between">
-                            <span>Discount</span>
-                            <span>-KWD {discount.toFixed(3)}</span>
-                          </div>
-                        )}
-                        <div className="flex justify-between font-medium text-lg border-t pt-2">
-                          <span>Total</span>
-                          <span className={isFreeOfCharge ? 'text-green-600' : ''}>
-                            KWD {total.toFixed(3)}
-                            {isFreeOfCharge && ' (FREE)'}
-                          </span>
+                      <div>
+                        <Label className="text-xs font-medium text-gray-700">Price</Label>
+                        <Input
+                          type="number"
+                          value={item.price}
+                          onChange={(e) => updateItemPrice(index, parseFloat(e.target.value) || 0)}
+                          step="0.001"
+                          min="0"
+                          className="h-10 text-center text-base"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs font-medium text-gray-700">Total</Label>
+                        <div className="h-10 px-3 py-2 bg-white border rounded-md flex items-center justify-center text-base font-medium">
+                          {item.total.toFixed(3)}
                         </div>
                       </div>
-                    </CardContent>
-                  </Card>
-                </div>
-              )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Invoice Details */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg">Invoice Details</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label className="text-sm font-medium">Invoice Date</Label>
+                <DatePicker
+                  date={date}
+                  onDateChange={setDate}
+                  placeholder="Pick invoice date"
+                />
+              </div>
+              <div>
+                <Label className="text-sm font-medium">Due Date</Label>
+                <DatePicker
+                  date={dueDate}
+                  onDateChange={setDueDate}
+                  placeholder="Pick due date"
+                />
+              </div>
+            </div>
+
+            <div>
+              <Label htmlFor="notes" className="text-sm font-medium">Notes</Label>
+              <Input
+                id="notes"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Add any notes..."
+                className="h-12 text-base"
+              />
+            </div>
+
+            <div className="flex items-center space-x-3">
+              <Checkbox
+                id="free-of-charge"
+                checked={isFreeOfCharge}
+                onCheckedChange={(checked) => setIsFreeOfCharge(checked === true)}
+              />
+              <Label htmlFor="free-of-charge" className="text-sm font-medium">
+                Mark as Free of Charge
+              </Label>
+            </div>
+
+            <div>
+              <Label htmlFor="discount" className="text-sm font-medium">Discount Amount</Label>
+              <Input
+                type="number"
+                id="discount"
+                value={discount}
+                onChange={(e) => setDiscount(parseFloat(e.target.value) || 0)}
+                disabled={isFreeOfCharge}
+                step="0.001"
+                className="h-12 text-base"
+                placeholder="0.000"
+              />
             </div>
           </CardContent>
         </Card>
 
-        <div className="flex justify-between mt-6 space-x-4">
-          <Button
-            variant="outline"
-            onClick={goToPreviousStep}
-            disabled={currentStep === 'customer'}
-            className="flex-1 h-12"
-          >
-            <ArrowLeft className="h-5 w-5 mr-2" />
-            Back
-          </Button>
-
-          {currentStep === 'review' ? (
-            <Button
-              onClick={handleSubmit}
-              disabled={createInvoice.isPending || !canProceedToNext()}
-              className="flex-1 h-12"
-            >
-              {createInvoice.isPending ? 'Creating...' : 'Create Invoice'}
-            </Button>
-          ) : (
-            <Button
-              onClick={goToNextStep}
-              disabled={!canProceedToNext()}
-              className="flex-1 h-12"
-            >
-              Next
-              <ArrowRight className="h-5 w-5 ml-2" />
-            </Button>
-          )}
-        </div>
+        {/* Summary */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg">Summary</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              <div className="flex justify-between text-base">
+                <span>Subtotal</span>
+                <span>KWD {subtotal.toFixed(3)}</span>
+              </div>
+              {discount > 0 && (
+                <div className="flex justify-between text-base">
+                  <span>Discount</span>
+                  <span>-KWD {discount.toFixed(3)}</span>
+                </div>
+              )}
+              <div className="flex justify-between text-lg font-bold border-t pt-3">
+                <span>Total</span>
+                <span className={isFreeOfCharge ? 'text-green-600' : ''}>
+                  KWD {total.toFixed(3)}
+                  {isFreeOfCharge && ' (FREE)'}
+                </span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
+
+      {/* Fixed Bottom Submit Button */}
+      <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t shadow-lg">
+        <Button
+          onClick={handleSubmit}
+          disabled={createInvoice.isPending || !customerId || items.length === 0}
+          className="w-full h-14 text-lg font-medium"
+        >
+          {createInvoice.isPending ? 'Creating...' : 'Create Invoice'}
+        </Button>
+      </div>
+
       {/* Product Selection Modal */}
       <ProductSelectionModal
         isOpen={isProductModalOpen}
