@@ -17,7 +17,7 @@ export const useProducts = (searchTerm?: string) => {
         .from('products')
         .select(`
           *,
-          inventory!inventory_product_id_fkey(*)
+          inventory(*)
         `)
         .order('name');
       
@@ -27,14 +27,27 @@ export const useProducts = (searchTerm?: string) => {
       
       const { data, error } = await query;
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching products:', error);
+        throw error;
+      }
       
-      return data?.map(product => ({
-        ...product,
-        inventory: product.inventory?.[0] || null,
-        stock_level: product.inventory?.[0]?.quantity || 0,
-        is_low_stock: (product.inventory?.[0]?.quantity || 0) <= (product.inventory?.[0]?.reorder_level || 10)
-      })) || [];
+      console.log('Products data fetched:', data);
+      
+      return data?.map(product => {
+        const inventoryRecord = Array.isArray(product.inventory) ? product.inventory[0] : product.inventory;
+        const stockLevel = inventoryRecord?.quantity || 0;
+        const reorderLevel = inventoryRecord?.reorder_level || 10;
+        
+        console.log(`Product ${product.name} - Stock: ${stockLevel}, Reorder: ${reorderLevel}`);
+        
+        return {
+          ...product,
+          inventory: inventoryRecord || null,
+          stock_level: stockLevel,
+          is_low_stock: stockLevel <= reorderLevel
+        };
+      }) || [];
     },
   });
 };
@@ -47,18 +60,25 @@ export const useProduct = (productId: string) => {
         .from('products')
         .select(`
           *,
-          inventory!inventory_product_id_fkey(*)
+          inventory(*)
         `)
         .eq('id', productId)
         .single();
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching product:', error);
+        throw error;
+      }
+      
+      const inventoryRecord = Array.isArray(data.inventory) ? data.inventory[0] : data.inventory;
+      const stockLevel = inventoryRecord?.quantity || 0;
+      const reorderLevel = inventoryRecord?.reorder_level || 10;
       
       return {
         ...data,
-        inventory: data.inventory?.[0] || null,
-        stock_level: data.inventory?.[0]?.quantity || 0,
-        is_low_stock: (data.inventory?.[0]?.quantity || 0) <= (data.inventory?.[0]?.reorder_level || 10)
+        inventory: inventoryRecord || null,
+        stock_level: stockLevel,
+        is_low_stock: stockLevel <= reorderLevel
       };
     },
     enabled: !!productId,
