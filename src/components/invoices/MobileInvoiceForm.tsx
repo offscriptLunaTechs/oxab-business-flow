@@ -53,11 +53,11 @@ const MobileInvoiceForm = () => {
   } = useMobileInvoiceForm();
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 relative">
       <MobileInvoiceHeader onBack={() => navigate('/invoices')} />
 
       {/* Main Content with proper bottom padding for fixed button */}
-      <div className="p-4 space-y-6 pb-24">
+      <div className="p-4 space-y-6 pb-32">
         <CustomerSelectionCard
           customerId={customerId}
           setCustomerId={setCustomerId}
@@ -100,12 +100,12 @@ const MobileInvoiceForm = () => {
         />
       </div>
 
-      {/* Fixed Bottom Submit Button - This should always be visible */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t shadow-lg z-20">
+      {/* Fixed Bottom Submit Button - Higher z-index and safer positioning */}
+      <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t shadow-lg z-50 safe-area-inset-bottom">
         <Button
           onClick={handleSubmit}
           disabled={createInvoice.isPending || !customerId || items.length === 0}
-          className="w-full h-14 text-lg font-medium"
+          className="w-full h-14 text-lg font-medium bg-blue-600 hover:bg-blue-700"
         >
           {createInvoice.isPending ? 'Creating...' : 'Create Invoice'}
         </Button>
