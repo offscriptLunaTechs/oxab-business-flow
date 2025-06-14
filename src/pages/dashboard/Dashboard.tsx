@@ -58,7 +58,7 @@ const Dashboard = () => {
       title: "User Management",
       description: "Invite new users and manage existing accounts",
       icon: Users,
-      color: "blue" as const, // Changed from purple to blue to match type definition
+      color: "blue" as const,
       onClick: () => navigate("/settings/users"),
       badge: pendingInvitations > 0 ? `${pendingInvitations} pending` : undefined
     });

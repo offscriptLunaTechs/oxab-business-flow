@@ -11,15 +11,29 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { useInvitations, useCancelInvitation, useResendInvitation } from '@/hooks/useInvitations';
+import { useInvitations, useDeleteInvitation, useResendInvitation } from '@/hooks/useInvitations';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
-import { Mail, Clock, CheckCircle, XCircle, RotateCcw, X, AlertTriangle } from 'lucide-react';
+import { Mail, Clock, CheckCircle, XCircle, RotateCcw, Trash2, AlertTriangle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 export const InvitationsList = () => {
   const { data: invitations = [], isLoading, error } = useInvitations();
-  const cancelInvitation = useCancelInvitation();
+  const deleteInvitation = useDeleteInvitation();
   const resendInvitation = useResendInvitation();
+
+  // Filter out cancelled invitations since we're deleting them now
+  const activeInvitations = invitations.filter(inv => inv.status !== 'cancelled');
 
   const getStatusBadge = (status: string, expiresAt: string) => {
     const isExpired = new Date(expiresAt) < new Date();
@@ -33,8 +47,6 @@ export const InvitationsList = () => {
         return <Badge variant="secondary">Pending</Badge>;
       case 'accepted':
         return <Badge variant="default">Accepted</Badge>;
-      case 'cancelled':
-        return <Badge variant="outline">Cancelled</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -69,17 +81,13 @@ export const InvitationsList = () => {
         return <Mail className="h-4 w-4 text-blue-500" />;
       case 'accepted':
         return <CheckCircle className="h-4 w-4 text-green-500" />;
-      case 'cancelled':
-        return <XCircle className="h-4 w-4 text-red-500" />;
       default:
         return <Clock className="h-4 w-4 text-gray-500" />;
     }
   };
 
-  const handleCancel = (invitationId: string) => {
-    if (window.confirm('Are you sure you want to cancel this invitation?')) {
-      cancelInvitation.mutate(invitationId);
-    }
+  const handleDelete = (invitationId: string) => {
+    deleteInvitation.mutate(invitationId);
   };
 
   const handleResend = (invitationId: string) => {
@@ -115,11 +123,11 @@ export const InvitationsList = () => {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Mail className="h-5 w-5" />
-          User Invitations ({invitations.length})
+          User Invitations ({activeInvitations.length})
         </CardTitle>
       </CardHeader>
       <CardContent>
-        {invitations.length === 0 ? (
+        {activeInvitations.length === 0 ? (
           <div className="text-center py-8">
             <Mail className="h-12 w-12 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-gray-900 mb-2">No invitations sent</h3>
@@ -140,10 +148,10 @@ export const InvitationsList = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {invitations.map((invitation) => {
+                {activeInvitations.map((invitation) => {
                   const isExpired = new Date(invitation.expires_at) < new Date();
                   const canResend = (invitation.status === 'pending' && isExpired) || invitation.email_status === 'failed';
-                  const canCancel = invitation.status === 'pending';
+                  const canDelete = invitation.status === 'pending';
                   
                   return (
                     <TableRow key={invitation.id}>
@@ -204,16 +212,37 @@ export const InvitationsList = () => {
                               <RotateCcw className="h-4 w-4" />
                             </Button>
                           )}
-                          {canCancel && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleCancel(invitation.id)}
-                              disabled={cancelInvitation.isPending}
-                              title="Cancel invitation"
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
+                          {canDelete && (
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  disabled={deleteInvitation.isPending}
+                                  title="Delete invitation"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Delete Invitation?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Are you sure you want to delete this invitation for {invitation.email}? 
+                                    This action cannot be undone and they will no longer be able to join using this invitation.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => handleDelete(invitation.id)}
+                                    className="bg-red-600 hover:bg-red-700"
+                                  >
+                                    Delete
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
                           )}
                         </div>
                       </TableCell>

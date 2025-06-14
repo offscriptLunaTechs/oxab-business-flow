@@ -107,24 +107,24 @@ export const useCreateInvitation = () => {
   });
 };
 
-export const useCancelInvitation = () => {
+export const useDeleteInvitation = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (invitationId: string) => {
       const { error } = await supabase
         .from('invitations')
-        .update({ status: 'cancelled', updated_at: new Date().toISOString() })
+        .delete()
         .eq('id', invitationId);
 
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success('Invitation cancelled');
+      toast.success('Invitation deleted');
       queryClient.invalidateQueries({ queryKey: ['invitations'] });
     },
     onError: (error: any) => {
-      toast.error('Failed to cancel invitation: ' + error.message);
+      toast.error('Failed to delete invitation: ' + error.message);
     }
   });
 };

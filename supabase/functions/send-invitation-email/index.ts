@@ -25,17 +25,11 @@ serve(async (req) => {
   }
 
   try {
+    // Use service role key for database operations to bypass RLS
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
     );
-
-    // Get the authorization header
-    const authHeader = req.headers.get('Authorization')!;
-    supabaseClient.auth.setSession({
-      access_token: authHeader.replace('Bearer ', ''),
-      refresh_token: '',
-    });
 
     const { invitationId } = await req.json();
     
@@ -45,7 +39,7 @@ serve(async (req) => {
 
     console.log('Processing invitation email for ID:', invitationId);
 
-    // Get invitation details from database
+    // Get invitation details from database using service role
     const { data: invitation, error: fetchError } = await supabaseClient
       .from('invitations')
       .select('*')
@@ -54,7 +48,7 @@ serve(async (req) => {
 
     if (fetchError || !invitation) {
       console.error('Failed to fetch invitation:', fetchError);
-      throw new Error('Invitation not found');
+      throw new Error(`Invitation not found: ${fetchError?.message || 'Unknown error'}`);
     }
 
     const invitationData = invitation as InvitationData;
@@ -187,7 +181,7 @@ serve(async (req) => {
       throw new Error(`Email sending failed: ${emailResult.message || 'Unknown error'}`);
     }
 
-    // Update invitation with email sent status
+    // Update invitation with email sent status using service role
     const { error: updateError } = await supabaseClient
       .from('invitations')
       .update({
@@ -219,7 +213,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in send-invitation-email function:', error);
 
-    // Try to update invitation with failed status if we have the ID
+    // Try to update invitation with failed status using service role
     try {
       const body = await req.clone().json();
       if (body.invitationId) {
