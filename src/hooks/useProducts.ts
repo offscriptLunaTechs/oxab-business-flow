@@ -13,11 +13,21 @@ export const useProducts = (searchTerm?: string) => {
   return useQuery({
     queryKey: ['products', searchTerm],
     queryFn: async (): Promise<ProductWithInventory[]> => {
+      console.log('Fetching products with inventory...');
+      
       let query = supabase
         .from('products')
         .select(`
           *,
-          inventory(*)
+          inventory (
+            id,
+            quantity,
+            reorder_level,
+            last_updated,
+            created_at,
+            notes,
+            last_restock_date
+          )
         `)
         .order('name');
       
@@ -32,14 +42,14 @@ export const useProducts = (searchTerm?: string) => {
         throw error;
       }
       
-      console.log('Products data fetched:', data);
+      console.log('Raw products data:', data);
       
       return data?.map(product => {
         const inventoryRecord = Array.isArray(product.inventory) ? product.inventory[0] : product.inventory;
         const stockLevel = inventoryRecord?.quantity || 0;
         const reorderLevel = inventoryRecord?.reorder_level || 10;
         
-        console.log(`Product ${product.name} - Stock: ${stockLevel}, Reorder: ${reorderLevel}`);
+        console.log(`Product ${product.name} (${product.sku}) - Stock: ${stockLevel}, Reorder: ${reorderLevel}, Low Stock: ${stockLevel <= reorderLevel}`);
         
         return {
           ...product,
@@ -49,6 +59,8 @@ export const useProducts = (searchTerm?: string) => {
         };
       }) || [];
     },
+    staleTime: 30000, // 30 seconds
+    refetchOnWindowFocus: true,
   });
 };
 
@@ -56,11 +68,21 @@ export const useProduct = (productId: string) => {
   return useQuery({
     queryKey: ['product', productId],
     queryFn: async (): Promise<ProductWithInventory> => {
+      console.log('Fetching single product with inventory:', productId);
+      
       const { data, error } = await supabase
         .from('products')
         .select(`
           *,
-          inventory(*)
+          inventory (
+            id,
+            quantity,
+            reorder_level,
+            last_updated,
+            created_at,
+            notes,
+            last_restock_date
+          )
         `)
         .eq('id', productId)
         .single();
@@ -70,9 +92,13 @@ export const useProduct = (productId: string) => {
         throw error;
       }
       
+      console.log('Single product data:', data);
+      
       const inventoryRecord = Array.isArray(data.inventory) ? data.inventory[0] : data.inventory;
       const stockLevel = inventoryRecord?.quantity || 0;
       const reorderLevel = inventoryRecord?.reorder_level || 10;
+      
+      console.log(`Single product ${data.name} - Stock: ${stockLevel}, Reorder: ${reorderLevel}`);
       
       return {
         ...data,
@@ -82,5 +108,6 @@ export const useProduct = (productId: string) => {
       };
     },
     enabled: !!productId,
+    staleTime: 30000, // 30 seconds
   });
 };
