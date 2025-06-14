@@ -1,5 +1,8 @@
 
 import React from 'react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
 import MobileInvoiceForm from '@/components/invoices/MobileInvoiceForm';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,13 +16,10 @@ import { Plus, Trash2, Search } from 'lucide-react';
 import { addDays } from 'date-fns';
 import { useProducts } from '@/hooks/useProducts';
 import { useCustomers } from '@/hooks/useCustomers';
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useCreateInvoice } from '@/hooks/useInvoices';
 import { ProductSelectionModal } from '@/components/invoices/ProductSelectionModal';
 import { Product } from '@/types/invoice';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
 
 interface Item {
   product_id: string;
@@ -32,9 +32,15 @@ interface Item {
 }
 
 const CreateInvoice = () => {
+  // Call ALL hooks at the top level - never conditionally
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { data: products = [] } = useProducts();
+  const { data: customers = [] } = useCustomers();
+  const createInvoice = useCreateInvoice();
+
+  // State hooks
   const [customerId, setCustomerId] = useState('');
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [dueDate, setDueDate] = useState<Date | undefined>(addDays(new Date(), 30));
@@ -43,23 +49,6 @@ const CreateInvoice = () => {
   const [discount, setDiscount] = useState(0);
   const [isFreeOfCharge, setIsFreeOfCharge] = useState(false);
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
-
-  const { data: products = [] } = useProducts();
-  const { data: customers = [] } = useCustomers();
-  const createInvoice = useCreateInvoice();
-
-  // Now that all hooks are called, we can do conditional rendering
-  if (isMobile) {
-    return <MobileInvoiceForm />;
-  }
-
-  // Desktop version continues with existing implementation
-  const calculateSubtotal = () => {
-    return items.reduce((acc, item) => acc + item.total, 0);
-  };
-
-  const subtotal = calculateSubtotal();
-  const total = isFreeOfCharge ? 0 : subtotal - discount;
 
   // Function to get customer price for a product
   const getCustomerPrice = async (customerId: string, productId: string) => {
@@ -107,6 +96,11 @@ const CreateInvoice = () => {
       updateAllItemPrices();
     }
   }, [customerId]);
+
+  // Helper functions
+  const calculateSubtotal = () => {
+    return items.reduce((acc, item) => acc + item.total, 0);
+  };
 
   const addItemFromModal = async (product: Product) => {
     let price = product.base_price;
@@ -177,6 +171,9 @@ const CreateInvoice = () => {
       return;
     }
 
+    const subtotal = calculateSubtotal();
+    const total = isFreeOfCharge ? 0 : subtotal - discount;
+
     const invoiceData = {
       customer_id: customerId,
       date: date ? date.toISOString().split('T')[0] : '',
@@ -213,6 +210,16 @@ const CreateInvoice = () => {
     }
   };
 
+  // Calculate values
+  const subtotal = calculateSubtotal();
+  const total = isFreeOfCharge ? 0 : subtotal - discount;
+
+  // NOW we can safely do conditional rendering since all hooks have been called
+  if (isMobile) {
+    return <MobileInvoiceForm />;
+  }
+
+  // Desktop version
   return (
     <div className="container mx-auto py-10">
       <Card>
