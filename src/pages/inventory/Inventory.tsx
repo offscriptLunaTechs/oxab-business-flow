@@ -3,17 +3,19 @@ import { useState } from "react";
 import { useProducts } from "@/hooks/useProducts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AlertTriangle, Package, TrendingUp, BarChart3 } from "lucide-react";
+import { Package, TrendingUp, BarChart3, Settings } from "lucide-react";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useInventorySync } from "@/hooks/useInventorySync";
 import StockLevelsTable from "@/components/inventory/StockLevelsTable";
-import LowStockAlerts from "@/components/inventory/LowStockAlerts";
+import LowStockModal from "@/components/inventory/LowStockModal";
 import MovementHistory from "@/components/inventory/MovementHistory";
 import InventoryReports from "@/components/inventory/InventoryReports";
 import InventoryStats from "@/components/inventory/InventoryStats";
+import ProductManagement from "@/components/inventory/ProductManagement";
 
 const Inventory = () => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [lowStockModalOpen, setLowStockModalOpen] = useState(false);
   const { data: products, isLoading, error, refetch } = useProducts(searchTerm);
   const { refreshInventoryData } = useInventorySync();
 
@@ -45,13 +47,17 @@ const Inventory = () => {
     refetch();
   };
 
+  const handleLowStockClick = () => {
+    setLowStockModalOpen(true);
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Inventory Management</h1>
-          <p className="text-gray-600 mt-1">Monitor stock levels, movements, and generate reports</p>
+          <p className="text-gray-600 mt-1">Monitor stock levels, movements, and manage products</p>
         </div>
       </div>
 
@@ -60,6 +66,7 @@ const Inventory = () => {
         totalProducts={totalActiveProducts}
         lowStockCount={lowStockCount}
         totalValue={totalValue}
+        onLowStockClick={handleLowStockClick}
       />
 
       {/* Main Content Tabs */}
@@ -70,15 +77,10 @@ const Inventory = () => {
             <span className="hidden sm:inline">Stock Levels</span>
             <span className="sm:hidden">Stock</span>
           </TabsTrigger>
-          <TabsTrigger value="alerts" className="flex items-center gap-2">
-            <AlertTriangle className="h-4 w-4" />
-            <span className="hidden sm:inline">Low Stock</span>
-            <span className="sm:hidden">Alerts</span>
-            {lowStockCount > 0 && (
-              <span className="bg-red-500 text-white text-xs rounded-full px-2 py-1 ml-1">
-                {lowStockCount}
-              </span>
-            )}
+          <TabsTrigger value="product-management" className="flex items-center gap-2">
+            <Settings className="h-4 w-4" />
+            <span className="hidden sm:inline">Product Management</span>
+            <span className="sm:hidden">Products</span>
           </TabsTrigger>
           <TabsTrigger value="movements" className="flex items-center gap-2">
             <TrendingUp className="h-4 w-4" />
@@ -101,8 +103,11 @@ const Inventory = () => {
           />
         </TabsContent>
 
-        <TabsContent value="alerts" className="mt-6">
-          <LowStockAlerts products={products || []} />
+        <TabsContent value="product-management" className="mt-6">
+          <ProductManagement 
+            products={products || []} 
+            onProductUpdate={handleStockUpdate}
+          />
         </TabsContent>
 
         <TabsContent value="movements" className="mt-6">
@@ -113,6 +118,13 @@ const Inventory = () => {
           <InventoryReports products={products || []} />
         </TabsContent>
       </Tabs>
+
+      {/* Low Stock Modal */}
+      <LowStockModal
+        products={products || []}
+        isOpen={lowStockModalOpen}
+        onClose={() => setLowStockModalOpen(false)}
+      />
     </div>
   );
 };

@@ -6,58 +6,151 @@ import { InvoiceWithDetails } from '@/types/invoice';
 export const useInvoices = () => {
   return useQuery({
     queryKey: ['invoices'],
-    queryFn: async () => {
+    queryFn: async (): Promise<InvoiceWithDetails[]> => {
+      console.log('Fetching invoices with details...');
+      
       const { data, error } = await supabase
         .from('invoices')
         .select(`
           *,
-          customers!invoices_customer_id_fkey(*)
+          customers!inner(
+            id,
+            name,
+            code,
+            email,
+            phone,
+            address,
+            customer_type,
+            loyalty_points,
+            created_at,
+            updated_at
+          ),
+          invoice_items(
+            id,
+            invoice_id,
+            product_id,
+            quantity,
+            price,
+            total,
+            created_at,
+            updated_at,
+            products(
+              id,
+              name,
+              sku,
+              size,
+              base_price,
+              pack_size,
+              trademark,
+              description,
+              status,
+              created_at,
+              updated_at
+            )
+          )
         `)
         .order('created_at', { ascending: false });
-      
-      if (error) throw error;
-      return data;
+
+      if (error) {
+        console.error('Error fetching invoices:', error);
+        throw error;
+      }
+
+      console.log('Raw invoices data:', data);
+
+      return data?.map(invoice => ({
+        ...invoice,
+        status: invoice.status as 'draft' | 'pending' | 'paid' | 'cancelled' | 'overdue',
+        customer: {
+          ...invoice.customers,
+          customer_type: invoice.customers.customer_type as 'wholesale' | 'retail'
+        },
+        items: invoice.invoice_items?.map(item => ({
+          ...item,
+          product: item.products ? {
+            ...item.products,
+            status: item.products.status as 'active' | 'discontinued' | 'inactive'
+          } : undefined
+        })) || []
+      })) || [];
     },
+    staleTime: 30000,
   });
 };
 
 export const useInvoice = (invoiceId: string) => {
   return useQuery({
     queryKey: ['invoice', invoiceId],
-    queryFn: async (): Promise<InvoiceWithDetails | null> => {
-      if (!invoiceId) return null;
+    queryFn: async (): Promise<InvoiceWithDetails> => {
+      console.log('Fetching single invoice:', invoiceId);
       
-      const { data: invoice, error: invoiceError } = await supabase
+      const { data, error } = await supabase
         .from('invoices')
         .select(`
           *,
-          customers!invoices_customer_id_fkey(*)
+          customers!inner(
+            id,
+            name,
+            code,
+            email,
+            phone,
+            address,
+            customer_type,
+            loyalty_points,
+            created_at,
+            updated_at
+          ),
+          invoice_items(
+            id,
+            invoice_id,
+            product_id,
+            quantity,
+            price,
+            total,
+            created_at,
+            updated_at,
+            products(
+              id,
+              name,
+              sku,
+              size,
+              base_price,
+              pack_size,
+              trademark,
+              description,
+              status,
+              created_at,
+              updated_at
+            )
+          )
         `)
         .eq('id', invoiceId)
-        .maybeSingle();
-      
-      if (invoiceError) throw invoiceError;
-      if (!invoice) return null;
+        .single();
 
-      const { data: items, error: itemsError } = await supabase
-        .from('invoice_items')
-        .select(`
-          *,
-          products!invoice_items_product_id_fkey(*)
-        `)
-        .eq('invoice_id', invoiceId);
-      
-      if (itemsError) throw itemsError;
+      if (error) {
+        console.error('Error fetching invoice:', error);
+        throw error;
+      }
+
+      console.log('Single invoice data:', data);
 
       return {
-        ...invoice,
-        customer: invoice.customers,
-        items: items.map(item => ({
+        ...data,
+        status: data.status as 'draft' | 'pending' | 'paid' | 'cancelled' | 'overdue',
+        customer: {
+          ...data.customers,
+          customer_type: data.customers.customer_type as 'wholesale' | 'retail'
+        },
+        items: data.invoice_items?.map(item => ({
           ...item,
-          product: item.products
-        }))
+          product: item.products ? {
+            ...item.products,
+            status: item.products.status as 'active' | 'discontinued' | 'inactive'
+          } : undefined
+        })) || []
       };
     },
     enabled: !!invoiceId,
+    staleTime: 30000,
   });
 };

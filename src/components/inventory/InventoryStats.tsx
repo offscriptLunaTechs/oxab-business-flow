@@ -6,9 +6,10 @@ interface InventoryStatsProps {
   totalProducts: number;
   lowStockCount: number;
   totalValue: number;
+  onLowStockClick?: () => void;
 }
 
-const InventoryStats = ({ totalProducts, lowStockCount, totalValue }: InventoryStatsProps) => {
+const InventoryStats = ({ totalProducts, lowStockCount, totalValue, onLowStockClick }: InventoryStatsProps) => {
   const stockHealthPercentage = totalProducts > 0 ? Math.round(((totalProducts - lowStockCount) / totalProducts) * 100) : 100;
 
   const stats = [
@@ -19,6 +20,7 @@ const InventoryStats = ({ totalProducts, lowStockCount, totalValue }: InventoryS
       changeType: "neutral" as const,
       icon: Package,
       color: "blue" as const,
+      onClick: undefined,
     },
     {
       title: "Low Stock Items",
@@ -27,6 +29,7 @@ const InventoryStats = ({ totalProducts, lowStockCount, totalValue }: InventoryS
       changeType: lowStockCount > 0 ? "negative" as const : "positive" as const,
       icon: AlertTriangle,
       color: lowStockCount > 0 ? "red" as const : "green" as const,
+      onClick: lowStockCount > 0 ? onLowStockClick : undefined,
     },
     {
       title: "Inventory Value",
@@ -35,6 +38,7 @@ const InventoryStats = ({ totalProducts, lowStockCount, totalValue }: InventoryS
       changeType: "neutral" as const,
       icon: DollarSign,
       color: "green" as const,
+      onClick: undefined,
     },
     {
       title: "Stock Health",
@@ -43,6 +47,7 @@ const InventoryStats = ({ totalProducts, lowStockCount, totalValue }: InventoryS
       changeType: stockHealthPercentage >= 80 ? "positive" as const : stockHealthPercentage >= 60 ? "neutral" as const : "negative" as const,
       icon: TrendingUp,
       color: stockHealthPercentage >= 80 ? "green" as const : stockHealthPercentage >= 60 ? "orange" as const : "red" as const,
+      onClick: undefined,
     },
   ];
 
@@ -67,7 +72,11 @@ const InventoryStats = ({ totalProducts, lowStockCount, totalValue }: InventoryS
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
       {stats.map((stat, index) => (
-        <Card key={index}>
+        <Card 
+          key={index}
+          className={stat.onClick ? 'cursor-pointer hover:shadow-md transition-shadow' : ''}
+          onClick={stat.onClick}
+        >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-gray-600">
               {stat.title}
@@ -82,6 +91,9 @@ const InventoryStats = ({ totalProducts, lowStockCount, totalValue }: InventoryS
             </div>
             <p className={`text-xs ${getChangeColorClass(stat.changeType)}`}>
               {stat.change}
+              {stat.onClick && (
+                <span className="ml-1 text-blue-600">(Click to view)</span>
+              )}
             </p>
           </CardContent>
         </Card>
