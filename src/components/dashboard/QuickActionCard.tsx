@@ -3,7 +3,7 @@ import { LucideIcon } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
-interface QuickActionCardProps {
+export interface QuickActionCardProps {
   title: string;
   description: string;
   icon: LucideIcon;

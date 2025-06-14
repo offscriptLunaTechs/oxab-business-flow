@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FileText, Package, Users, TrendingUp, AlertCircle, Clock, CheckCircle, DollarSign } from "lucide-react";
 import QuickActionCard from "@/components/dashboard/QuickActionCard";
+import type { QuickActionCardProps } from "@/components/dashboard/QuickActionCard";
 import StatsCard from "@/components/dashboard/StatsCard";
 import { useDashboardStats } from "@/hooks/useDashboardStats";
 import { usePaymentDataSync } from "@/hooks/usePaymentDataSync";
@@ -25,30 +26,30 @@ const Dashboard = () => {
   const { data: invitations = [] } = useInvitations();
   const pendingInvitations = invitations.filter(inv => inv.status === 'pending').length;
 
-  const quickActions = [{
+  const quickActions: QuickActionCardProps[] = [{
     title: "Create Invoice",
     description: "Generate a new invoice for customers quickly and easily",
     icon: FileText,
-    color: "blue" as const,
+    color: "blue",
     onClick: () => navigate("/invoices/new")
   }, {
     title: "View Inventory",
     description: "Check stock levels and manage your OXAB products",
     icon: Package,
-    color: "green" as const,
+    color: "green",
     onClick: () => navigate("/inventory"),
     badge: stats?.lowStockCount ? `${stats.lowStockCount} low stock` : undefined
   }, {
     title: "Find Customer",
     description: "Search and manage customer information and orders",
     icon: Users,
-    color: "purple" as const,
+    color: "purple",
     onClick: () => navigate("/customers")
   }, {
     title: "Outstanding Report",
     description: "View detailed outstanding invoices report with aging analysis",
     icon: TrendingUp,
-    color: "orange" as const,
+    color: "orange",
     onClick: () => navigate("/reports/outstanding-invoices")
   }];
 
@@ -58,7 +59,7 @@ const Dashboard = () => {
       title: "User Management",
       description: "Invite new users and manage existing accounts",
       icon: Users,
-      color: "blue" as const,
+      color: "blue",
       onClick: () => navigate("/settings/users"),
       badge: pendingInvitations > 0 ? `${pendingInvitations} pending` : undefined
     });

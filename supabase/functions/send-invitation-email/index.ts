@@ -1,4 +1,3 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
@@ -24,14 +23,15 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  try {
-    // Use service role key for database operations to bypass RLS
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-    );
+  let invitationId: string | null = null;
+  const supabaseClient = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+  );
 
-    const { invitationId } = await req.json();
+  try {
+    const body = await req.json();
+    invitationId = body.invitationId;
     
     if (!invitationId) {
       throw new Error('Invitation ID is required');
@@ -214,14 +214,8 @@ serve(async (req) => {
     console.error('Error in send-invitation-email function:', error);
 
     // Try to update invitation with failed status using service role
-    try {
-      const body = await req.clone().json();
-      if (body.invitationId) {
-        const supabaseClient = createClient(
-          Deno.env.get('SUPABASE_URL') ?? '',
-          Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-        );
-
+    if (invitationId) {
+      try {
         await supabaseClient
           .from('invitations')
           .update({
@@ -229,10 +223,10 @@ serve(async (req) => {
             email_error: error.message,
             updated_at: new Date().toISOString()
           })
-          .eq('id', body.invitationId);
+          .eq('id', invitationId);
+      } catch (updateError) {
+        console.error('Failed to update invitation with error status:', updateError);
       }
-    } catch (updateError) {
-      console.error('Failed to update invitation with error status:', updateError);
     }
 
     return new Response(
