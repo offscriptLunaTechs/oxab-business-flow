@@ -1,4 +1,3 @@
-
 import { useState, useMemo } from "react";
 import { Search, Package, AlertTriangle, CheckCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -6,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ProductWithInventory } from "@/hooks/useProducts";
+import { useInventorySync } from "@/hooks/useInventorySync";
 import StockAdjustmentModal from "./StockAdjustmentModal";
 
 interface StockLevelsTableProps {
@@ -18,6 +18,7 @@ interface StockLevelsTableProps {
 const StockLevelsTable = ({ products, searchTerm, onSearchChange, onStockUpdate }: StockLevelsTableProps) => {
   const [sortField, setSortField] = useState<'name' | 'stock_level' | 'base_price'>('name');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const { refreshInventoryData } = useInventorySync();
 
   const filteredAndSortedProducts = useMemo(() => {
     let filtered = products;
@@ -85,6 +86,8 @@ const StockLevelsTable = ({ products, searchTerm, onSearchChange, onStockUpdate 
   };
 
   const handleStockUpdate = () => {
+    // Refresh all inventory data and trigger parent callback
+    refreshInventoryData();
     if (onStockUpdate) {
       onStockUpdate();
     }

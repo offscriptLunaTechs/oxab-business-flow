@@ -1,9 +1,11 @@
+
 import { useState } from "react";
 import { useProducts } from "@/hooks/useProducts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertTriangle, Package, TrendingUp, BarChart3 } from "lucide-react";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { useInventorySync } from "@/hooks/useInventorySync";
 import StockLevelsTable from "@/components/inventory/StockLevelsTable";
 import LowStockAlerts from "@/components/inventory/LowStockAlerts";
 import MovementHistory from "@/components/inventory/MovementHistory";
@@ -13,6 +15,7 @@ import InventoryStats from "@/components/inventory/InventoryStats";
 const Inventory = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const { data: products, isLoading, error, refetch } = useProducts(searchTerm);
+  const { refreshInventoryData } = useInventorySync();
 
   if (isLoading) {
     return (
@@ -35,7 +38,8 @@ const Inventory = () => {
   const totalValue = products?.reduce((sum, p) => sum + (p.stock_level || 0) * p.base_price, 0) || 0;
 
   const handleStockUpdate = () => {
-    // Refetch products data after stock adjustment
+    // Refresh all inventory data and refetch products
+    refreshInventoryData();
     refetch();
   };
 

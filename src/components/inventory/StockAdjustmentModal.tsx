@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +9,7 @@ import { Edit, Plus, Minus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { usePermissions } from "@/hooks/usePermissions";
+import { useInventorySync } from "@/hooks/useInventorySync";
 import { ProductWithInventory } from "@/hooks/useProducts";
 
 interface StockAdjustmentModalProps {
@@ -25,6 +25,7 @@ const StockAdjustmentModal = ({ product, onSuccess }: StockAdjustmentModalProps)
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const { can } = usePermissions();
+  const { refreshInventoryData, refreshProductData } = useInventorySync();
 
   // Only admins and managers can adjust stock
   if (!can.manageInventory()) {
@@ -81,13 +82,15 @@ const StockAdjustmentModal = ({ product, onSuccess }: StockAdjustmentModalProps)
           throw new Error('Invalid adjustment type');
       }
 
-      // Update inventory
+      // Update inventory using upsert to handle missing records
       const { error: inventoryError } = await supabase
         .from('inventory')
         .upsert({
           product_id: product.id,
           quantity: newStock,
           last_updated: new Date().toISOString(),
+        }, {
+          onConflict: 'product_id'
         });
 
       if (inventoryError) throw inventoryError;
@@ -111,10 +114,15 @@ const StockAdjustmentModal = ({ product, onSuccess }: StockAdjustmentModalProps)
         description: `${product.name} stock updated from ${currentStock} to ${newStock}`,
       });
 
+      // Close modal and reset form
       setOpen(false);
       setQuantity('');
       setReason('');
       setAdjustmentType('add');
+      
+      // Refresh all inventory data immediately
+      refreshInventoryData();
+      refreshProductData(product.id);
       onSuccess();
 
     } catch (error) {
