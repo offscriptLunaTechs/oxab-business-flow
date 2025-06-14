@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FileText, Package, Users, TrendingUp, AlertCircle, Clock, CheckCircle, DollarSign } from "lucide-react";
@@ -62,7 +63,7 @@ const Dashboard = () => {
     {
       title: "Today's Invoices",
       value: stats?.todayInvoices || 0,
-      change: stats?.todayInvoices ? "+2 from yesterday" : "No invoices today",
+      change: stats?.todayInvoicesChange || "No data available",
       changeType: (stats?.todayInvoices || 0) > 0 ? "positive" as const : "neutral" as const,
       icon: FileText,
       color: "blue" as const,
@@ -89,8 +90,8 @@ const Dashboard = () => {
     {
       title: "Monthly Revenue",
       value: `KD ${(stats?.monthlyRevenue || 0).toLocaleString()}`,
-      change: "+8.2% from last month",
-      changeType: "positive" as const,
+      change: stats?.monthlyRevenueChange || "No data available",
+      changeType: stats?.monthlyRevenueChangeType || "neutral" as const,
       icon: DollarSign,
       color: "green" as const,
     },
@@ -150,11 +151,11 @@ const Dashboard = () => {
             <CheckCircle className="h-5 w-5 text-green-600" />
             <div className="flex-1">
               <p className="text-sm font-medium text-gray-900">
-                Outstanding invoices report now available
+                Real-time dashboard statistics now active
               </p>
-              <p className="text-xs text-gray-500">Comprehensive aging analysis with payment tracking</p>
+              <p className="text-xs text-gray-500">All trends calculated from actual business data</p>
             </div>
-            <span className="text-sm font-medium text-green-600">New</span>
+            <span className="text-sm font-medium text-green-600">Live</span>
           </div>
           
           <div className="flex items-center space-x-3 p-3 bg-blue-50 rounded-lg">
@@ -197,6 +198,12 @@ const Dashboard = () => {
                   </div>
                 ))}
               </div>
+            </div>
+          )}
+
+          {(!stats?.recentActivity || stats.recentActivity.length === 0) && (
+            <div className="text-center py-4">
+              <p className="text-sm text-gray-500">No recent activity to display</p>
             </div>
           )}
         </div>

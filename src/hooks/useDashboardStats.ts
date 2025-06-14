@@ -4,9 +4,12 @@ import { supabase } from '@/integrations/supabase/client';
 
 export interface DashboardStats {
   todayInvoices: number;
+  todayInvoicesChange: string;
   pendingInvoices: number;
   overdueInvoices: number;
   monthlyRevenue: number;
+  monthlyRevenueChange: string;
+  monthlyRevenueChangeType: 'positive' | 'negative' | 'neutral';
   totalOutstanding: number;
   lowStockCount: number;
   topCustomers: Array<{
@@ -24,9 +27,9 @@ export interface DashboardStats {
 
 export const useDashboardStats = () => {
   return useQuery({
-    queryKey: ['dashboard-stats-optimized'],
+    queryKey: ['dashboard-stats-enhanced'],
     queryFn: async (): Promise<DashboardStats> => {
-      console.log('Fetching optimized dashboard stats...');
+      console.log('Fetching enhanced dashboard stats with real trends...');
       
       const { data, error } = await supabase.rpc('get_dashboard_stats');
       
@@ -35,12 +38,11 @@ export const useDashboardStats = () => {
         throw error;
       }
 
-      console.log('Dashboard stats loaded successfully:', data);
-      // Properly cast the Json type to our expected interface
+      console.log('Enhanced dashboard stats loaded successfully:', data);
       return data as unknown as DashboardStats;
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes (replaces cacheTime)
+    gcTime: 10 * 60 * 1000, // 10 minutes
     refetchOnWindowFocus: false,
     refetchInterval: 5 * 60 * 1000, // Auto-refresh every 5 minutes
     retry: 2,
