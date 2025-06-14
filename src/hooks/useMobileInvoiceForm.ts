@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { addDays } from 'date-fns';
@@ -31,17 +30,79 @@ export const useMobileInvoiceForm = () => {
   const [isFreeOfCharge, setIsFreeOfCharge] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
+  const [topSellingProducts, setTopSellingProducts] = useState<string[]>([]);
 
-  const { data: products = [] } = useProducts(searchTerm);
+  const { data: allProducts = [] } = useProducts(searchTerm);
   const { data: customers = [] } = useCustomers();
   const createInvoice = useCreateInvoice();
 
+  // Fetch top-selling products on component mount
+  useEffect(() => {
+    const fetchTopSellingProducts = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('invoice_items')
+          .select(`
+            product_id,
+            quantity,
+            invoices!inner(date)
+          `)
+          .gte('invoices.date', new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]) // Last 90 days
+          .order('invoices.date', { ascending: false });
+
+        if (error) {
+          console.warn('Could not fetch top-selling products:', error);
+          return;
+        }
+
+        // Group by product_id and sum quantities
+        const productSales = new Map<string, number>();
+        data?.forEach(item => {
+          const current = productSales.get(item.product_id) || 0;
+          productSales.set(item.product_id, current + item.quantity);
+        });
+
+        // Sort by quantity sold and get top 20
+        const sortedProducts = Array.from(productSales.entries())
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 20)
+          .map(([productId]) => productId);
+
+        setTopSellingProducts(sortedProducts);
+      } catch (error) {
+        console.warn('Error fetching top-selling products:', error);
+      }
+    };
+
+    fetchTopSellingProducts();
+  }, []);
+
+  // Sort products to prioritize top-selling items
   const displayProducts = searchTerm ? 
-    products.filter(product =>
+    allProducts.filter(product =>
       product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (product.sku && product.sku.toLowerCase().includes(searchTerm.toLowerCase()))
     ) : 
-    products.slice(0, 6);
+    allProducts
+      .filter(product => product.status === 'active') // Only show active products
+      .sort((a, b) => {
+        // First, prioritize top-selling products
+        const aIndex = topSellingProducts.indexOf(a.id);
+        const bIndex = topSellingProducts.indexOf(b.id);
+        
+        if (aIndex !== -1 && bIndex !== -1) {
+          return aIndex - bIndex; // Both are top-selling, maintain their order
+        }
+        if (aIndex !== -1) return -1; // a is top-selling, b is not
+        if (bIndex !== -1) return 1;  // b is top-selling, a is not
+        
+        // For non-top-selling products, prioritize by stock level and name
+        if (a.stock_level !== b.stock_level) {
+          return (b.stock_level || 0) - (a.stock_level || 0);
+        }
+        return a.name.localeCompare(b.name);
+      })
+      .slice(0, 8); // Show top 8 products when no search
 
   const getCustomerPrice = async (customerId: string, productId: string) => {
     try {

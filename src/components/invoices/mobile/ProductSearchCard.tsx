@@ -3,7 +3,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, Package, Plus } from 'lucide-react';
+import { Search, Package, Plus, TrendingUp } from 'lucide-react';
 import { Product } from '@/types/invoice';
 
 interface ProductSearchCardProps {
@@ -24,7 +24,13 @@ const ProductSearchCard = ({
   return (
     <Card>
       <CardHeader className="pb-3">
-        <CardTitle className="text-lg">Add Products</CardTitle>
+        <CardTitle className="text-lg flex items-center">
+          <TrendingUp className="h-5 w-5 mr-2 text-green-600" />
+          Add Products
+        </CardTitle>
+        {!searchTerm && displayProducts.length > 0 && (
+          <p className="text-sm text-gray-600">Showing top-selling products</p>
+        )}
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Search and Browse */}
@@ -51,14 +57,21 @@ const ProductSearchCard = ({
         {/* Product Results */}
         {displayProducts.length > 0 && (
           <div className="space-y-2 max-h-64 overflow-y-auto">
-            {displayProducts.map((product) => (
+            {displayProducts.map((product, index) => (
               <div
                 key={product.id}
                 className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 cursor-pointer"
                 onClick={() => addProductFromSearch(product)}
               >
                 <div className="flex-1">
-                  <div className="font-medium text-sm">{product.name}</div>
+                  <div className="flex items-center">
+                    <div className="font-medium text-sm">{product.name}</div>
+                    {!searchTerm && index < 3 && (
+                      <span className="ml-2 px-1.5 py-0.5 text-xs bg-green-100 text-green-700 rounded">
+                        Top Seller
+                      </span>
+                    )}
+                  </div>
                   <div className="text-xs text-gray-600">SKU: {product.sku} • Size: {product.size}</div>
                   <div className="text-sm font-medium text-blue-600">KWD {product.base_price.toFixed(3)}</div>
                 </div>
@@ -72,6 +85,10 @@ const ProductSearchCard = ({
 
         {searchTerm && displayProducts.length === 0 && (
           <p className="text-sm text-gray-500 text-center py-4">No products found. Try browsing or different search terms.</p>
+        )}
+
+        {!searchTerm && displayProducts.length === 0 && (
+          <p className="text-sm text-gray-500 text-center py-4">Loading top-selling products...</p>
         )}
       </CardContent>
     </Card>

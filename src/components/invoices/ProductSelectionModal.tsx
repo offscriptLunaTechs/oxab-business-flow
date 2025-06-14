@@ -1,49 +1,109 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Search, Plus, ChevronLeft, ChevronRight, PackageX } from 'lucide-react'; // Added PackageX for empty state
-import { useProducts, ProductWithInventory } from '@/hooks/useProducts'; // Ensure ProductWithInventory is used
-import { Product } from '@/types/invoice';
+import { Search, Plus, ChevronLeft, ChevronRight, PackageX, TrendingUp } from 'lucide-react';
+import { useProducts, ProductWithInventory } from '@/hooks/useProducts';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ProductSelectionModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSelectProduct: (product: ProductWithInventory) => void; // Changed to ProductWithInventory
+  onSelectProduct: (product: ProductWithInventory) => void;
 }
 
 export const ProductSelectionModal = ({ isOpen, onClose, onSelectProduct }: ProductSelectionModalProps) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [currentPage, setCurrentPage] = useState<'oxab' | 'others'>('oxab');
-  // useProducts returns ProductWithInventory[]
-  const { data: allProducts = [], isLoading } = useProducts(searchTerm); 
+  const [currentPage, setCurrentPage] = useState<'popular' | 'oxab' | 'others'>('popular');
+  const [topSellingProducts, setTopSellingProducts] = useState<string[]>([]);
+  
+  const { data: allProducts = [], isLoading } = useProducts(searchTerm);
+
+  // Fetch top-selling products
+  useEffect(() => {
+    const fetchTopSellingProducts = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('invoice_items')
+          .select(`
+            product_id,
+            quantity,
+            invoices!inner(date)
+          `)
+          .gte('invoices.date', new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0])
+          .order('invoices.date', { ascending: false });
+
+        if (error) {
+          console.warn('Could not fetch top-selling products:', error);
+          return;
+        }
+
+        const productSales = new Map<string, number>();
+        data?.forEach(item => {
+          const current = productSales.get(item.product_id) || 0;
+          productSales.set(item.product_id, current + item.quantity);
+        });
+
+        const sortedProducts = Array.from(productSales.entries())
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 15)
+          .map(([productId]) => productId);
+
+        setTopSellingProducts(sortedProducts);
+      } catch (error) {
+        console.warn('Error fetching top-selling products:', error);
+      }
+    };
+
+    if (isOpen) {
+      fetchTopSellingProducts();
+    }
+  }, [isOpen]);
+
+  const popularProducts = allProducts
+    .filter(product => topSellingProducts.includes(product.id) && product.status === 'active')
+    .sort((a, b) => {
+      const aIndex = topSellingProducts.indexOf(a.id);
+      const bIndex = topSellingProducts.indexOf(b.id);
+      return aIndex - bIndex;
+    });
 
   const oxabProducts = allProducts.filter(product => 
-    product.name.toLowerCase().includes('oxab') || 
-    (product.sku && product.sku.toLowerCase().includes('oxab'))
+    product.status === 'active' && (
+      product.name.toLowerCase().includes('oxab') || 
+      (product.sku && product.sku.toLowerCase().includes('oxab'))
+    )
   );
   
   const otherProducts = allProducts.filter(product => 
+    product.status === 'active' &&
     !product.name.toLowerCase().includes('oxab') && 
     (!product.sku || !product.sku.toLowerCase().includes('oxab'))
   );
 
-  const currentProducts = currentPage === 'oxab' ? oxabProducts : otherProducts;
+  const getCurrentProducts = () => {
+    switch (currentPage) {
+      case 'popular': return popularProducts;
+      case 'oxab': return oxabProducts;
+      case 'others': return otherProducts;
+      default: return popularProducts;
+    }
+  };
 
-  const handleProductSelect = (product: ProductWithInventory) => { // Changed to ProductWithInventory
+  const currentProducts = getCurrentProducts();
+
+  const handleProductSelect = (product: ProductWithInventory) => {
     onSelectProduct(product);
-    // onClose(); // Removed, selection should not auto-close, user might want to add multiple
-    // setSearchTerm(''); // Keep search term if user wants to refine
-    // setCurrentPage('oxab'); // Don't reset page, user might be browsing 'others'
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => {
       if (!open) {
         onClose();
-        setSearchTerm(''); // Clear search on close
-        setCurrentPage('oxab'); // Reset page on close
+        setSearchTerm('');
+        setCurrentPage('popular');
       }
     }}>
       <DialogContent className="max-w-md md:max-w-2xl lg:max-w-4xl max-h-[90vh] w-[95vw] sm:w-full flex flex-col">
@@ -66,6 +126,15 @@ export const ProductSelectionModal = ({ isOpen, onClose, onSelectProduct }: Prod
           {/* Page Navigation */}
           <div className="flex space-x-1 sm:space-x-2 border-b pb-2">
             <Button
+              variant={currentPage === 'popular' ? 'default' : 'ghost'}
+              onClick={() => setCurrentPage('popular')}
+              className="flex-grow sm:flex-grow-0 justify-center text-xs sm:text-sm px-2 py-1.5 h-auto sm:px-3"
+            >
+              <TrendingUp className="h-3 w-3 mr-1" />
+              <span>Popular</span>
+              <Badge variant="secondary" className="ml-1.5 text-xs px-1.5 py-0.5">{popularProducts.length}</Badge>
+            </Button>
+            <Button
               variant={currentPage === 'oxab' ? 'default' : 'ghost'}
               onClick={() => setCurrentPage('oxab')}
               className="flex-grow sm:flex-grow-0 justify-center text-xs sm:text-sm px-2 py-1.5 h-auto sm:px-3"
@@ -86,16 +155,23 @@ export const ProductSelectionModal = ({ isOpen, onClose, onSelectProduct }: Prod
           {/* Products Grid */}
           {isLoading && <p className="text-center py-8 text-gray-500">Loading products...</p>}
           {!isLoading && currentProducts.length > 0 && (
-            <div className="flex-grow overflow-y-auto pb-4 pr-1 -mr-1"> {/* Added pr and -mr for scrollbar */}
+            <div className="flex-grow overflow-y-auto pb-4 pr-1 -mr-1">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {currentProducts.map((product) => (
+                {currentProducts.map((product, index) => (
                   <div
                     key={product.id}
                     className="border rounded-lg p-3 hover:shadow-lg transition-shadow cursor-pointer flex flex-col justify-between bg-white"
                     onClick={() => handleProductSelect(product)}
                   >
                     <div className="space-y-1 mb-2">
-                      <h4 className="font-semibold text-sm leading-tight">{product.name}</h4>
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-semibold text-sm leading-tight flex-1">{product.name}</h4>
+                        {currentPage === 'popular' && index < 3 && (
+                          <Badge variant="outline" className="text-xs ml-2 bg-green-50 text-green-700 border-green-200">
+                            #{index + 1}
+                          </Badge>
+                        )}
+                      </div>
                       <div className="text-xs text-gray-500 space-y-0.5">
                         <p><span className="font-medium">SKU:</span> {product.sku || 'N/A'}</p>
                         <p><span className="font-medium">Size:</span> {product.size || 'N/A'}</p>
@@ -133,7 +209,7 @@ export const ProductSelectionModal = ({ isOpen, onClose, onSelectProduct }: Prod
             <div className="flex-grow flex flex-col items-center justify-center text-center py-8 text-gray-500">
               <PackageX className="h-12 w-12 mb-3 text-gray-400" />
               <p className="font-medium">
-                {searchTerm ? 'No products match your search.' : `No ${currentPage === 'oxab' ? 'OXAB' : 'other'} products.`}
+                {searchTerm ? 'No products match your search.' : `No ${currentPage} products available.`}
               </p>
               {searchTerm && <p className="text-xs">Try a different search term or clear the search.</p>}
             </div>
@@ -143,27 +219,23 @@ export const ProductSelectionModal = ({ isOpen, onClose, onSelectProduct }: Prod
           <div className="flex justify-between items-center pt-4 border-t mt-auto">
              <Button
               variant="ghost"
-              onClick={() => setCurrentPage(currentPage === 'oxab' ? 'others' : 'oxab')}
+              onClick={() => {
+                const pages = ['popular', 'oxab', 'others'] as const;
+                const currentIndex = pages.indexOf(currentPage);
+                const nextIndex = (currentIndex + 1) % pages.length;
+                setCurrentPage(pages[nextIndex]);
+              }}
               className="flex items-center space-x-2 text-sm"
-              disabled={isLoading || (currentPage === 'oxab' && otherProducts.length === 0) || (currentPage === 'others' && oxabProducts.length === 0)}
+              disabled={isLoading}
             >
-              {currentPage === 'oxab' ? (
-                <>
-                  <span>View Others</span>
-                  <ChevronRight className="h-4 w-4" />
-                </>
-              ) : (
-                <>
-                  <ChevronLeft className="h-4 w-4" />
-                  <span>View OXAB</span>
-                </>
-              )}
+              <span>Next Category</span>
+              <ChevronRight className="h-4 w-4" />
             </Button>
             
             <Button variant="outline" onClick={() => {
                 onClose();
                 setSearchTerm(''); 
-                setCurrentPage('oxab');
+                setCurrentPage('popular');
             }} className="text-sm">
               Done
             </Button>
