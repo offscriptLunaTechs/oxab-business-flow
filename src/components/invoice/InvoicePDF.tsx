@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 import { InvoiceWithDetails } from '@/types/invoice';
@@ -69,7 +68,6 @@ const styles = StyleSheet.create({
     color: '#555555',
   },
   table: {
-    display: 'table',
     width: 'auto',
     borderStyle: 'solid',
     borderWidth: 1,
