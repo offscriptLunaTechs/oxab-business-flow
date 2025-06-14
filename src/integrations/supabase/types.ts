@@ -345,6 +345,9 @@ export type Database = {
           custom_message: string | null
           department: string | null
           email: string
+          email_error: string | null
+          email_sent_at: string | null
+          email_status: string | null
           expires_at: string
           id: string
           invited_by: string | null
@@ -359,6 +362,9 @@ export type Database = {
           custom_message?: string | null
           department?: string | null
           email: string
+          email_error?: string | null
+          email_sent_at?: string | null
+          email_status?: string | null
           expires_at?: string
           id?: string
           invited_by?: string | null
@@ -373,6 +379,9 @@ export type Database = {
           custom_message?: string | null
           department?: string | null
           email?: string
+          email_error?: string | null
+          email_sent_at?: string | null
+          email_status?: string | null
           expires_at?: string
           id?: string
           invited_by?: string | null

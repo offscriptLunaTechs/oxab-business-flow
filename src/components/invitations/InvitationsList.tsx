@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/table';
 import { useInvitations, useCancelInvitation, useResendInvitation } from '@/hooks/useInvitations';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
-import { Mail, Clock, CheckCircle, XCircle, RotateCcw, X } from 'lucide-react';
+import { Mail, Clock, CheckCircle, XCircle, RotateCcw, X, AlertTriangle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 export const InvitationsList = () => {
@@ -40,8 +40,25 @@ export const InvitationsList = () => {
     }
   };
 
-  const getStatusIcon = (status: string, expiresAt: string) => {
+  const getEmailStatusBadge = (emailStatus?: string) => {
+    switch (emailStatus) {
+      case 'sent':
+        return <Badge variant="default" className="bg-green-100 text-green-800">Email Sent</Badge>;
+      case 'failed':
+        return <Badge variant="destructive">Email Failed</Badge>;
+      case 'pending':
+        return <Badge variant="secondary">Email Pending</Badge>;
+      default:
+        return <Badge variant="outline">No Email</Badge>;
+    }
+  };
+
+  const getStatusIcon = (status: string, expiresAt: string, emailStatus?: string) => {
     const isExpired = new Date(expiresAt) < new Date();
+    
+    if (emailStatus === 'failed') {
+      return <AlertTriangle className="h-4 w-4 text-red-500" />;
+    }
     
     if (status === 'pending' && isExpired) {
       return <Clock className="h-4 w-4 text-orange-500" />;
@@ -117,6 +134,7 @@ export const InvitationsList = () => {
                   <TableHead>Role</TableHead>
                   <TableHead>Department</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Email Status</TableHead>
                   <TableHead>Expires</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -124,19 +142,24 @@ export const InvitationsList = () => {
               <TableBody>
                 {invitations.map((invitation) => {
                   const isExpired = new Date(invitation.expires_at) < new Date();
-                  const canResend = invitation.status === 'pending' && isExpired;
+                  const canResend = (invitation.status === 'pending' && isExpired) || invitation.email_status === 'failed';
                   const canCancel = invitation.status === 'pending';
                   
                   return (
                     <TableRow key={invitation.id}>
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          {getStatusIcon(invitation.status, invitation.expires_at)}
+                          {getStatusIcon(invitation.status, invitation.expires_at, invitation.email_status)}
                           <div>
                             <p className="font-medium">{invitation.email}</p>
                             <p className="text-sm text-gray-500">
                               Invited {new Date(invitation.created_at).toLocaleDateString()}
                             </p>
+                            {invitation.email_sent_at && (
+                              <p className="text-xs text-gray-400">
+                                Email: {new Date(invitation.email_sent_at).toLocaleDateString()}
+                              </p>
+                            )}
                           </div>
                         </div>
                       </TableCell>
@@ -154,6 +177,16 @@ export const InvitationsList = () => {
                         {getStatusBadge(invitation.status, invitation.expires_at)}
                       </TableCell>
                       <TableCell>
+                        <div className="flex flex-col gap-1">
+                          {getEmailStatusBadge(invitation.email_status)}
+                          {invitation.email_error && (
+                            <p className="text-xs text-red-600" title={invitation.email_error}>
+                              Error: {invitation.email_error.substring(0, 30)}...
+                            </p>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
                         <span className="text-sm text-gray-600">
                           {new Date(invitation.expires_at).toLocaleDateString()}
                         </span>
@@ -166,7 +199,7 @@ export const InvitationsList = () => {
                               size="sm"
                               onClick={() => handleResend(invitation.id)}
                               disabled={resendInvitation.isPending}
-                              title="Resend invitation"
+                              title={invitation.email_status === 'failed' ? "Retry sending email" : "Resend invitation"}
                             >
                               <RotateCcw className="h-4 w-4" />
                             </Button>

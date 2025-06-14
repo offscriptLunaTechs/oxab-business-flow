@@ -16,6 +16,9 @@ export interface Invitation {
   created_at: string;
   updated_at: string;
   custom_message?: string;
+  email_sent_at?: string;
+  email_status?: 'pending' | 'sent' | 'failed';
+  email_error?: string;
 }
 
 export interface CreateInvitationParams {
@@ -45,26 +48,60 @@ export const useCreateInvitation = () => {
 
   return useMutation({
     mutationFn: async (params: CreateInvitationParams) => {
-      const { data, error } = await supabase
+      console.log('Creating invitation for:', params.email);
+      
+      // First create the invitation record
+      const { data: invitation, error } = await supabase
         .from('invitations')
         .insert({
           email: params.email,
           role: params.role,
           department: params.department,
           custom_message: params.customMessage,
-          invited_by: (await supabase.auth.getUser()).data.user?.id
+          invited_by: (await supabase.auth.getUser()).data.user?.id,
+          email_status: 'pending'
         })
         .select()
         .single();
 
-      if (error) throw error;
-      return data;
+      if (error) {
+        console.error('Failed to create invitation:', error);
+        throw error;
+      }
+
+      console.log('Invitation created, sending email...');
+
+      // Then send the invitation email
+      try {
+        const { data: emailResult, error: emailError } = await supabase.functions.invoke('send-invitation-email', {
+          body: { invitationId: invitation.id }
+        });
+
+        if (emailError) {
+          console.error('Email function error:', emailError);
+          throw new Error(`Failed to send invitation email: ${emailError.message}`);
+        }
+
+        if (!emailResult?.success) {
+          throw new Error(emailResult?.error || 'Failed to send invitation email');
+        }
+
+        console.log('Invitation email sent successfully');
+        return invitation;
+      } catch (emailError) {
+        console.error('Error sending invitation email:', emailError);
+        // Don't throw here - invitation was created successfully
+        // The email status will be marked as failed in the database
+        toast.warning('Invitation created but email sending failed. You can resend it later.');
+        return invitation;
+      }
     },
     onSuccess: () => {
       toast.success('Invitation sent successfully');
       queryClient.invalidateQueries({ queryKey: ['invitations'] });
     },
     onError: (error: any) => {
+      console.error('Invitation creation error:', error);
       toast.error('Failed to send invitation: ' + error.message);
     }
   });
@@ -97,21 +134,41 @@ export const useResendInvitation = () => {
 
   return useMutation({
     mutationFn: async (invitationId: string) => {
-      const { error } = await supabase
+      console.log('Resending invitation:', invitationId);
+      
+      // Update expiry date first
+      const { error: updateError } = await supabase
         .from('invitations')
         .update({ 
           expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
+          email_status: 'pending'
         })
         .eq('id', invitationId);
 
-      if (error) throw error;
+      if (updateError) throw updateError;
+
+      // Send the email
+      const { data: emailResult, error: emailError } = await supabase.functions.invoke('send-invitation-email', {
+        body: { invitationId }
+      });
+
+      if (emailError) {
+        throw new Error(`Failed to resend invitation email: ${emailError.message}`);
+      }
+
+      if (!emailResult?.success) {
+        throw new Error(emailResult?.error || 'Failed to resend invitation email');
+      }
+
+      return emailResult;
     },
     onSuccess: () => {
       toast.success('Invitation resent successfully');
       queryClient.invalidateQueries({ queryKey: ['invitations'] });
     },
     onError: (error: any) => {
+      console.error('Resend invitation error:', error);
       toast.error('Failed to resend invitation: ' + error.message);
     }
   });
