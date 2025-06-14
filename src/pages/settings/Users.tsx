@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/context/AuthContext";
@@ -41,6 +40,8 @@ import { Label } from "@/components/ui/label";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { UserPlus, Mail, UserCog, Shield, AlertCircle, RotateCcw } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { InviteUserDialog } from "@/components/invitations/InviteUserDialog";
+import { InvitationsList } from "@/components/invitations/InvitationsList";
 
 interface UserWithRole {
   id: string;
@@ -260,6 +261,7 @@ const Users = () => {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserWithRole | null>(null);
+  const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   
   const { user: currentUser, userRole } = useAuth();
   const { resetPassword, isResettingPassword } = useAdminUserManagement();
@@ -464,21 +466,43 @@ const Users = () => {
   }
 
   return (
-    <>
+    <div className="space-y-6">
+      {/* Invitations Section */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <Mail className="h-5 w-5" />
+              Invite Users
+            </CardTitle>
+            <CardDescription>
+              Send invitations to new users to join the system
+            </CardDescription>
+          </div>
+          <Button onClick={() => setInviteDialogOpen(true)}>
+            <Mail className="mr-2 h-4 w-4" />
+            Send Invitation
+          </Button>
+        </CardHeader>
+      </Card>
+
+      <InvitationsList />
+
+      {/* Existing Users Section */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
             <CardTitle className="flex items-center gap-2">
               <Shield className="h-5 w-5" />
-              User Management
+              Registered Users
             </CardTitle>
             <CardDescription>
-              Create and manage user accounts and permissions
+              Manage existing user accounts and permissions
             </CardDescription>
           </div>
-          <Button onClick={() => setCreateDialogOpen(true)}>
+          <Button onClick={() => setCreateDialogOpen(true)} variant="outline">
             <UserPlus className="mr-2 h-4 w-4" />
-            Create User
+            Create User (Legacy)
           </Button>
         </CardHeader>
         <CardContent>
@@ -551,6 +575,11 @@ const Users = () => {
         </CardContent>
       </Card>
 
+      <InviteUserDialog
+        open={inviteDialogOpen}
+        onOpenChange={setInviteDialogOpen}
+      />
+
       <CreateUserDialog
         open={createDialogOpen}
         onOpenChange={setCreateDialogOpen}
@@ -562,7 +591,7 @@ const Users = () => {
         user={selectedUser}
         onUpdate={handleUpdateUser}
       />
-    </>
+    </div>
   );
 };
 

@@ -6,6 +6,9 @@ import StatsCard from "@/components/dashboard/StatsCard";
 import { useDashboardStats } from "@/hooks/useDashboardStats";
 import { usePaymentDataSync } from "@/hooks/usePaymentDataSync";
 import { DashboardSkeleton } from "@/components/ui/skeletons";
+import { useAuth } from "@/hooks/useAuth";
+import { useInvitations } from "@/hooks/useInvitations";
+
 const Dashboard = () => {
   const navigate = useNavigate();
   const {
@@ -16,6 +19,12 @@ const Dashboard = () => {
 
   // Ensure payment data is synchronized
   usePaymentDataSync();
+  
+  // Get invitations data for admin users
+  const { user, userRole } = useAuth();
+  const { data: invitations = [] } = useInvitations();
+  const pendingInvitations = invitations.filter(inv => inv.status === 'pending').length;
+
   const quickActions = [{
     title: "Create Invoice",
     description: "Generate a new invoice for customers quickly and easily",
@@ -42,6 +51,19 @@ const Dashboard = () => {
     color: "orange" as const,
     onClick: () => navigate("/reports/outstanding-invoices")
   }];
+
+  // Add invitation management for admins
+  if (userRole === 'admin') {
+    quickActions.push({
+      title: "User Management",
+      description: "Invite new users and manage existing accounts",
+      icon: Users,
+      color: "purple" as const,
+      onClick: () => navigate("/settings/users"),
+      badge: pendingInvitations > 0 ? `${pendingInvitations} pending` : undefined
+    });
+  }
+
   if (isLoading) {
     return <DashboardSkeleton />;
   }
