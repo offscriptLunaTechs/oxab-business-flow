@@ -115,13 +115,14 @@ serve(async (req) => {
 
     console.log('User created successfully, provisioning profile and role:', newUser.user.id);
 
-    // Now provision the profile and role using our SQL function
+    // Now provision the profile and role using our SQL function with service parameter
     const { data: provisionResult, error: provisionError } = await supabaseAdmin
       .rpc('admin_provision_profile_and_role', {
         p_auth_user_id: newUser.user.id,
         p_full_name: fullName,
         p_role: role,
         p_department: department || null,
+        p_called_by_service: true, // This is the key fix - tell the function this is a service call
       });
 
     if (provisionError) {
