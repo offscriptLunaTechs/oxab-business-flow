@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -211,7 +210,7 @@ const MobileInvoiceForm = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
+    <div className="min-h-screen bg-gray-50">
       {/* Sticky Header */}
       <div className="sticky top-0 z-10 bg-white border-b shadow-sm">
         <div className="flex items-center justify-between p-4">
@@ -229,7 +228,8 @@ const MobileInvoiceForm = () => {
         </div>
       </div>
 
-      <div className="p-4 space-y-6">
+      {/* Main Content with proper bottom padding for fixed button */}
+      <div className="p-4 space-y-6 pb-24">
         {/* Customer Selection */}
         <Card>
           <CardHeader className="pb-3">
@@ -465,8 +465,8 @@ const MobileInvoiceForm = () => {
         </Card>
       </div>
 
-      {/* Fixed Bottom Submit Button */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t shadow-lg">
+      {/* Fixed Bottom Submit Button - This should always be visible */}
+      <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t shadow-lg z-20">
         <Button
           onClick={handleSubmit}
           disabled={createInvoice.isPending || !customerId || items.length === 0}
