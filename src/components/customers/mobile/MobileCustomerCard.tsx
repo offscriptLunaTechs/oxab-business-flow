@@ -3,15 +3,16 @@ import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Edit, Phone, Mail, MapPin } from 'lucide-react';
+import { Edit, Phone, Mail, MapPin, DollarSign } from 'lucide-react';
 import { Customer } from '@/types';
 
 interface MobileCustomerCardProps {
   customer: Customer;
   onEdit: (customer: Customer) => void;
+  onPricing: (customer: Customer) => void;
 }
 
-export const MobileCustomerCard = ({ customer, onEdit }: MobileCustomerCardProps) => {
+export const MobileCustomerCard = ({ customer, onEdit, onPricing }: MobileCustomerCardProps) => {
   return (
     <Card className="mb-3 mx-4">
       <CardContent className="p-4">
@@ -30,18 +31,10 @@ export const MobileCustomerCard = ({ customer, onEdit }: MobileCustomerCardProps
             >
               {customer.customer_type}
             </Badge>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onEdit(customer)}
-              className="h-8 w-8 p-0"
-            >
-              <Edit className="h-4 w-4" />
-            </Button>
           </div>
         </div>
         
-        <div className="space-y-2">
+        <div className="space-y-2 mb-4">
           {customer.email && (
             <div className="flex items-center gap-2 text-sm text-gray-600">
               <Mail className="h-4 w-4 text-gray-400" />
@@ -62,6 +55,27 @@ export const MobileCustomerCard = ({ customer, onEdit }: MobileCustomerCardProps
               <span className="truncate">{customer.address}</span>
             </div>
           )}
+        </div>
+
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onPricing(customer)}
+            className="flex-1"
+          >
+            <DollarSign className="h-4 w-4 mr-1" />
+            Pricing
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onEdit(customer)}
+            className="flex-1"
+          >
+            <Edit className="h-4 w-4 mr-1" />
+            Edit
+          </Button>
         </div>
       </CardContent>
     </Card>

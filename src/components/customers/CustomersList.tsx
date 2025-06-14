@@ -3,10 +3,11 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Plus, Search, Edit } from 'lucide-react';
+import { Plus, Search, Edit, DollarSign } from 'lucide-react';
 import { useCustomers } from '@/hooks/useCustomers';
 import { CustomerForm } from './CustomerForm';
 import { EditCustomerDialog } from './EditCustomerDialog';
+import { CustomerPricingDialog } from './CustomerPricingDialog';
 import { Customer } from '@/types';
 
 export const CustomersList = () => {
@@ -14,11 +15,18 @@ export const CustomersList = () => {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [pricingCustomer, setPricingCustomer] = useState<Customer | null>(null);
+  const [isPricingDialogOpen, setIsPricingDialogOpen] = useState(false);
   const { data: customers = [], refetch } = useCustomers(searchTerm);
 
   const handleEditCustomer = (customer: Customer) => {
     setEditingCustomer(customer);
     setIsEditDialogOpen(true);
+  };
+
+  const handlePricingCustomer = (customer: Customer) => {
+    setPricingCustomer(customer);
+    setIsPricingDialogOpen(true);
   };
 
   const handleSuccess = () => {
@@ -73,7 +81,16 @@ export const CustomersList = () => {
                     <Button
                       variant="ghost"
                       size="sm"
+                      onClick={() => handlePricingCustomer(customer)}
+                      title="Manage Pricing"
+                    >
+                      <DollarSign className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       onClick={() => handleEditCustomer(customer)}
+                      title="Edit Customer"
                     >
                       <Edit className="h-4 w-4" />
                     </Button>
@@ -107,6 +124,12 @@ export const CustomersList = () => {
           refetch();
           setIsEditDialogOpen(false);
         }}
+      />
+
+      <CustomerPricingDialog
+        customer={pricingCustomer}
+        open={isPricingDialogOpen}
+        onOpenChange={setIsPricingDialogOpen}
       />
     </div>
   );

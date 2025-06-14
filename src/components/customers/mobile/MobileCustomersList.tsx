@@ -5,14 +5,16 @@ import { useCustomers } from '@/hooks/useCustomers';
 import { MobileCustomerCard } from './MobileCustomerCard';
 import { MobileCustomerHeader } from './MobileCustomerHeader';
 import { EditCustomerDialog } from '../EditCustomerDialog';
+import { CustomerPricingDialog } from '../CustomerPricingDialog';
 import { CustomerForm } from '../CustomerForm';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 export const MobileCustomersList = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [pricingCustomer, setPricingCustomer] = useState<Customer | null>(null);
+  const [isPricingDialogOpen, setIsPricingDialogOpen] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
 
   const { data: customers = [], isLoading, refetch } = useCustomers(searchTerm);
@@ -20,6 +22,11 @@ export const MobileCustomersList = () => {
   const handleEditCustomer = (customer: Customer) => {
     setEditingCustomer(customer);
     setIsEditDialogOpen(true);
+  };
+
+  const handlePricingCustomer = (customer: Customer) => {
+    setPricingCustomer(customer);
+    setIsPricingDialogOpen(true);
   };
 
   const handleSuccess = () => {
@@ -54,6 +61,7 @@ export const MobileCustomersList = () => {
               key={customer.id}
               customer={customer}
               onEdit={handleEditCustomer}
+              onPricing={handlePricingCustomer}
             />
           ))
         )}
@@ -83,6 +91,13 @@ export const MobileCustomersList = () => {
           refetch();
           setIsEditDialogOpen(false);
         }}
+      />
+
+      {/* Customer Pricing Dialog */}
+      <CustomerPricingDialog
+        customer={pricingCustomer}
+        open={isPricingDialogOpen}
+        onOpenChange={setIsPricingDialogOpen}
       />
     </div>
   );
