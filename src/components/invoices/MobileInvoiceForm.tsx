@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { useMobileInvoiceForm } from '@/hooks/useMobileInvoiceForm';
@@ -100,7 +99,7 @@ const MobileInvoiceForm = () => {
         />
       </div>
 
-      {/* Fixed/Sticky Bottom Submit Button - now extremely robust */}
+      {/* Fixed/Sticky Bottom Submit Button - cleaned up styling */}
       <div
         className={`
           md:fixed md:bottom-0 md:left-0 md:right-0
@@ -119,10 +118,7 @@ const MobileInvoiceForm = () => {
           bottom: 0,
           // Add fallback for older browsers:
           paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 1rem)',
-          border: '2px solid #dc2626',        // TEMP debug: thick red border
-          background: '#fff1f1',               // TEMP debug: pale red background
         }}
-        data-debug="Button should be always visible"
       >
         <Button
           onClick={handleSubmit}
