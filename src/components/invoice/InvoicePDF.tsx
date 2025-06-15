@@ -199,10 +199,7 @@ interface InvoicePDFProps {
 const InvoicePDF: React.FC<InvoicePDFProps> = ({ invoice }) => {
   const formatCurrency = (amount: number | null | undefined): string => {
     if (typeof amount !== 'number' || isNaN(amount)) return 'N/A';
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD', // Consider making this dynamic if needed
-    }).format(amount);
+    return `KWD ${amount.toFixed(3)}`;
   };
 
   const formatDate = (dateString: string | Date | undefined): string => {
