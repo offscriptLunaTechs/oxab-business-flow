@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { useMobileInvoiceForm } from '@/hooks/useMobileInvoiceForm';
@@ -46,6 +47,7 @@ const MobileInvoiceForm = () => {
     updateItemPrice,
     removeItem,
     handleSubmit,
+    isAddingItem,
 
     // Navigation
     navigate
@@ -69,6 +71,7 @@ const MobileInvoiceForm = () => {
           displayProducts={displayProducts}
           addProductFromSearch={addProductFromSearch}
           setIsProductModalOpen={setIsProductModalOpen}
+          isAddingItem={isAddingItem}
         />
 
         <SelectedItemsCard

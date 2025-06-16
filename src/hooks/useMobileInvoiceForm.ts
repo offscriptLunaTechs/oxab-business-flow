@@ -71,6 +71,7 @@ export const useMobileInvoiceForm = () => {
     
     // Items management
     items: invoiceItems.items,
+    isAddingItem: invoiceItems.isAddingItem,
     
     // Computed values
     subtotal,

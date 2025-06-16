@@ -1,9 +1,9 @@
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, Package, Plus, TrendingUp } from 'lucide-react';
+import { Search, Package, Plus, TrendingUp, Check } from 'lucide-react';
 import { Product } from '@/types/invoice';
 
 interface ProductSearchCardProps {
@@ -12,6 +12,7 @@ interface ProductSearchCardProps {
   displayProducts: Product[];
   addProductFromSearch: (product: Product) => void;
   setIsProductModalOpen: (value: boolean) => void;
+  isAddingItem?: boolean;
 }
 
 const ProductSearchCard = ({
@@ -19,13 +20,39 @@ const ProductSearchCard = ({
   setSearchTerm,
   displayProducts,
   addProductFromSearch,
-  setIsProductModalOpen
+  setIsProductModalOpen,
+  isAddingItem = false
 }: ProductSearchCardProps) => {
+  const [addedProducts, setAddedProducts] = useState<Set<string>>(new Set());
+
   const handleProductClick = useCallback(async (product: Product) => {
-    // Add product and clear search immediately to prevent UI glitches
-    await addProductFromSearch(product);
-    setSearchTerm('');
-  }, [addProductFromSearch, setSearchTerm]);
+    if (isAddingItem || addedProducts.has(product.id)) return;
+    
+    // Show immediate feedback
+    setAddedProducts(prev => new Set(prev).add(product.id));
+    
+    try {
+      await addProductFromSearch(product);
+      // Clear search after successful add
+      setSearchTerm('');
+      
+      // Remove from added products after a delay to show feedback
+      setTimeout(() => {
+        setAddedProducts(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(product.id);
+          return newSet;
+        });
+      }, 2000);
+    } catch (error) {
+      // Remove from added products on error
+      setAddedProducts(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(product.id);
+        return newSet;
+      });
+    }
+  }, [addProductFromSearch, setSearchTerm, isAddingItem, addedProducts]);
 
   return (
     <Card>
@@ -48,12 +75,14 @@ const ProductSearchCard = ({
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10 h-12 text-base"
+              disabled={isAddingItem}
             />
           </div>
           <Button 
             variant="outline" 
             onClick={() => setIsProductModalOpen(true)} 
             className="h-12 px-4"
+            disabled={isAddingItem}
           >
             <Package className="h-5 w-5 mr-2" /> 
             Browse
@@ -63,29 +92,49 @@ const ProductSearchCard = ({
         {/* Product Results */}
         {displayProducts.length > 0 && (
           <div className="space-y-2 max-h-64 overflow-y-auto">
-            {displayProducts.map((product, index) => (
-              <div
-                key={`${product.id}-${index}`}
-                className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors duration-150"
-                onClick={() => handleProductClick(product)}
-              >
-                <div className="flex-1">
-                  <div className="flex items-center">
-                    <div className="font-medium text-sm">{product.name}</div>
-                    {!searchTerm && index < 3 && (
-                      <span className="ml-2 px-1.5 py-0.5 text-xs bg-green-100 text-green-700 rounded">
-                        Top Seller
-                      </span>
-                    )}
+            {displayProducts.map((product, index) => {
+              const isAdded = addedProducts.has(product.id);
+              const isDisabled = isAddingItem || isAdded;
+              
+              return (
+                <div
+                  key={`${product.id}-${index}`}
+                  className={`flex items-center justify-between p-3 border rounded-lg transition-all duration-200 ${
+                    isDisabled 
+                      ? 'opacity-60 cursor-not-allowed bg-gray-50' 
+                      : 'hover:bg-gray-50 cursor-pointer'
+                  } ${isAdded ? 'border-green-300 bg-green-50' : ''}`}
+                  onClick={() => !isDisabled && handleProductClick(product)}
+                >
+                  <div className="flex-1">
+                    <div className="flex items-center">
+                      <div className="font-medium text-sm">{product.name}</div>
+                      {!searchTerm && index < 3 && (
+                        <span className="ml-2 px-1.5 py-0.5 text-xs bg-green-100 text-green-700 rounded">
+                          Top Seller
+                        </span>
+                      )}
+                      {isAdded && (
+                        <span className="ml-2 px-1.5 py-0.5 text-xs bg-green-100 text-green-700 rounded flex items-center">
+                          <Check className="h-3 w-3 mr-1" />
+                          Added
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-xs text-gray-600">SKU: {product.sku} • Size: {product.size}</div>
+                    <div className="text-sm font-medium text-blue-600">KWD {product.base_price.toFixed(3)}</div>
                   </div>
-                  <div className="text-xs text-gray-600">SKU: {product.sku} • Size: {product.size}</div>
-                  <div className="text-sm font-medium text-blue-600">KWD {product.base_price.toFixed(3)}</div>
+                  <Button 
+                    size="sm" 
+                    variant="ghost" 
+                    className={`p-2 ${isAdded ? 'text-green-600' : ''}`}
+                    disabled={isDisabled}
+                  >
+                    {isAdded ? <Check className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                  </Button>
                 </div>
-                <Button size="sm" variant="ghost" className="p-2">
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
 

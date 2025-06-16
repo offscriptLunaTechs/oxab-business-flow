@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { DatePicker } from '@/components/ui/date-picker';
-import { Plus, Trash2, Search } from 'lucide-react';
+import { Plus, Trash2, Search, Loader2 } from 'lucide-react';
 import { useCustomers } from '@/hooks/useCustomers';
 import { useCreateInvoice } from '@/hooks/useInvoices';
 import { ProductSelectionModal } from '@/components/invoices/ProductSelectionModal';
@@ -159,8 +159,13 @@ const CreateInvoice = () => {
                 size="sm" 
                 onClick={() => formState.setIsProductModalOpen(true)}
                 className="flex items-center space-x-2"
+                disabled={invoiceItems.isAddingItem}
               >
-                <Search className="h-4 w-4" />
+                {invoiceItems.isAddingItem ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Search className="h-4 w-4" />
+                )}
                 <span>Browse Products</span>
               </Button>
             </div>
@@ -172,6 +177,7 @@ const CreateInvoice = () => {
                   type="button" 
                   variant="outline" 
                   onClick={() => formState.setIsProductModalOpen(true)}
+                  disabled={invoiceItems.isAddingItem}
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   Add First Item
@@ -180,10 +186,22 @@ const CreateInvoice = () => {
             ) : (
               <div className="space-y-2">
                 {invoiceItems.items.map((item, index) => (
-                  <div key={index} className="grid grid-cols-12 gap-4 py-3 px-4 border rounded-lg bg-gray-50">
+                  <div 
+                    key={`${item.product_id}-${index}`} 
+                    className={`grid grid-cols-12 gap-4 py-3 px-4 border rounded-lg transition-all duration-200 ${
+                      item.isOptimistic 
+                        ? 'bg-blue-50 border-blue-200 animate-pulse' 
+                        : 'bg-gray-50'
+                    }`}
+                  >
                     <div className="col-span-5">
                       <div className="space-y-1">
-                        <p className="font-medium text-sm">{item.product_name}</p>
+                        <div className="flex items-center">
+                          <p className="font-medium text-sm">{item.product_name}</p>
+                          {item.isOptimistic && (
+                            <Loader2 className="h-3 w-3 ml-2 animate-spin text-blue-500" />
+                          )}
+                        </div>
                         <p className="text-xs text-gray-600">SKU: {item.product_sku}</p>
                         <p className="text-xs text-gray-600">Size: {item.product_size}</p>
                       </div>
@@ -197,6 +215,7 @@ const CreateInvoice = () => {
                         onChange={(e) => updateItem(index, 'quantity', e.target.value)}
                         className="h-8"
                         min="1"
+                        disabled={item.isOptimistic}
                       />
                     </div>
 
@@ -207,7 +226,8 @@ const CreateInvoice = () => {
                         value={item.price}
                         onChange={(e) => updateItem(index, 'price', e.target.value)}
                         className="h-8"
-                        step="0.01"
+                        step="0.001"
+                        disabled={item.isOptimistic}
                       />
                     </div>
 
@@ -215,9 +235,9 @@ const CreateInvoice = () => {
                       <Label className="text-xs">Total</Label>
                       <Input
                         type="number"
-                        value={item.total.toFixed(2)}
+                        value={item.total.toFixed(3)}
                         readOnly
-                        className="h-8 bg-gray-100"
+                        className={`h-8 ${item.isOptimistic ? 'bg-blue-50' : 'bg-gray-100'}`}
                       />
                     </div>
 
@@ -228,6 +248,7 @@ const CreateInvoice = () => {
                         size="sm" 
                         onClick={() => removeItem(index)}
                         className="h-8 w-8 p-0"
+                        disabled={item.isOptimistic}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -241,8 +262,13 @@ const CreateInvoice = () => {
                   size="sm" 
                   onClick={() => formState.setIsProductModalOpen(true)}
                   className="w-full mt-4"
+                  disabled={invoiceItems.isAddingItem}
                 >
-                  <Plus className="h-4 w-4 mr-2" />
+                  {invoiceItems.isAddingItem ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Plus className="h-4 w-4 mr-2" />
+                  )}
                   Add Another Item
                 </Button>
               </div>
@@ -284,13 +310,13 @@ const CreateInvoice = () => {
           <div className="grid grid-cols-2 gap-4 pt-4 border-t">
             <div>
               <Label>Subtotal</Label>
-              <Input type="number" value={subtotal.toFixed(2)} readOnly className="bg-gray-50" />
+              <Input type="number" value={subtotal.toFixed(3)} readOnly className="bg-gray-50" />
             </div>
             <div>
               <Label>Total</Label>
               <Input 
                 type="number" 
-                value={total.toFixed(2)} 
+                value={total.toFixed(3)} 
                 readOnly 
                 className={`bg-gray-50 ${formState.isFreeOfCharge ? 'text-green-600 font-bold' : ''}`}
               />
