@@ -12,7 +12,7 @@ export interface Item {
   product_size?: string;
   product_sku?: string;
   isOptimistic?: boolean;
-  tempId?: string; // Add temp ID for better tracking
+  tempId?: string;
 }
 
 export const useInvoiceItems = (customerId: string) => {
@@ -26,7 +26,6 @@ export const useInvoiceItems = (customerId: string) => {
       const updateAllItemPrices = async () => {
         const updatedItems = await Promise.all(
           items.map(async (item) => {
-            // Skip optimistic items during customer price updates
             if (item.isOptimistic) return item;
             
             const customerPrice = await getCustomerPrice(customerId, item.product_id);
@@ -51,22 +50,6 @@ export const useInvoiceItems = (customerId: string) => {
     
     setIsAddingItem(true);
     
-    const tempId = `temp-${Date.now()}`;
-    const optimisticItem: Item = {
-      product_id: product.id,
-      quantity: 1,
-      price: product.base_price,
-      total: product.base_price,
-      product_name: product.name,
-      product_size: product.size,
-      product_sku: product.sku,
-      isOptimistic: true,
-      tempId
-    };
-    
-    // Add optimistic item
-    setItems(prevItems => [...prevItems, optimisticItem]);
-    
     try {
       let finalPrice = product.base_price;
       if (customerId) {
@@ -76,25 +59,18 @@ export const useInvoiceItems = (customerId: string) => {
         }
       }
 
-      // Replace optimistic item with final item
-      setItems(prevItems => 
-        prevItems.map(item => 
-          item.tempId === tempId
-            ? {
-                ...item,
-                price: finalPrice,
-                total: finalPrice,
-                isOptimistic: false,
-                tempId: undefined
-              }
-            : item
-        )
-      );
+      const newItem: Item = {
+        product_id: product.id,
+        quantity: 1,
+        price: finalPrice,
+        total: finalPrice,
+        product_name: product.name,
+        product_size: product.size,
+        product_sku: product.sku,
+      };
+      
+      setItems(prevItems => [...prevItems, newItem]);
     } catch (error) {
-      // Remove optimistic item on error
-      setItems(prevItems => 
-        prevItems.filter(item => item.tempId !== tempId)
-      );
       console.error('Failed to add product:', error);
     } finally {
       setIsAddingItem(false);
@@ -106,21 +82,6 @@ export const useInvoiceItems = (customerId: string) => {
     
     setIsAddingItem(true);
     
-    const tempId = `temp-${Date.now()}`;
-    const optimisticItem: Item = {
-      product_id: product.id,
-      quantity: 1,
-      price: product.base_price,
-      total: product.base_price,
-      product_name: product.name,
-      product_size: product.size,
-      product_sku: product.sku,
-      isOptimistic: true,
-      tempId
-    };
-    
-    setItems(prevItems => [...prevItems, optimisticItem]);
-    
     try {
       let finalPrice = product.base_price;
       if (customerId) {
@@ -130,23 +91,18 @@ export const useInvoiceItems = (customerId: string) => {
         }
       }
 
-      setItems(prevItems => 
-        prevItems.map(item => 
-          item.tempId === tempId
-            ? {
-                ...item,
-                price: finalPrice,
-                total: finalPrice,
-                isOptimistic: false,
-                tempId: undefined
-              }
-            : item
-        )
-      );
+      const newItem: Item = {
+        product_id: product.id,
+        quantity: 1,
+        price: finalPrice,
+        total: finalPrice,
+        product_name: product.name,
+        product_size: product.size,
+        product_sku: product.sku,
+      };
+      
+      setItems(prevItems => [...prevItems, newItem]);
     } catch (error) {
-      setItems(prevItems => 
-        prevItems.filter(item => item.tempId !== tempId)
-      );
       console.error('Failed to add product:', error);
     } finally {
       setIsAddingItem(false);
@@ -158,7 +114,7 @@ export const useInvoiceItems = (customerId: string) => {
     
     setItems(prevItems => {
       const newItems = [...prevItems];
-      if (newItems[index] && !newItems[index].isOptimistic) {
+      if (newItems[index]) {
         newItems[index] = {
           ...newItems[index],
           quantity: validQuantity,
@@ -174,7 +130,7 @@ export const useInvoiceItems = (customerId: string) => {
     
     setItems(prevItems => {
       const newItems = [...prevItems];
-      if (newItems[index] && !newItems[index].isOptimistic) {
+      if (newItems[index]) {
         newItems[index] = {
           ...newItems[index],
           price: validPrice,
@@ -190,9 +146,7 @@ export const useInvoiceItems = (customerId: string) => {
   }, []);
 
   const calculateSubtotal = useCallback(() => {
-    return items
-      .filter(item => !item.isOptimistic) // Only count non-optimistic items
-      .reduce((acc, item) => acc + item.total, 0);
+    return items.reduce((acc, item) => acc + item.total, 0);
   }, [items]);
 
   return {

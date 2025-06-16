@@ -15,7 +15,7 @@ export const useTopSellingProducts = () => {
             quantity,
             invoices!inner(date)
           `)
-          .gte('invoices.date', new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]) // Last 90 days
+          .gte('invoices.date', new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0])
           .order('invoices.date', { ascending: false });
 
         if (error) {
