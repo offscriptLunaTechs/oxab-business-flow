@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { memo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,7 +14,7 @@ interface SelectedItemsCardProps {
   removeItem: (index: number) => void;
 }
 
-const SelectedItemsCard = ({
+const SelectedItemsCard = memo(({
   items,
   updateItemQuantity,
   updateItemPrice,
@@ -30,7 +30,7 @@ const SelectedItemsCard = ({
       <CardContent>
         <div className="space-y-4">
           {items.map((item, index) => (
-            <div key={index} className="border rounded-lg p-4 bg-gray-50">
+            <div key={`${item.product_id}-${index}`} className="border rounded-lg p-4 bg-gray-50 animate-fade-in">
               {/* Product Info */}
               <div className="flex justify-between items-start mb-3">
                 <div className="flex-1">
@@ -84,6 +84,8 @@ const SelectedItemsCard = ({
       </CardContent>
     </Card>
   );
-};
+});
+
+SelectedItemsCard.displayName = 'SelectedItemsCard';
 
 export default SelectedItemsCard;

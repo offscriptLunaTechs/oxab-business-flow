@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Product } from '@/types/invoice';
 import { useCustomerPricing } from './useCustomerPricing';
 
@@ -40,7 +40,7 @@ export const useInvoiceItems = (customerId: string) => {
     }
   }, [customerId, getCustomerPrice]);
 
-  const addProductFromSearch = async (product: Product) => {
+  const addProductFromSearch = useCallback(async (product: Product) => {
     let price = product.base_price;
     
     if (customerId) {
@@ -59,10 +59,12 @@ export const useInvoiceItems = (customerId: string) => {
       product_size: product.size,
       product_sku: product.sku,
     };
-    setItems([...items, newItem]);
-  };
+    
+    // Use functional update to prevent race conditions
+    setItems(prevItems => [...prevItems, newItem]);
+  }, [customerId, getCustomerPrice]);
 
-  const addItemFromModal = async (product: Product) => {
+  const addItemFromModal = useCallback(async (product: Product) => {
     let price = product.base_price;
     if (customerId) {
       const customerPrice = await getCustomerPrice(customerId, product.id);
@@ -79,30 +81,36 @@ export const useInvoiceItems = (customerId: string) => {
       product_size: product.size,
       product_sku: product.sku,
     };
+    
+    // Use functional update to prevent race conditions
     setItems(prevItems => [...prevItems, newItem]);
-  };
+  }, [customerId, getCustomerPrice]);
 
-  const updateItemQuantity = (index: number, quantity: number) => {
-    const newItems = [...items];
-    newItems[index].quantity = Math.max(1, quantity);
-    newItems[index].total = newItems[index].quantity * newItems[index].price;
-    setItems(newItems);
-  };
+  const updateItemQuantity = useCallback((index: number, quantity: number) => {
+    setItems(prevItems => {
+      const newItems = [...prevItems];
+      newItems[index].quantity = Math.max(1, quantity);
+      newItems[index].total = newItems[index].quantity * newItems[index].price;
+      return newItems;
+    });
+  }, []);
 
-  const updateItemPrice = (index: number, price: number) => {
-    const newItems = [...items];
-    newItems[index].price = Math.max(0, price);
-    newItems[index].total = newItems[index].quantity * newItems[index].price;
-    setItems(newItems);
-  };
+  const updateItemPrice = useCallback((index: number, price: number) => {
+    setItems(prevItems => {
+      const newItems = [...prevItems];
+      newItems[index].price = Math.max(0, price);
+      newItems[index].total = newItems[index].quantity * newItems[index].price;
+      return newItems;
+    });
+  }, []);
 
-  const removeItem = (index: number) => {
-    setItems(items.filter((_, i) => i !== index));
-  };
+  const removeItem = useCallback((index: number) => {
+    setItems(prevItems => prevItems.filter((_, i) => i !== index));
+  }, []);
 
-  const calculateSubtotal = () => {
+  const calculateSubtotal = useCallback(() => {
     return items.reduce((acc, item) => acc + item.total, 0);
-  };
+  }, [items]);
 
   return {
     items,

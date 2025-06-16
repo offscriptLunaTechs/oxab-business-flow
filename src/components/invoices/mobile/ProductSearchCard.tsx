@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,10 +21,11 @@ const ProductSearchCard = ({
   addProductFromSearch,
   setIsProductModalOpen
 }: ProductSearchCardProps) => {
-  const handleProductClick = (product: Product) => {
-    addProductFromSearch(product);
+  const handleProductClick = useCallback(async (product: Product) => {
+    // Add product and clear search immediately to prevent UI glitches
+    await addProductFromSearch(product);
     setSearchTerm('');
-  };
+  }, [addProductFromSearch, setSearchTerm]);
 
   return (
     <Card>
@@ -64,8 +65,8 @@ const ProductSearchCard = ({
           <div className="space-y-2 max-h-64 overflow-y-auto">
             {displayProducts.map((product, index) => (
               <div
-                key={product.id}
-                className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 cursor-pointer"
+                key={`${product.id}-${index}`}
+                className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors duration-150"
                 onClick={() => handleProductClick(product)}
               >
                 <div className="flex-1">
