@@ -1,5 +1,5 @@
 
-import React, { memo } from 'react';
+import React, { memo, useCallback, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,17 +20,46 @@ const SelectedItemsCard = memo(({
   updateItemPrice,
   removeItem
 }: SelectedItemsCardProps) => {
-  if (items.length === 0) return null;
+  const [tempQuantities, setTempQuantities] = useState<Record<number, string>>({});
 
-  const handleQuantityChange = (index: number, value: string) => {
-    const quantity = parseInt(value) || 1;
-    updateItemQuantity(index, quantity);
-  };
+  const handleQuantityChange = useCallback((index: number, value: string) => {
+    // Allow empty string temporarily for better UX
+    setTempQuantities(prev => ({ ...prev, [index]: value }));
+    
+    // Only update the actual quantity if we have a valid number
+    if (value !== '') {
+      const quantity = parseInt(value) || 1;
+      updateItemQuantity(index, Math.max(1, quantity));
+    }
+  }, [updateItemQuantity]);
 
-  const handlePriceChange = (index: number, value: string) => {
+  const handleQuantityBlur = useCallback((index: number) => {
+    const tempValue = tempQuantities[index];
+    if (tempValue === '' || parseInt(tempValue) < 1) {
+      // Reset to 1 if empty or invalid when focus is lost
+      updateItemQuantity(index, 1);
+      setTempQuantities(prev => {
+        const { [index]: _, ...rest } = prev;
+        return rest;
+      });
+    }
+  }, [tempQuantities, updateItemQuantity]);
+
+  const handleQuantityFocus = useCallback((e: React.FocusEvent<HTMLInputElement>) => {
+    // Select all text when focused for easy replacement
+    e.target.select();
+  }, []);
+
+  const handlePriceChange = useCallback((index: number, value: string) => {
     const price = parseFloat(value) || 0;
     updateItemPrice(index, price);
-  };
+  }, [updateItemPrice]);
+
+  const getDisplayQuantity = useCallback((item: Item, index: number) => {
+    return tempQuantities[index] !== undefined ? tempQuantities[index] : item.quantity.toString();
+  }, [tempQuantities]);
+
+  if (items.length === 0) return null;
 
   return (
     <Card>
@@ -67,10 +96,12 @@ const SelectedItemsCard = memo(({
                   <Label className="text-xs font-medium text-gray-700">Quantity</Label>
                   <Input
                     type="number"
-                    value={item.quantity}
+                    value={getDisplayQuantity(item, index)}
                     onChange={(e) => handleQuantityChange(index, e.target.value)}
-                    min="1"
+                    onBlur={() => handleQuantityBlur(index)}
+                    onFocus={handleQuantityFocus}
                     className="h-10 text-center text-base"
+                    placeholder="1"
                   />
                 </div>
                 <div>

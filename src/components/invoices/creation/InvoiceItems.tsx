@@ -1,5 +1,5 @@
 
-import React, { memo, useCallback } from 'react';
+import React, { memo, useCallback, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -32,15 +32,44 @@ const InvoiceItems = memo(({
   onRemoveItem,
   isMobile = false
 }: InvoiceItemsProps) => {
+  const [tempQuantities, setTempQuantities] = useState<Record<string, string>>({});
+
   const handleQuantityChange = useCallback((itemId: string, value: string) => {
-    const quantity = parseInt(value) || 1;
-    onUpdateQuantity(itemId, quantity);
+    // Allow empty string temporarily for better UX
+    setTempQuantities(prev => ({ ...prev, [itemId]: value }));
+    
+    // Only update the actual quantity if we have a valid number
+    if (value !== '') {
+      const quantity = parseInt(value) || 1;
+      onUpdateQuantity(itemId, Math.max(1, quantity));
+    }
   }, [onUpdateQuantity]);
+
+  const handleQuantityBlur = useCallback((itemId: string) => {
+    const tempValue = tempQuantities[itemId];
+    if (tempValue === '' || parseInt(tempValue) < 1) {
+      // Reset to 1 if empty or invalid when focus is lost
+      onUpdateQuantity(itemId, 1);
+      setTempQuantities(prev => {
+        const { [itemId]: _, ...rest } = prev;
+        return rest;
+      });
+    }
+  }, [tempQuantities, onUpdateQuantity]);
+
+  const handleQuantityFocus = useCallback((e: React.FocusEvent<HTMLInputElement>) => {
+    // Select all text when focused for easy replacement
+    e.target.select();
+  }, []);
 
   const handlePriceChange = useCallback((itemId: string, value: string) => {
     const price = parseFloat(value) || 0;
     onUpdatePrice(itemId, price);
   }, [onUpdatePrice]);
+
+  const getDisplayQuantity = useCallback((item: InvoiceItem) => {
+    return tempQuantities[item.id] !== undefined ? tempQuantities[item.id] : item.quantity.toString();
+  }, [tempQuantities]);
 
   if (items.length === 0) return null;
 
@@ -82,10 +111,12 @@ const InvoiceItems = memo(({
                       <Label className="text-xs font-medium text-gray-700">Quantity</Label>
                       <Input
                         type="number"
-                        value={item.quantity}
+                        value={getDisplayQuantity(item)}
                         onChange={(e) => handleQuantityChange(item.id, e.target.value)}
-                        min="1"
+                        onBlur={() => handleQuantityBlur(item.id)}
+                        onFocus={handleQuantityFocus}
                         className="h-10 text-center text-base"
+                        placeholder="1"
                       />
                     </div>
                     <div>
@@ -122,10 +153,12 @@ const InvoiceItems = memo(({
                     <Label className="text-xs">Quantity</Label>
                     <Input
                       type="number"
-                      value={item.quantity}
+                      value={getDisplayQuantity(item)}
                       onChange={(e) => handleQuantityChange(item.id, e.target.value)}
+                      onBlur={() => handleQuantityBlur(item.id)}
+                      onFocus={handleQuantityFocus}
                       className="h-8"
-                      min="1"
+                      placeholder="1"
                     />
                   </div>
 
