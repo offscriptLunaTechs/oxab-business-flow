@@ -1,6 +1,5 @@
 
 import React from 'react';
-import { Button } from '@/components/ui/button';
 import { useCustomers } from '@/hooks/useCustomers';
 import { useInvoiceCreation } from '@/hooks/invoices/creation/useInvoiceCreation';
 import { useInvoiceSubmission } from '@/hooks/invoices/creation/useInvoiceSubmission';
@@ -71,10 +70,10 @@ const MobileInvoiceForm = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 relative">
+    <div className="min-h-screen bg-gray-50">
       <MobileInvoiceHeader onBack={() => window.history.back()} />
 
-      <div className="p-4 space-y-6 pb-44 sm:pb-32">
+      <div className="p-4 space-y-6 pb-6">
         <CustomerSelector
           customerId={customerId}
           onCustomerChange={setCustomerId}
@@ -117,18 +116,10 @@ const MobileInvoiceForm = () => {
           discount={discount}
           total={total}
           isFreeOfCharge={isFreeOfCharge}
+          onSubmit={handleSubmit}
+          isSubmitting={isSubmitting}
+          isDisabled={!customerId || itemsArray.length === 0}
         />
-      </div>
-
-      {/* Submit Button */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 border-t bg-white shadow-2xl p-4">
-        <Button
-          onClick={handleSubmit}
-          disabled={isSubmitting || !customerId || itemsArray.length === 0}
-          className="w-full h-16 text-lg font-bold bg-blue-600 hover:bg-blue-700"
-        >
-          {isSubmitting ? 'Creating...' : 'Create Invoice'}
-        </Button>
       </div>
 
       <ProductSelectionModal
