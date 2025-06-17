@@ -99,6 +99,9 @@ const MobileInvoiceForm = () => {
           discount={discount}
           total={total}
           isFreeOfCharge={isFreeOfCharge}
+          onSubmit={handleSubmit}
+          isSubmitting={createInvoice.isPending}
+          isDisabled={!customerId || items.length === 0}
         />
       </div>
 
