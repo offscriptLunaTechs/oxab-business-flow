@@ -39,8 +39,18 @@ export const useInvoices = () => {
         throw error;
       }
 
-      console.log('Invoices fetched successfully:', data);
-      return data;
+      // Transform the data to match the expected interface
+      const transformedData = data?.map(invoice => ({
+        ...invoice,
+        customer: invoice.customers,
+        items: invoice.invoice_items?.map(item => ({
+          ...item,
+          product: item.products
+        })) || []
+      })) || [];
+
+      console.log('Invoices fetched and transformed successfully:', transformedData);
+      return transformedData;
     },
   });
 };
@@ -87,8 +97,18 @@ export const useInvoice = (invoiceId: string) => {
         throw error;
       }
 
-      console.log('Invoice fetched successfully:', data);
-      return data;
+      // Transform the data to match the expected interface
+      const transformedInvoice = {
+        ...data,
+        customer: data.customers,
+        items: data.invoice_items?.map(item => ({
+          ...item,
+          product: item.products
+        })) || []
+      };
+
+      console.log('Invoice fetched and transformed successfully:', transformedInvoice);
+      return transformedInvoice;
     },
     enabled: !!invoiceId,
   });
