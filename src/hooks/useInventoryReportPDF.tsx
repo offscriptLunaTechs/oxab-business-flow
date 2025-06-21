@@ -51,15 +51,17 @@ export const generateInventoryReportPDF = async ({
       day: 'numeric',
     });
 
-    // Create the PDF blob with error handling
-    const blob = await pdf(
-      React.createElement(InventoryReportPDF, {
-        skuMovements,
-        skuStockLevels,
-        topMovers,
-        reportDate
-      })
-    ).toBlob();
+    // Create the PDF blob with proper JSX element structure
+    const pdfDocument = (
+      <InventoryReportPDF 
+        skuMovements={skuMovements}
+        skuStockLevels={skuStockLevels}
+        topMovers={topMovers}
+        reportDate={reportDate}
+      />
+    );
+    
+    const blob = await pdf(pdfDocument).toBlob();
 
     // Download the file
     const fileName = `inventory-report-${new Date().toISOString().split('T')[0]}.pdf`;

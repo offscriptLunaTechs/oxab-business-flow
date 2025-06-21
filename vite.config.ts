@@ -47,7 +47,7 @@ export default defineConfig(({ mode }) => ({
           ],
           'routing-vendor': ['react-router-dom'],
           
-          // Feature chunks - removed PDF vendor chunk to prevent bundling issues
+          // Feature chunks
           'invoice-feature': [
             './src/pages/invoices/CreateInvoice',
             './src/pages/invoices/InvoicesList',
@@ -63,7 +63,6 @@ export default defineConfig(({ mode }) => ({
             './src/components/security/SecurityDashboard'
           ]
         },
-        // Better file naming for caching
         entryFileNames: (chunkInfo) => {
           const facadeModuleId = chunkInfo.facadeModuleId;
           if (facadeModuleId) {
@@ -76,9 +75,7 @@ export default defineConfig(({ mode }) => ({
         assetFileNames: 'assets/[name]-[hash].[ext]',
       }
     },
-    // Optimize chunk size
     chunkSizeWarningLimit: 800,
-    // Add commonjsOptions to handle CJS modules better
     commonjsOptions: {
       transformMixedEsModules: true,
       include: [/node_modules/],
@@ -89,7 +86,6 @@ export default defineConfig(({ mode }) => ({
       ]
     }
   },
-  // Completely exclude problematic PDF packages from optimization
   optimizeDeps: {
     include: [
       'react',
@@ -103,24 +99,14 @@ export default defineConfig(({ mode }) => ({
       'unicode-properties',
       'base64-js',
       'file-saver'
-    ],
-    // Force pre-bundling to skip these packages
-    esbuildOptions: {
-      external: [
-        '@react-pdf/renderer',
-        'unicode-properties', 
-        'base64-js'
-      ]
-    }
+    ]
   },
   define: {
-    // Remove console logs in production
     ...(mode === 'production' && {
       'console.log': '() => {}',
       'console.debug': '() => {}',
     }),
   },
-  // Add ssr configuration to prevent server-side issues
   ssr: {
     noExternal: ['@radix-ui/*'],
     external: ['@react-pdf/renderer', 'unicode-properties', 'base64-js']

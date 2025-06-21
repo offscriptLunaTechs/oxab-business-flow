@@ -28,29 +28,12 @@ const loadPdfDependencies = async () => {
   }
 };
 
-// Register fonts only when PDF dependencies are loaded
-const registerFonts = async (Font: any) => {
-  try {
-    // Minimal font registration to avoid conflicts
-    Font.registerHyphenationCallback((word: string) => {
-      return word ? [word] : [];
-    });
-    
-    logger.debug('PDF fonts registered successfully');
-  } catch (error) {
-    logger.warn('Failed to register custom PDF fonts, using defaults', error);
-  }
-};
-
 export const downloadInvoicePDF = async (invoice: InvoiceWithDetails) => {
   logger.info('Starting dynamic PDF generation', { invoiceId: invoice.id });
   
   try {
     // Dynamically load PDF dependencies
-    const { pdf, Font, saveAs, InvoicePDF } = await loadPdfDependencies();
-    
-    // Register fonts after loading dependencies
-    await registerFonts(Font);
+    const { pdf, saveAs, InvoicePDF } = await loadPdfDependencies();
     
     // Ensure product details are available and provide sensible defaults if completely missing.
     const processedInvoice = {
@@ -73,8 +56,9 @@ export const downloadInvoicePDF = async (invoice: InvoiceWithDetails) => {
       })
     };
 
-    // Generate PDF
-    const blob = await pdf(React.createElement(InvoicePDF, { invoice: processedInvoice })).toBlob();
+    // Generate PDF - Create JSX element properly
+    const pdfDocument = <InvoicePDF invoice={processedInvoice} />;
+    const blob = await pdf(pdfDocument).toBlob();
     saveAs(blob, `invoice-${invoice.id}.pdf`);
     
     logger.info('PDF generated and downloaded successfully', {
