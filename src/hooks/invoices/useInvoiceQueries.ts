@@ -34,7 +34,14 @@ export const useInvoices = () => {
               id,
               name,
               sku,
-              size
+              size,
+              base_price,
+              pack_size,
+              trademark,
+              description,
+              status,
+              created_at,
+              updated_at
             )
           )
         `)
@@ -55,7 +62,10 @@ export const useInvoices = () => {
         items: invoice.invoice_items?.map(item => ({
           ...item,
           invoice_id: item.invoice_id,
-          product: item.products
+          product: item.products ? {
+            ...item.products,
+            status: item.products.status as 'active' | 'discontinued' | 'inactive'
+          } : undefined
         })) || []
       })) || [];
 
@@ -101,7 +111,14 @@ export const useInvoice = (invoiceId: string) => {
               id,
               name,
               sku,
-              size
+              size,
+              base_price,
+              pack_size,
+              trademark,
+              description,
+              status,
+              created_at,
+              updated_at
             )
           )
         `)
@@ -123,7 +140,10 @@ export const useInvoice = (invoiceId: string) => {
         items: data.invoice_items?.map(item => ({
           ...item,
           invoice_id: item.invoice_id,
-          product: item.products
+          product: item.products ? {
+            ...item.products,
+            status: item.products.status as 'active' | 'discontinued' | 'inactive'
+          } : undefined
         })) || []
       };
 
