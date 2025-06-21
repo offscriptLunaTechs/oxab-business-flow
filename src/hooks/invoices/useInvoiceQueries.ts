@@ -47,7 +47,10 @@ export const useInvoices = () => {
       // Transform the data to match the expected interface
       const transformedData = data?.map(invoice => ({
         ...invoice,
-        customer: invoice.customers,
+        customer: {
+          ...invoice.customers,
+          customer_type: invoice.customers.customer_type as 'wholesale' | 'retail'
+        },
         items: invoice.invoice_items?.map(item => ({
           ...item,
           product: item.products
@@ -110,7 +113,10 @@ export const useInvoice = (invoiceId: string) => {
       // Transform the data to match the expected interface
       const transformedInvoice = {
         ...data,
-        customer: data.customers,
+        customer: {
+          ...data.customers,
+          customer_type: data.customers.customer_type as 'wholesale' | 'retail'
+        },
         items: data.invoice_items?.map(item => ({
           ...item,
           product: item.products
