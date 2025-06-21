@@ -146,54 +146,92 @@ export const useUpdateInvoice = () => {
         total: number;
       }[] 
     }) => {
-      // Save any manual price changes as customer pricing
-      if (items && invoiceData.customer_id) {
-        await Promise.all(
-          items.map(async (item) => {
-            try {
-              const { data: customPrice } = await supabase.rpc('get_customer_price', {
-                p_customer_id: invoiceData.customer_id,
-                p_product_id: item.product_id,
-                p_date: invoiceData.date || new Date().toISOString().split('T')[0]
-              });
-              
-              // If the price is different from the customer's current price, save it
-              if (customPrice !== item.price) {
-                await supabase
-                  .from('customer_pricing')
-                  .upsert({
-                    customer_id: invoiceData.customer_id,
-                    product_id: item.product_id,
-                    price: item.price,
-                    effective_date: invoiceData.date || new Date().toISOString().split('T')[0],
-                    is_active: true,
-                    updated_by: (await supabase.auth.getUser()).data.user?.id,
-                  });
-              }
-            } catch (error) {
-              console.warn('Failed to save custom price for product:', item.product_id, error);
-            }
-          })
-        );
+      console.log('Updating invoice:', invoiceId, 'with data:', invoiceData);
+      
+      // Validate required fields
+      if (!invoiceId) {
+        throw new Error('Invoice ID is required');
       }
 
+      // Save any manual price changes as customer pricing (if items and customer provided)
+      if (items && invoiceData.customer_id && invoiceData.date) {
+        console.log('Saving customer pricing updates...');
+        try {
+          await Promise.all(
+            items.map(async (item) => {
+              try {
+                const { data: customPrice } = await supabase.rpc('get_customer_price', {
+                  p_customer_id: invoiceData.customer_id,
+                  p_product_id: item.product_id,
+                  p_date: invoiceData.date
+                });
+                
+                // If the price is different from the customer's current price, save it
+                if (customPrice !== item.price) {
+                  const { error: pricingError } = await supabase
+                    .from('customer_pricing')
+                    .upsert({
+                      customer_id: invoiceData.customer_id,
+                      product_id: item.product_id,
+                      price: item.price,
+                      effective_date: invoiceData.date,
+                      is_active: true,
+                      updated_by: (await supabase.auth.getUser()).data.user?.id,
+                    });
+                  
+                  if (pricingError) {
+                    console.warn('Failed to save customer pricing:', pricingError);
+                  }
+                }
+              } catch (error) {
+                console.warn('Failed to process custom pricing for product:', item.product_id, error);
+              }
+            })
+          );
+        } catch (error) {
+          console.warn('Error processing customer pricing updates:', error);
+          // Don't fail the entire operation for pricing issues
+        }
+      }
+
+      // Update the invoice with validated data
+      const updateData = {
+        ...invoiceData,
+        updated_at: new Date().toISOString()
+      };
+      
+      console.log('Executing invoice update with data:', updateData);
+      
       const { data: updatedInvoice, error: invoiceError } = await supabase
         .from('invoices')
-        .update(invoiceData)
+        .update(updateData)
         .eq('id', invoiceId)
         .select()
         .single();
       
-      if (invoiceError) throw invoiceError;
+      if (invoiceError) {
+        console.error('Invoice update error:', invoiceError);
+        throw new Error(`Failed to update invoice: ${invoiceError.message}`);
+      }
 
-      if (items) {
+      console.log('Invoice updated successfully:', updatedInvoice);
+
+      // Update invoice items if provided
+      if (items && items.length > 0) {
+        console.log('Updating invoice items...');
+        
+        // Delete existing items
         const { error: deleteError } = await supabase
           .from('invoice_items')
           .delete()
           .eq('invoice_id', invoiceId);
         
-        if (deleteError) throw deleteError;
+        if (deleteError) {
+          console.error('Error deleting existing items:', deleteError);
+          throw new Error(`Failed to delete existing items: ${deleteError.message}`);
+        }
 
+        // Insert new items
         const itemsWithInvoiceId = items.map(item => ({
           ...item,
           invoice_id: invoiceId
@@ -203,7 +241,12 @@ export const useUpdateInvoice = () => {
           .from('invoice_items')
           .insert(itemsWithInvoiceId);
         
-        if (itemsError) throw itemsError;
+        if (itemsError) {
+          console.error('Error inserting updated items:', itemsError);
+          throw new Error(`Failed to update invoice items: ${itemsError.message}`);
+        }
+        
+        console.log('Invoice items updated successfully');
       }
 
       return updatedInvoice;
@@ -215,16 +258,16 @@ export const useUpdateInvoice = () => {
       queryClient.invalidateQueries({ queryKey: ['customer-pricing'] });
       toast({
         title: "Success",
-        description: "Invoice updated successfully with pricing saved",
+        description: "Invoice updated successfully",
       });
     },
-    onError: (error) => {
+    onError: (error: Error) => {
+      console.error('Update invoice mutation error:', error);
       toast({
-        title: "Error",
-        description: "Failed to update invoice",
+        title: "Error", 
+        description: error.message || "Failed to update invoice",
         variant: "destructive",
       });
-      console.error('Update invoice error:', error);
     },
   });
 };
