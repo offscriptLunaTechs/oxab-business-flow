@@ -46,6 +46,7 @@ export default defineConfig(({ mode }) => ({
             '@radix-ui/react-tooltip'
           ],
           'routing-vendor': ['react-router-dom'],
+          // Separate PDF vendor chunk to isolate issues
           'pdf-vendor': ['@react-pdf/renderer', 'file-saver'],
           
           // Feature chunks
@@ -80,7 +81,7 @@ export default defineConfig(({ mode }) => ({
     // Optimize chunk size
     chunkSizeWarningLimit: 800,
   },
-  // Optimize dependencies
+  // Optimize dependencies and exclude problematic PDF packages
   optimizeDeps: {
     include: [
       'react',
@@ -89,7 +90,11 @@ export default defineConfig(({ mode }) => ({
       'react-router-dom',
       '@supabase/supabase-js'
     ],
-    exclude: ['@react-pdf/renderer']
+    exclude: [
+      '@react-pdf/renderer',
+      'unicode-properties',
+      'base64-js'
+    ]
   },
   define: {
     // Remove console logs in production
