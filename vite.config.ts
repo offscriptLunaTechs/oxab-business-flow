@@ -34,14 +34,6 @@ export default defineConfig(({ mode }) => ({
       },
     },
     rollupOptions: {
-      // Completely external these problematic packages
-      external: [
-        '@react-pdf/renderer',
-        'unicode-properties',
-        'base64-js',
-        'unicode-trie',
-        'file-saver'
-      ],
       output: {
         manualChunks: {
           // Vendor chunks
@@ -80,28 +72,10 @@ export default defineConfig(({ mode }) => ({
           return `assets/main-[hash].js`;
         },
         chunkFileNames: 'assets/[name]-[hash].js',
-        assetFileNames: 'assets/[name]-[hash].[ext]',
-        // Handle external imports
-        globals: {
-          '@react-pdf/renderer': 'ReactPDF',
-          'unicode-properties': 'UnicodeProperties',
-          'base64-js': 'Base64',
-          'unicode-trie': 'UnicodeTrie',
-          'file-saver': 'FileSaver'
-        }
+        assetFileNames: 'assets/[name]-[hash].[ext]'
       }
     },
-    chunkSizeWarningLimit: 800,
-    commonjsOptions: {
-      transformMixedEsModules: true,
-      include: [/node_modules/],
-      exclude: [
-        /node_modules\/@react-pdf/,
-        /node_modules\/unicode-properties/,
-        /node_modules\/base64-js/,
-        /node_modules\/unicode-trie/
-      ]
-    }
+    chunkSizeWarningLimit: 800
   },
   optimizeDeps: {
     include: [
@@ -110,13 +84,6 @@ export default defineConfig(({ mode }) => ({
       '@tanstack/react-query',
       'react-router-dom',
       '@supabase/supabase-js'
-    ],
-    exclude: [
-      '@react-pdf/renderer',
-      'unicode-properties',
-      'base64-js',
-      'unicode-trie',
-      'file-saver'
     ]
   },
   define: {

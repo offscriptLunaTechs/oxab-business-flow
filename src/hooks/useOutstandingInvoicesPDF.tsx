@@ -16,26 +16,17 @@ interface GeneratePDFParams {
   filename?: string;
 }
 
-// Dynamically import PDF dependencies to avoid bundling issues
+// Simplified dynamic import approach
 const loadPdfDependencies = async () => {
   try {
-    // Check if we're in a browser environment
     if (typeof window === 'undefined') {
       throw new Error('PDF generation is only available in browser environment');
     }
 
-    const [reactPdfModule, fileSaverModule] = await Promise.all([
-      import('@react-pdf/renderer').catch(() => {
-        throw new Error('PDF renderer not available');
-      }),
-      import('file-saver').catch(() => {
-        throw new Error('File saver not available');
-      })
-    ]);
-    
-    const outstandingInvoicesReportPdfModule = await import('@/components/reports/OutstandingInvoicesReportPDF').catch(() => {
-      throw new Error('Outstanding invoices report PDF component not available');
-    });
+    // Import modules individually with proper error handling
+    const reactPdfModule = await import('@react-pdf/renderer');
+    const fileSaverModule = await import('file-saver');
+    const outstandingInvoicesReportPdfModule = await import('@/components/reports/OutstandingInvoicesReportPDF');
     
     return {
       pdf: reactPdfModule.pdf,
@@ -44,7 +35,7 @@ const loadPdfDependencies = async () => {
     };
   } catch (error) {
     logger.error('Failed to load PDF dependencies for outstanding invoices report', error);
-    throw new Error('PDF functionality is not available. Please try refreshing the page.');
+    throw new Error('PDF functionality is not available. Please try again or contact support.');
   }
 };
 
@@ -54,33 +45,26 @@ export const useOutstandingInvoicesPDF = () => {
       try {
         console.log('Generating Outstanding Invoices PDF with customer summaries...');
         
-        // Dynamically load PDF dependencies
+        // Load dependencies
         const { pdf, saveAs, OutstandingInvoicesReportPDF } = await loadPdfDependencies();
         
-        const pdfDocument = (
+        // Create PDF document
+        const pdfBlob = await pdf(
           <OutstandingInvoicesReportPDF 
             invoices={invoices} 
             filters={filters} 
             customerSummaries={customerSummaries}
           />
-        );
-        
-        const blob = await pdf(pdfDocument).toBlob();
+        ).toBlob();
         
         const defaultFilename = `outstanding-invoices-${new Date().toISOString().split('T')[0]}.pdf`;
-        saveAs(blob, filename || defaultFilename);
+        saveAs(pdfBlob, filename || defaultFilename);
         
         return { success: true, filename: filename || defaultFilename };
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         logger.error('Error generating outstanding invoices PDF', { error: errorMessage });
-        
-        if (errorMessage.includes('PDF functionality is not available') || 
-            errorMessage.includes('not available')) {
-          throw new Error('PDF generation is temporarily unavailable. Please try refreshing the page or try again later.');
-        }
-        
-        throw error;
+        throw new Error('Failed to generate PDF report. Please try again.');
       }
     },
   });

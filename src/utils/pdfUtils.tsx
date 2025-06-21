@@ -3,33 +3,26 @@ import React from 'react';
 import { InvoiceWithDetails, Product } from '@/types/invoice';
 import { logger } from './logger';
 
-// Dynamically import PDF dependencies to avoid bundling issues
+// Simplified dynamic import approach
 const loadPdfDependencies = async () => {
   try {
-    // Use dynamic imports with error handling for each module
-    const [reactPdfModule, fileSaverModule] = await Promise.all([
-      import('@react-pdf/renderer').catch(() => {
-        throw new Error('PDF renderer not available');
-      }),
-      import('file-saver').catch(() => {
-        throw new Error('File saver not available');
-      })
-    ]);
+    if (typeof window === 'undefined') {
+      throw new Error('PDF generation is only available in browser environment');
+    }
 
-    // Dynamic import for the PDF component
-    const invoicePdfModule = await import('@/components/invoice/InvoicePDF').catch(() => {
-      throw new Error('Invoice PDF component not available');
-    });
+    // Import modules individually
+    const reactPdfModule = await import('@react-pdf/renderer');
+    const fileSaverModule = await import('file-saver');
+    const invoicePdfModule = await import('@/components/invoice/InvoicePDF');
     
     return {
       pdf: reactPdfModule.pdf,
-      Font: reactPdfModule.Font,
       saveAs: fileSaverModule.saveAs,
       InvoicePDF: invoicePdfModule.default
     };
   } catch (error) {
     logger.error('Failed to load PDF dependencies', error);
-    throw new Error('PDF functionality is not available. Please try refreshing the page.');
+    throw new Error('PDF functionality is not available. Please try again or contact support.');
   }
 };
 
@@ -37,15 +30,10 @@ export const downloadInvoicePDF = async (invoice: InvoiceWithDetails) => {
   logger.info('Starting dynamic PDF generation', { invoiceId: invoice.id });
   
   try {
-    // Check if we're in a browser environment
-    if (typeof window === 'undefined') {
-      throw new Error('PDF generation is only available in browser environment');
-    }
-
-    // Dynamically load PDF dependencies
+    // Load dependencies
     const { pdf, saveAs, InvoicePDF } = await loadPdfDependencies();
     
-    // Ensure product details are available and provide sensible defaults if completely missing.
+    // Process invoice data with defaults for missing product details
     const processedInvoice = {
       ...invoice,
       items: invoice.items.map(item => {
@@ -66,9 +54,8 @@ export const downloadInvoicePDF = async (invoice: InvoiceWithDetails) => {
       })
     };
 
-    // Generate PDF - Create JSX element properly
-    const pdfDocument = <InvoicePDF invoice={processedInvoice} />;
-    const blob = await pdf(pdfDocument).toBlob();
+    // Generate PDF
+    const blob = await pdf(<InvoicePDF invoice={processedInvoice} />).toBlob();
     saveAs(blob, `invoice-${invoice.id}.pdf`);
     
     logger.info('PDF generated and downloaded successfully', {
@@ -81,15 +68,6 @@ export const downloadInvoicePDF = async (invoice: InvoiceWithDetails) => {
       invoiceId: invoice.id,
       error: error instanceof Error ? error.message : String(error),
     });
-    
-    // Provide user-friendly error message
-    if (error instanceof Error) {
-      if (error.message.includes('PDF functionality is not available') || 
-          error.message.includes('not available')) {
-        throw new Error('PDF generation is temporarily unavailable. Please try refreshing the page or try again later.');
-      }
-    }
-    
-    throw error; 
+    throw new Error('Failed to generate PDF. Please try again.');
   }
 };

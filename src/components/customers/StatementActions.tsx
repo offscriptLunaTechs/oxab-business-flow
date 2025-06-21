@@ -16,26 +16,17 @@ interface StatementActionsProps {
   openingBalance: number;
 }
 
-// Dynamically import PDF dependencies to avoid bundling issues
+// Simplified dynamic import approach
 const loadPdfDependencies = async () => {
   try {
-    // Check if we're in a browser environment
     if (typeof window === 'undefined') {
       throw new Error('PDF generation is only available in browser environment');
     }
 
-    const [reactPdfModule, fileSaverModule] = await Promise.all([
-      import('@react-pdf/renderer').catch(() => {
-        throw new Error('PDF renderer not available');
-      }),
-      import('file-saver').catch(() => {
-        throw new Error('File saver not available');
-      })
-    ]);
-    
-    const customerStatementPdfModule = await import('./CustomerStatementPDF').catch(() => {
-      throw new Error('Customer statement PDF component not available');
-    });
+    // Import modules individually
+    const reactPdfModule = await import('@react-pdf/renderer');
+    const fileSaverModule = await import('file-saver');
+    const customerStatementPdfModule = await import('./CustomerStatementPDF');
     
     return {
       pdf: reactPdfModule.pdf,
@@ -44,7 +35,7 @@ const loadPdfDependencies = async () => {
     };
   } catch (error) {
     logger.error('Failed to load PDF dependencies for customer statement', error);
-    throw new Error('PDF functionality is not available. Please try refreshing the page.');
+    throw new Error('PDF functionality is not available. Please try again or contact support.');
   }
 };
 
@@ -71,10 +62,10 @@ export const StatementActions: React.FC<StatementActionsProps> = ({
     try {
       console.log('Generating customer statement PDF...');
       
-      // Dynamically load PDF dependencies
+      // Load dependencies
       const { pdf, saveAs, CustomerStatementPDF } = await loadPdfDependencies();
       
-      const pdfDocument = (
+      const blob = await pdf(
         <CustomerStatementPDF
           customer={customer}
           invoices={invoices}
@@ -83,9 +74,7 @@ export const StatementActions: React.FC<StatementActionsProps> = ({
           totalOutstanding={totalOutstanding}
           openingBalance={openingBalance}
         />
-      );
-      
-      const blob = await pdf(pdfDocument).toBlob();
+      ).toBlob();
       
       const filename = `statement-${customer.code}-${format(new Date(), 'yyyy-MM-dd')}.pdf`;
       saveAs(blob, filename);
@@ -100,9 +89,7 @@ export const StatementActions: React.FC<StatementActionsProps> = ({
       
       toast({
         title: "Error",
-        description: errorMessage.includes('PDF functionality is not available') 
-          ? "PDF generation is temporarily unavailable. Please try refreshing the page."
-          : "Failed to generate PDF",
+        description: "Failed to generate PDF. Please try again.",
         variant: "destructive",
       });
     }

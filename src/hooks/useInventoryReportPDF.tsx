@@ -10,26 +10,17 @@ interface GenerateInventoryReportPDFParams {
   topMovers: TopMovingProduct[];
 }
 
-// Dynamically import PDF dependencies to avoid bundling issues
+// Simplified dynamic import approach
 const loadPdfDependencies = async () => {
   try {
-    // Check if we're in a browser environment
     if (typeof window === 'undefined') {
       throw new Error('PDF generation is only available in browser environment');
     }
 
-    const [reactPdfModule, fileSaverModule] = await Promise.all([
-      import('@react-pdf/renderer').catch(() => {
-        throw new Error('PDF renderer not available');
-      }),
-      import('file-saver').catch(() => {
-        throw new Error('File saver not available');
-      })
-    ]);
-    
-    const inventoryReportPdfModule = await import('@/components/inventory/InventoryReportPDF').catch(() => {
-      throw new Error('Inventory report PDF component not available');
-    });
+    // Import modules individually
+    const reactPdfModule = await import('@react-pdf/renderer');
+    const fileSaverModule = await import('file-saver');
+    const inventoryReportPdfModule = await import('@/components/inventory/InventoryReportPDF');
     
     return {
       pdf: reactPdfModule.pdf,
@@ -38,7 +29,7 @@ const loadPdfDependencies = async () => {
     };
   } catch (error) {
     logger.error('Failed to load PDF dependencies for inventory report', error);
-    throw new Error('PDF functionality is not available for inventory reports. Please try refreshing the page.');
+    throw new Error('PDF functionality is not available for inventory reports. Please try again or contact support.');
   }
 };
 
@@ -50,7 +41,7 @@ export const generateInventoryReportPDF = async ({
   try {
     logger.info('Starting dynamic inventory report PDF generation');
     
-    // Dynamically load PDF dependencies
+    // Load dependencies
     const { pdf, saveAs, InventoryReportPDF } = await loadPdfDependencies();
     
     const reportDate = new Date().toLocaleDateString('en-US', {
@@ -59,17 +50,15 @@ export const generateInventoryReportPDF = async ({
       day: 'numeric',
     });
 
-    // Create the PDF blob with proper JSX element structure
-    const pdfDocument = (
+    // Generate PDF
+    const blob = await pdf(
       <InventoryReportPDF 
         skuMovements={skuMovements}
         skuStockLevels={skuStockLevels}
         topMovers={topMovers}
         reportDate={reportDate}
       />
-    );
-    
-    const blob = await pdf(pdfDocument).toBlob();
+    ).toBlob();
 
     // Download the file
     const fileName = `inventory-report-${new Date().toISOString().split('T')[0]}.pdf`;
@@ -79,14 +68,7 @@ export const generateInventoryReportPDF = async ({
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     logger.error('Error generating inventory report PDF', { error: errorMessage });
-    
-    // Provide user-friendly error message
-    if (errorMessage.includes('PDF functionality is not available') || 
-        errorMessage.includes('not available')) {
-      throw new Error('PDF generation is temporarily unavailable. Please try refreshing the page or try again later.');
-    }
-    
-    throw new Error(`Failed to generate PDF: ${errorMessage}`);
+    throw new Error('Failed to generate PDF report. Please try again.');
   }
 };
 
