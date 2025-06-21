@@ -5,6 +5,7 @@ import { saveAs } from 'file-saver';
 import InventoryReportPDF from '@/components/inventory/InventoryReportPDF';
 import { SkuMonthlyMovement, SkuStockLevel } from '@/hooks/useSkuAnalytics';
 import { TopMovingProduct } from '@/hooks/useInventoryAnalytics';
+import { logger } from '@/utils/logger';
 
 interface GenerateInventoryReportPDFParams {
   skuMovements: SkuMonthlyMovement[];
@@ -18,7 +19,7 @@ export const generateInventoryReportPDF = async ({
   topMovers
 }: GenerateInventoryReportPDFParams) => {
   try {
-    console.log('Starting inventory report PDF generation...');
+    logger.info('Starting inventory report PDF generation');
     
     const reportDate = new Date().toLocaleDateString('en-US', {
       year: 'numeric',
@@ -26,7 +27,7 @@ export const generateInventoryReportPDF = async ({
       day: 'numeric',
     });
 
-    // Create the PDF blob
+    // Create the PDF blob with error handling
     const blob = await pdf(
       <InventoryReportPDF
         skuMovements={skuMovements}
@@ -40,10 +41,11 @@ export const generateInventoryReportPDF = async ({
     const fileName = `inventory-report-${new Date().toISOString().split('T')[0]}.pdf`;
     saveAs(blob, fileName);
 
-    console.log('Inventory report PDF generated successfully');
+    logger.info('Inventory report PDF generated successfully', { fileName });
   } catch (error) {
-    console.error('Error generating inventory report PDF:', error);
-    throw new Error(`Failed to generate PDF: ${error.message}`);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error('Error generating inventory report PDF', { error: errorMessage });
+    throw new Error(`Failed to generate PDF: ${errorMessage}`);
   }
 };
 

@@ -6,22 +6,28 @@ import { InvoiceWithDetails, Product } from '@/types/invoice';
 import InvoicePDF from '@/components/invoice/InvoicePDF';
 import { logger } from './logger';
 
-// Register fonts with error handling
-try {
-  Font.register({
-    family: 'Helvetica',
-    fonts: [
-      { src: 'https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.66/fonts/Roboto/Roboto-Regular.ttf', fontWeight: 'normal' },
-      { src: 'https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.66/fonts/Roboto/Roboto-Bold.ttf', fontWeight: 'bold' },
-    ]
-  });
+// Register fonts with error handling and fallback
+const registerFonts = () => {
+  try {
+    // Use a simpler font registration approach to avoid module conflicts
+    Font.register({
+      family: 'Helvetica',
+      src: 'data:font/truetype;charset=utf-8;base64,', // Empty base64 to use system fonts
+    });
 
-  Font.registerHyphenationCallback(word => (word ? [word] : []));
-  
-  logger.debug('PDF fonts registered successfully');
-} catch (error) {
-  logger.error('Failed to register PDF fonts', error);
-}
+    // Simplified hyphenation callback
+    Font.registerHyphenationCallback((word: string) => {
+      return word ? [word] : [];
+    });
+    
+    logger.debug('PDF fonts registered successfully');
+  } catch (error) {
+    logger.warn('Failed to register custom PDF fonts, using defaults', error);
+  }
+};
+
+// Initialize fonts
+registerFonts();
 
 export const downloadInvoicePDF = async (invoice: InvoiceWithDetails) => {
   logger.info('Starting PDF generation', { invoiceId: invoice.id });

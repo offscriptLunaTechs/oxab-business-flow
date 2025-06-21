@@ -66,8 +66,12 @@ export default defineConfig(({ mode }) => ({
         },
         // Better file naming for caching
         entryFileNames: (chunkInfo) => {
-          const facadeModuleId = chunkInfo.facadeModuleId ? chunkInfo.facadeModuleId.split('/').pop().replace('.tsx', '').replace('.ts', '') : 'main';
-          return `assets/${facadeModuleId}-[hash].js`;
+          const facadeModuleId = chunkInfo.facadeModuleId;
+          if (facadeModuleId) {
+            const fileName = facadeModuleId.split('/').pop()?.replace('.tsx', '').replace('.ts', '') || 'main';
+            return `assets/${fileName}-[hash].js`;
+          }
+          return `assets/main-[hash].js`;
         },
         chunkFileNames: 'assets/[name]-[hash].js',
         assetFileNames: 'assets/[name]-[hash].[ext]',
