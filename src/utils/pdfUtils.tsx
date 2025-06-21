@@ -1,21 +1,37 @@
 
 import React from 'react';
-import { pdf, Font } from '@react-pdf/renderer';
-import { saveAs } from 'file-saver';
 import { InvoiceWithDetails, Product } from '@/types/invoice';
-import InvoicePDF from '@/components/invoice/InvoicePDF';
 import { logger } from './logger';
 
-// Register fonts with error handling and fallback
-const registerFonts = () => {
+// Dynamically import PDF dependencies to avoid bundling issues
+const loadPdfDependencies = async () => {
   try {
-    // Use a simpler font registration approach to avoid module conflicts
-    Font.register({
-      family: 'Helvetica',
-      src: 'data:font/truetype;charset=utf-8;base64,', // Empty base64 to use system fonts
-    });
+    const [
+      { pdf, Font }, 
+      { saveAs }, 
+      InvoicePDFModule
+    ] = await Promise.all([
+      import('@react-pdf/renderer'),
+      import('file-saver'),
+      import('@/components/invoice/InvoicePDF')
+    ]);
+    
+    return {
+      pdf,
+      Font,
+      saveAs,
+      InvoicePDF: InvoicePDFModule.default
+    };
+  } catch (error) {
+    logger.error('Failed to load PDF dependencies', error);
+    throw new Error('PDF functionality is not available');
+  }
+};
 
-    // Simplified hyphenation callback
+// Register fonts only when PDF dependencies are loaded
+const registerFonts = async (Font: any) => {
+  try {
+    // Minimal font registration to avoid conflicts
     Font.registerHyphenationCallback((word: string) => {
       return word ? [word] : [];
     });
@@ -26,35 +42,39 @@ const registerFonts = () => {
   }
 };
 
-// Initialize fonts
-registerFonts();
-
 export const downloadInvoicePDF = async (invoice: InvoiceWithDetails) => {
-  logger.info('Starting PDF generation', { invoiceId: invoice.id });
+  logger.info('Starting dynamic PDF generation', { invoiceId: invoice.id });
   
-  // Ensure product details are available and provide sensible defaults if completely missing.
-  const processedInvoice = {
-    ...invoice,
-    items: invoice.items.map(item => {
-      const defaultProduct: Product = {
-        id: '',
-        name: 'N/A',
-        sku: 'N/A',
-        size: '',
-        base_price: 0,
-        status: 'inactive',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
-      return {
-        ...item,
-        product: item.product || defaultProduct
-      };
-    })
-  };
-
   try {
-    const blob = await pdf(<InvoicePDF invoice={processedInvoice} />).toBlob();
+    // Dynamically load PDF dependencies
+    const { pdf, Font, saveAs, InvoicePDF } = await loadPdfDependencies();
+    
+    // Register fonts after loading dependencies
+    await registerFonts(Font);
+    
+    // Ensure product details are available and provide sensible defaults if completely missing.
+    const processedInvoice = {
+      ...invoice,
+      items: invoice.items.map(item => {
+        const defaultProduct: Product = {
+          id: '',
+          name: 'N/A',
+          sku: 'N/A',
+          size: '',
+          base_price: 0,
+          status: 'inactive',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+        return {
+          ...item,
+          product: item.product || defaultProduct
+        };
+      })
+    };
+
+    // Generate PDF
+    const blob = await pdf(React.createElement(InvoicePDF, { invoice: processedInvoice })).toBlob();
     saveAs(blob, `invoice-${invoice.id}.pdf`);
     
     logger.info('PDF generated and downloaded successfully', {
@@ -67,6 +87,12 @@ export const downloadInvoicePDF = async (invoice: InvoiceWithDetails) => {
       invoiceId: invoice.id,
       error: error instanceof Error ? error.message : String(error),
     });
+    
+    // Provide user-friendly error message
+    if (error instanceof Error && error.message.includes('PDF functionality is not available')) {
+      throw new Error('PDF generation is temporarily unavailable. Please try again later.');
+    }
+    
     throw error; 
   }
 };

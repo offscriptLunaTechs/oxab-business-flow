@@ -46,10 +46,8 @@ export default defineConfig(({ mode }) => ({
             '@radix-ui/react-tooltip'
           ],
           'routing-vendor': ['react-router-dom'],
-          // Separate PDF vendor chunk to isolate issues
-          'pdf-vendor': ['@react-pdf/renderer', 'file-saver'],
           
-          // Feature chunks
+          // Feature chunks - removed PDF vendor chunk to prevent bundling issues
           'invoice-feature': [
             './src/pages/invoices/CreateInvoice',
             './src/pages/invoices/InvoicesList',
@@ -80,8 +78,18 @@ export default defineConfig(({ mode }) => ({
     },
     // Optimize chunk size
     chunkSizeWarningLimit: 800,
+    // Add commonjsOptions to handle CJS modules better
+    commonjsOptions: {
+      transformMixedEsModules: true,
+      include: [/node_modules/],
+      exclude: [
+        /node_modules\/@react-pdf/,
+        /node_modules\/unicode-properties/,
+        /node_modules\/base64-js/
+      ]
+    }
   },
-  // Optimize dependencies and exclude problematic PDF packages
+  // Completely exclude problematic PDF packages from optimization
   optimizeDeps: {
     include: [
       'react',
@@ -93,8 +101,17 @@ export default defineConfig(({ mode }) => ({
     exclude: [
       '@react-pdf/renderer',
       'unicode-properties',
-      'base64-js'
-    ]
+      'base64-js',
+      'file-saver'
+    ],
+    // Force pre-bundling to skip these packages
+    esbuildOptions: {
+      external: [
+        '@react-pdf/renderer',
+        'unicode-properties', 
+        'base64-js'
+      ]
+    }
   },
   define: {
     // Remove console logs in production
@@ -103,4 +120,9 @@ export default defineConfig(({ mode }) => ({
       'console.debug': '() => {}',
     }),
   },
+  // Add ssr configuration to prevent server-side issues
+  ssr: {
+    noExternal: ['@radix-ui/*'],
+    external: ['@react-pdf/renderer', 'unicode-properties', 'base64-js']
+  }
 }));
