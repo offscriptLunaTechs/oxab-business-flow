@@ -1,12 +1,13 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { logger } from '@/utils/logger';
 
 export const useInvoices = () => {
   return useQuery({
     queryKey: ['invoices'],
     queryFn: async () => {
-      console.log('Fetching invoices...');
+      logger.debug('Fetching invoices...');
       
       const { data, error } = await supabase
         .from('invoices')
@@ -48,7 +49,7 @@ export const useInvoices = () => {
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('Error fetching invoices:', error);
+        logger.error('Error fetching invoices', error);
         throw error;
       }
 
@@ -70,7 +71,10 @@ export const useInvoices = () => {
         })) || []
       })) || [];
 
-      console.log('Invoices fetched and transformed successfully:', transformedData);
+      logger.debug('Invoices fetched and transformed successfully', {
+        count: transformedData.length,
+      });
+      
       return transformedData;
     },
   });
@@ -84,7 +88,7 @@ export const useInvoice = (invoiceId: string) => {
         throw new Error('Invoice ID is required');
       }
 
-      console.log('Fetching invoice with ID:', invoiceId);
+      logger.debug('Fetching invoice', { invoiceId });
 
       const { data, error } = await supabase
         .from('invoices')
@@ -127,7 +131,7 @@ export const useInvoice = (invoiceId: string) => {
         .single();
 
       if (error) {
-        console.error('Error fetching invoice:', error);
+        logger.error('Error fetching invoice', { invoiceId, error });
         throw error;
       }
 
@@ -149,7 +153,11 @@ export const useInvoice = (invoiceId: string) => {
         })) || []
       };
 
-      console.log('Invoice fetched and transformed successfully:', transformedInvoice);
+      logger.debug('Invoice fetched and transformed successfully', {
+        invoiceId,
+        itemCount: transformedInvoice.items.length,
+      });
+      
       return transformedInvoice;
     },
     enabled: !!invoiceId,

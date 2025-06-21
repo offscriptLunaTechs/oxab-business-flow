@@ -22,11 +22,16 @@ export default defineConfig(({ mode }) => ({
   build: {
     target: 'es2015',
     minify: 'terser',
+    sourcemap: mode === 'development',
     terserOptions: {
       compress: {
-        drop_console: false, // Keep console for debugging, remove in production
-        drop_debugger: true
-      }
+        drop_console: mode === 'production',
+        drop_debugger: true,
+        pure_funcs: mode === 'production' ? ['console.log', 'console.debug'] : [],
+      },
+      mangle: {
+        safari10: true,
+      },
     },
     rollupOptions: {
       output: {
@@ -41,6 +46,7 @@ export default defineConfig(({ mode }) => ({
             '@radix-ui/react-tooltip'
           ],
           'routing-vendor': ['react-router-dom'],
+          'pdf-vendor': ['@react-pdf/renderer', 'file-saver'],
           
           // Feature chunks
           'invoice-feature': [
@@ -57,11 +63,18 @@ export default defineConfig(({ mode }) => ({
             './src/pages/settings/Users',
             './src/components/security/SecurityDashboard'
           ]
-        }
+        },
+        // Better file naming for caching
+        entryFileNames: (chunkInfo) => {
+          const facadeModuleId = chunkInfo.facadeModuleId ? chunkInfo.facadeModuleId.split('/').pop().replace('.tsx', '').replace('.ts', '') : 'main';
+          return `assets/${facadeModuleId}-[hash].js`;
+        },
+        chunkFileNames: 'assets/[name]-[hash].js',
+        assetFileNames: 'assets/[name]-[hash].[ext]',
       }
     },
     // Optimize chunk size
-    chunkSizeWarningLimit: 1000,
+    chunkSizeWarningLimit: 800,
   },
   // Optimize dependencies
   optimizeDeps: {
@@ -71,6 +84,14 @@ export default defineConfig(({ mode }) => ({
       '@tanstack/react-query',
       'react-router-dom',
       '@supabase/supabase-js'
-    ]
-  }
+    ],
+    exclude: ['@react-pdf/renderer']
+  },
+  define: {
+    // Remove console logs in production
+    ...(mode === 'production' && {
+      'console.log': '() => {}',
+      'console.debug': '() => {}',
+    }),
+  },
 }));
