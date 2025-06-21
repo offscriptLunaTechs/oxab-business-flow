@@ -25,6 +25,7 @@ export const useInvoices = () => {
           ),
           invoice_items (
             id,
+            invoice_id,
             product_id,
             quantity,
             price,
@@ -53,6 +54,7 @@ export const useInvoices = () => {
         },
         items: invoice.invoice_items?.map(item => ({
           ...item,
+          invoice_id: item.invoice_id,
           product: item.products
         })) || []
       })) || [];
@@ -90,6 +92,7 @@ export const useInvoice = (invoiceId: string) => {
           ),
           invoice_items (
             id,
+            invoice_id,
             product_id,
             quantity,
             price,
@@ -119,6 +122,7 @@ export const useInvoice = (invoiceId: string) => {
         },
         items: data.invoice_items?.map(item => ({
           ...item,
+          invoice_id: item.invoice_id,
           product: item.products
         })) || []
       };
