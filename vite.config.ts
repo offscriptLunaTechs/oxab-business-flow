@@ -34,6 +34,14 @@ export default defineConfig(({ mode }) => ({
       },
     },
     rollupOptions: {
+      // Completely external these problematic packages
+      external: [
+        '@react-pdf/renderer',
+        'unicode-properties',
+        'base64-js',
+        'unicode-trie',
+        'file-saver'
+      ],
       output: {
         manualChunks: {
           // Vendor chunks
@@ -73,6 +81,14 @@ export default defineConfig(({ mode }) => ({
         },
         chunkFileNames: 'assets/[name]-[hash].js',
         assetFileNames: 'assets/[name]-[hash].[ext]',
+        // Handle external imports
+        globals: {
+          '@react-pdf/renderer': 'ReactPDF',
+          'unicode-properties': 'UnicodeProperties',
+          'base64-js': 'Base64',
+          'unicode-trie': 'UnicodeTrie',
+          'file-saver': 'FileSaver'
+        }
       }
     },
     chunkSizeWarningLimit: 800,
@@ -82,7 +98,8 @@ export default defineConfig(({ mode }) => ({
       exclude: [
         /node_modules\/@react-pdf/,
         /node_modules\/unicode-properties/,
-        /node_modules\/base64-js/
+        /node_modules\/base64-js/,
+        /node_modules\/unicode-trie/
       ]
     }
   },
@@ -98,6 +115,7 @@ export default defineConfig(({ mode }) => ({
       '@react-pdf/renderer',
       'unicode-properties',
       'base64-js',
+      'unicode-trie',
       'file-saver'
     ]
   },
@@ -106,9 +124,5 @@ export default defineConfig(({ mode }) => ({
       'console.log': '() => {}',
       'console.debug': '() => {}',
     }),
-  },
-  ssr: {
-    noExternal: ['@radix-ui/*'],
-    external: ['@react-pdf/renderer', 'unicode-properties', 'base64-js']
   }
 }));

@@ -3,11 +3,9 @@ import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Download, Mail, Printer } from 'lucide-react';
-import { pdf } from '@react-pdf/renderer';
-import { saveAs } from 'file-saver';
 import { format } from 'date-fns';
-import CustomerStatementPDF from './CustomerStatementPDF';
 import { useToast } from '@/hooks/use-toast';
+import { logger } from '@/utils/logger';
 
 interface StatementActionsProps {
   customer: any;
@@ -17,6 +15,38 @@ interface StatementActionsProps {
   totalOutstanding: number;
   openingBalance: number;
 }
+
+// Dynamically import PDF dependencies to avoid bundling issues
+const loadPdfDependencies = async () => {
+  try {
+    // Check if we're in a browser environment
+    if (typeof window === 'undefined') {
+      throw new Error('PDF generation is only available in browser environment');
+    }
+
+    const [reactPdfModule, fileSaverModule] = await Promise.all([
+      import('@react-pdf/renderer').catch(() => {
+        throw new Error('PDF renderer not available');
+      }),
+      import('file-saver').catch(() => {
+        throw new Error('File saver not available');
+      })
+    ]);
+    
+    const customerStatementPdfModule = await import('./CustomerStatementPDF').catch(() => {
+      throw new Error('Customer statement PDF component not available');
+    });
+    
+    return {
+      pdf: reactPdfModule.pdf,
+      saveAs: fileSaverModule.saveAs,
+      CustomerStatementPDF: customerStatementPdfModule.default
+    };
+  } catch (error) {
+    logger.error('Failed to load PDF dependencies for customer statement', error);
+    throw new Error('PDF functionality is not available. Please try refreshing the page.');
+  }
+};
 
 export const StatementActions: React.FC<StatementActionsProps> = ({
   customer,
@@ -41,8 +71,10 @@ export const StatementActions: React.FC<StatementActionsProps> = ({
     try {
       console.log('Generating customer statement PDF...');
       
-      // Create the PDF document - pass component directly
-      const blob = await pdf(
+      // Dynamically load PDF dependencies
+      const { pdf, saveAs, CustomerStatementPDF } = await loadPdfDependencies();
+      
+      const pdfDocument = (
         <CustomerStatementPDF
           customer={customer}
           invoices={invoices}
@@ -51,7 +83,9 @@ export const StatementActions: React.FC<StatementActionsProps> = ({
           totalOutstanding={totalOutstanding}
           openingBalance={openingBalance}
         />
-      ).toBlob();
+      );
+      
+      const blob = await pdf(pdfDocument).toBlob();
       
       const filename = `statement-${customer.code}-${format(new Date(), 'yyyy-MM-dd')}.pdf`;
       saveAs(blob, filename);
@@ -62,9 +96,13 @@ export const StatementActions: React.FC<StatementActionsProps> = ({
       });
     } catch (error) {
       console.error('PDF generation error:', error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      
       toast({
         title: "Error",
-        description: "Failed to generate PDF",
+        description: errorMessage.includes('PDF functionality is not available') 
+          ? "PDF generation is temporarily unavailable. Please try refreshing the page."
+          : "Failed to generate PDF",
         variant: "destructive",
       });
     }

@@ -13,24 +13,32 @@ interface GenerateInventoryReportPDFParams {
 // Dynamically import PDF dependencies to avoid bundling issues
 const loadPdfDependencies = async () => {
   try {
-    const [
-      { pdf }, 
-      { saveAs }, 
-      InventoryReportPDFModule
-    ] = await Promise.all([
-      import('@react-pdf/renderer'),
-      import('file-saver'),
-      import('@/components/inventory/InventoryReportPDF')
+    // Check if we're in a browser environment
+    if (typeof window === 'undefined') {
+      throw new Error('PDF generation is only available in browser environment');
+    }
+
+    const [reactPdfModule, fileSaverModule] = await Promise.all([
+      import('@react-pdf/renderer').catch(() => {
+        throw new Error('PDF renderer not available');
+      }),
+      import('file-saver').catch(() => {
+        throw new Error('File saver not available');
+      })
     ]);
     
+    const inventoryReportPdfModule = await import('@/components/inventory/InventoryReportPDF').catch(() => {
+      throw new Error('Inventory report PDF component not available');
+    });
+    
     return {
-      pdf,
-      saveAs,
-      InventoryReportPDF: InventoryReportPDFModule.default
+      pdf: reactPdfModule.pdf,
+      saveAs: fileSaverModule.saveAs,
+      InventoryReportPDF: inventoryReportPdfModule.default
     };
   } catch (error) {
     logger.error('Failed to load PDF dependencies for inventory report', error);
-    throw new Error('PDF functionality is not available for inventory reports');
+    throw new Error('PDF functionality is not available for inventory reports. Please try refreshing the page.');
   }
 };
 
@@ -73,8 +81,9 @@ export const generateInventoryReportPDF = async ({
     logger.error('Error generating inventory report PDF', { error: errorMessage });
     
     // Provide user-friendly error message
-    if (errorMessage.includes('PDF functionality is not available')) {
-      throw new Error('PDF generation is temporarily unavailable. Please try again later.');
+    if (errorMessage.includes('PDF functionality is not available') || 
+        errorMessage.includes('not available')) {
+      throw new Error('PDF generation is temporarily unavailable. Please try refreshing the page or try again later.');
     }
     
     throw new Error(`Failed to generate PDF: ${errorMessage}`);
