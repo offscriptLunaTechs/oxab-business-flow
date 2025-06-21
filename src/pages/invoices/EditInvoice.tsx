@@ -63,9 +63,30 @@ const EditInvoice = () => {
 
   const handleUpdate = async (values: any) => {
     try {
+      console.log('EditInvoice - handleUpdate called with values:', values);
+      
+      // Prepare the update data - only include invoice fields, not items
+      const invoiceUpdateData = {
+        customer_id: values.customer_id,
+        date: values.date,
+        due_date: values.due_date,
+        subtotal: values.subtotal,
+        tax: values.tax,
+        discount: values.discount,
+        total: values.total,
+        status: values.status,
+        notes: values.notes || '',
+      };
+
+      console.log('EditInvoice - calling updateInvoice with:', {
+        invoiceId: invoice.id,
+        invoiceData: invoiceUpdateData,
+        items: values.items
+      });
+
       await updateInvoice.mutateAsync({ 
         invoiceId: invoice.id, 
-        invoiceData: values, 
+        invoiceData: invoiceUpdateData,
         items: values.items 
       });
       navigate('/invoices');
@@ -77,6 +98,10 @@ const EditInvoice = () => {
   const handleBack = () => {
     navigate('/invoices');
   };
+
+  // Safely access invoice items - they come from the invoice_items table via the query
+  const invoiceItems = invoice.invoice_items || [];
+  console.log('EditInvoice - invoice items:', invoiceItems);
 
   return (
     <div className="container mx-auto py-10">
@@ -106,7 +131,7 @@ const EditInvoice = () => {
               total: invoice.total,
               status: invoice.status,
               notes: invoice.notes || '',
-              items: invoice.items?.map(item => ({
+              items: invoiceItems.map(item => ({
                 product_id: item.product_id,
                 quantity: item.quantity,
                 price: item.price,
