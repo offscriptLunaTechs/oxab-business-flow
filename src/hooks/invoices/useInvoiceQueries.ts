@@ -55,6 +55,7 @@ export const useInvoices = () => {
       // Transform the data to match the expected interface
       const transformedData = data?.map(invoice => ({
         ...invoice,
+        status: invoice.status as 'draft' | 'pending' | 'paid' | 'cancelled' | 'overdue',
         customer: {
           ...invoice.customers,
           customer_type: invoice.customers.customer_type as 'wholesale' | 'retail'
@@ -133,6 +134,7 @@ export const useInvoice = (invoiceId: string) => {
       // Transform the data to match the expected interface
       const transformedInvoice = {
         ...data,
+        status: data.status as 'draft' | 'pending' | 'paid' | 'cancelled' | 'overdue',
         customer: {
           ...data.customers,
           customer_type: data.customers.customer_type as 'wholesale' | 'retail'
