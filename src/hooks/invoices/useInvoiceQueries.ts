@@ -16,7 +16,12 @@ export const useInvoices = () => {
             id,
             name,
             code,
-            customer_type
+            customer_type,
+            phone,
+            email,
+            address,
+            created_at,
+            updated_at
           ),
           invoice_items (
             id,
@@ -73,7 +78,12 @@ export const useInvoice = (invoiceId: string) => {
             id,
             name,
             code,
-            customer_type
+            customer_type,
+            phone,
+            email,
+            address,
+            created_at,
+            updated_at
           ),
           invoice_items (
             id,
