@@ -49,19 +49,21 @@ const ProductSalesAnalysis = () => {
               <label className="text-sm font-medium text-gray-700 mb-2 block">
                 Select Product
               </label>
-              <Select value={selectedProductId} onValueChange={setSelectedProductId}>
+              <Select value={selectedProductId} onValueChange={setSelectedProductId} disabled={productsLoading}>
                 <SelectTrigger>
                   <SelectValue placeholder="Choose a product" />
                 </SelectTrigger>
                 <SelectContent>
                   {productsLoading ? (
-                    <SelectItem value="" disabled>Loading products...</SelectItem>
-                  ) : (
-                    products?.map((product) => (
+                    <div className="p-2 text-center text-sm text-gray-500">Loading products...</div>
+                  ) : products && products.length > 0 ? (
+                    products.map((product) => (
                       <SelectItem key={product.id} value={product.id}>
                         {product.name} ({product.sku})
                       </SelectItem>
                     ))
+                  ) : (
+                    <div className="p-2 text-center text-sm text-gray-500">No products found</div>
                   )}
                 </SelectContent>
               </Select>
