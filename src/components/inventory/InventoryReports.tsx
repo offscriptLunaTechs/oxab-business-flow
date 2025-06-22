@@ -1,14 +1,17 @@
 
 import { useState } from "react";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProductWithInventory } from "@/hooks/useProducts";
 import { useTopMovingProducts } from "@/hooks/useInventoryAnalytics";
 import { useSkuStockLevels } from "@/hooks/useSkuAnalytics";
 import { useInventoryReportPDF } from "@/hooks/useInventoryReportPDF";
 import { useToast } from "@/hooks/use-toast";
+import { BarChart3, Package, TrendingUp } from "lucide-react";
 import ReportControls from "./ReportControls";
 import StockLevelsChart from "./StockLevelsChart";
 import TopMoversSection from "./TopMoversSection";
+import ProductSalesAnalysis from "./ProductSalesAnalysis";
 
 interface InventoryReportsProps {
   products: ProductWithInventory[];
@@ -89,11 +92,44 @@ const InventoryReports = ({ products }: InventoryReportsProps) => {
         onExportReport={handleExportReport}
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <StockLevelsChart skuStockLevels={skuStockLevels} />
-      </div>
+      <Tabs defaultValue="overview" className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="overview" className="flex items-center gap-2">
+            <BarChart3 className="h-4 w-4" />
+            <span className="hidden sm:inline">Overview</span>
+          </TabsTrigger>
+          <TabsTrigger value="stock-analysis" className="flex items-center gap-2">
+            <Package className="h-4 w-4" />
+            <span className="hidden sm:inline">Stock Analysis</span>
+          </TabsTrigger>
+          <TabsTrigger value="product-sales" className="flex items-center gap-2">
+            <TrendingUp className="h-4 w-4" />
+            <span className="hidden sm:inline">Product Sales</span>
+          </TabsTrigger>
+        </TabsList>
 
-      <TopMoversSection topMovers={topMovers} />
+        <TabsContent value="overview" className="mt-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <StockLevelsChart skuStockLevels={skuStockLevels} />
+          </div>
+          <div className="mt-6">
+            <TopMoversSection topMovers={topMovers} />
+          </div>
+        </TabsContent>
+
+        <TabsContent value="stock-analysis" className="mt-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <StockLevelsChart skuStockLevels={skuStockLevels} />
+          </div>
+          <div className="mt-6">
+            <TopMoversSection topMovers={topMovers} />
+          </div>
+        </TabsContent>
+
+        <TabsContent value="product-sales" className="mt-6">
+          <ProductSalesAnalysis />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
