@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Session, User, AuthError } from "@supabase/supabase-js";
@@ -212,35 +211,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const signUp = async (email: string, password: string, fullName: string) => {
-    try {
-      console.log('Attempting sign up for:', email);
-      await logSecurityEvent('sign_up_attempt', 'info');
-      
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            full_name: fullName,
-          },
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
-        },
-      });
-      
-      if (error) {
-        console.error('Sign up error:', error);
-        await logSecurityEvent('sign_up_failed', 'warning');
-        return { error };
-      }
-      
-      console.log('Sign up successful for:', email);
-      await logSecurityEvent('sign_up_successful', 'info');
-      return { error: null };
-    } catch (error) {
-      console.error('Unexpected sign up error:', error);
-      await logSecurityEvent('sign_up_error', 'error');
-      return { error: error as AuthError };
-    }
+    // Registration is temporarily disabled
+    console.log('Registration attempt blocked - feature disabled');
+    await logSecurityEvent('registration_blocked', 'warning');
+    
+    return { 
+      error: { 
+        message: "Registration is temporarily disabled. Please contact your IT department for account access.",
+        name: "RegistrationDisabled"
+      } as AuthError 
+    };
   };
 
   const signOut = async () => {

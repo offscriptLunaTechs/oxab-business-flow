@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -75,57 +74,11 @@ const Login = () => {
     e.preventDefault();
     setRegisterError("");
     
-    if (registerPassword !== confirmPassword) {
-      const errorMessage = "Passwords do not match";
-      setRegisterError(errorMessage);
-      toast.error(errorMessage);
-      return;
-    }
-
-    if (registerPassword.length < 6) {
-      const errorMessage = "Password must be at least 6 characters long";
-      setRegisterError(errorMessage);
-      toast.error(errorMessage);
-      return;
-    }
-    
-    setIsRegistering(true);
-    
-    try {
-      const { error } = await signUp(registerEmail, registerPassword, fullName);
-      
-      if (error) {
-        console.error("Registration error:", error);
-        let errorMessage = "Registration failed. Please try again.";
-        
-        if (error.message.includes("User already registered")) {
-          errorMessage = "An account with this email already exists. Please sign in instead.";
-        } else if (error.message.includes("Password should be at least")) {
-          errorMessage = "Password is too weak. Please choose a stronger password.";
-        } else if (error.message.includes("Invalid email")) {
-          errorMessage = "Please enter a valid email address.";
-        }
-        
-        setRegisterError(errorMessage);
-        toast.error(errorMessage);
-        return;
-      }
-      
-      toast.success("Registration successful! Please check your email to confirm your account.");
-      
-      // Clear form
-      setRegisterEmail("");
-      setRegisterPassword("");
-      setConfirmPassword("");
-      setFullName("");
-    } catch (error) {
-      console.error("Unexpected registration error:", error);
-      const errorMessage = "An unexpected error occurred during registration. Please try again.";
-      setRegisterError(errorMessage);
-      toast.error(errorMessage);
-    } finally {
-      setIsRegistering(false);
-    }
+    // Show immediate message that registration is disabled
+    const errorMessage = "Registration is temporarily disabled. Please contact your IT department for account access.";
+    setRegisterError(errorMessage);
+    toast.error(errorMessage);
+    return;
   };
 
   return (
@@ -147,7 +100,7 @@ const Login = () => {
         <Tabs defaultValue="login" className="w-full">
           <TabsList className="grid grid-cols-2 w-[90%] mx-auto">
             <TabsTrigger value="login">Sign In</TabsTrigger>
-            <TabsTrigger value="register">Register</TabsTrigger>
+            <TabsTrigger value="register" disabled>Register</TabsTrigger>
           </TabsList>
           
           <TabsContent value="login">
@@ -226,96 +179,18 @@ const Login = () => {
           
           <TabsContent value="register">
             <CardContent>
-              <form onSubmit={handleRegister} className="space-y-4">
-                {registerError && (
-                  <Alert variant="destructive">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>{registerError}</AlertDescription>
-                  </Alert>
-                )}
-                
-                <div className="space-y-2">
-                  <Label htmlFor="fullName" className="text-base font-medium">
-                    Full Name
-                  </Label>
-                  <Input
-                    id="fullName"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    placeholder="Enter your full name"
-                    className="h-12 text-base"
-                    required
-                    disabled={isRegistering}
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="registerEmail" className="text-base font-medium">
-                    Email Address
-                  </Label>
-                  <Input
-                    id="registerEmail"
-                    type="email"
-                    value={registerEmail}
-                    onChange={(e) => setRegisterEmail(e.target.value)}
-                    placeholder="Enter your email"
-                    className="h-12 text-base"
-                    required
-                    disabled={isRegistering}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="registerPassword" className="text-base font-medium">
-                    Password
-                  </Label>
-                  <Input
-                    id="registerPassword"
-                    type="password"
-                    value={registerPassword}
-                    onChange={(e) => setRegisterPassword(e.target.value)}
-                    placeholder="Create a password (min. 6 characters)"
-                    className="h-12 text-base"
-                    required
-                    minLength={6}
-                    disabled={isRegistering}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="confirmPassword" className="text-base font-medium">
-                    Confirm Password
-                  </Label>
-                  <Input
-                    id="confirmPassword"
-                    type="password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="Confirm your password"
-                    className="h-12 text-base"
-                    required
-                    disabled={isRegistering}
-                  />
-                </div>
-
-                <Button 
-                  type="submit" 
-                  className="w-full h-12 text-base bg-blue-600 hover:bg-blue-700 flex items-center justify-center gap-2"
-                  disabled={isRegistering}
-                >
-                  {isRegistering ? (
-                    <>
-                      <LoadingSpinner size="sm" />
-                      <span>Creating Account...</span>
-                    </>
-                  ) : (
-                    <>
-                      <UserPlus className="h-4 w-4" />
-                      <span>Create Account</span>
-                    </>
-                  )}
-                </Button>
-              </form>
+              <div className="text-center py-8">
+                <AlertCircle className="h-12 w-12 text-orange-500 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  Registration Temporarily Disabled
+                </h3>
+                <p className="text-gray-600 mb-4">
+                  New user registration is currently disabled. 
+                </p>
+                <p className="text-sm text-gray-500">
+                  Please contact your IT department to request account access.
+                </p>
+              </div>
             </CardContent>
           </TabsContent>
         </Tabs>
