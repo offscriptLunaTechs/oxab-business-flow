@@ -1,0 +1,15 @@
+# SPA Routing - Redirect all routes to index.html for React Router
+/* /index.html 200
+
+# API redirects (if you have external APIs)
+# /api/* https://your-api-domain.com/api/:splat 200
+
+# Security headers and caching rules
+/*.js
+  Cache-Control: public, max-age=31536000, immutable
+/*.css
+  Cache-Control: public, max-age=31536000, immutable
+/*.woff2
+  Cache-Control: public, max-age=31536000, immutable
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
