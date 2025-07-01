@@ -1,0 +1,3 @@
+# Temporarily remove wrangler.toml to force auto-detection
+# This file has been removed to prevent Bun detection conflicts
+# Will be restored after successful deployment
