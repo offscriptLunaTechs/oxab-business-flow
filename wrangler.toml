@@ -4,7 +4,7 @@ pages_build_output_dir = "dist"
 node_compat = true
 
 [build]
-command = "npm run build"
+command = "bun install && bun run build"
 cwd = "."
 watch_dir = "src"
 
