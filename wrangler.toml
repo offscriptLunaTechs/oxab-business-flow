@@ -1,25 +1,10 @@
 name = "kecc-business-flow"
 compatibility_date = "2024-01-01"
 pages_build_output_dir = "dist"
-node_compat = true
-
-[build]
-command = "bun install && bun run build"
-cwd = "."
-watch_dir = "src"
-
-[preview]
-compatibility_date = "2024-01-01"
-
-[env.production]
-compatibility_date = "2024-01-01"
 
 [env.production.vars]
 ENVIRONMENT = "production"
 VITE_APP_ENV = "production"
-
-[env.preview]
-compatibility_date = "2024-01-01"
 
 [env.preview.vars]
 ENVIRONMENT = "preview"
