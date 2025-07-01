@@ -1,35 +1,15 @@
-{
-  "$schema": "https://developers.cloudflare.com/pages/functions/wrangler-configuration/",
-  "name": "kecc-business-flow",
-  "compatibility_date": "2024-01-01",
-  "pages_build_output_dir": "dist",
-  "preview_environment_variables": {
-    "VITE_APP_ENV": "preview"
-  },
-  "production_environment_variables": {
-    "VITE_APP_ENV": "production"
-  },
-  "node_compat": true,
-  "build": {
-    "command": "npm run build",
-    "cwd": ".",
-    "watch_dir": "src"
-  },
-  "preview": {
-    "compatibility_date": "2024-01-01"
-  },
-  "env": {
-    "production": {
-      "compatibility_date": "2024-01-01",
-      "vars": {
-        "ENVIRONMENT": "production"
-      }
-    },
-    "preview": {
-      "compatibility_date": "2024-01-01",
-      "vars": {
-        "ENVIRONMENT": "preview"
-      }
-    }
-  }
-}
+name = "kecc-business-flow"
+compatibility_date = "2024-01-01"
+pages_build_output_dir = "dist"
+node_compat = true
+
+[build]
+command = "npm run build"
+cwd = "."
+watch_dir = "src"
+
+[env.production]
+compatibility_date = "2024-01-01"
+
+[env.preview]
+compatibility_date = "2024-01-01"
