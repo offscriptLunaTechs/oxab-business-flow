@@ -2,10 +2,6 @@ name = "kecc-business-flow"
 compatibility_date = "2024-01-01"
 pages_build_output_dir = "dist"
 
-# Force npm usage
-[build]
-command = "npm ci && npm run build"
-
 [env.production.vars]
 ENVIRONMENT = "production"
 VITE_APP_ENV = "production"
