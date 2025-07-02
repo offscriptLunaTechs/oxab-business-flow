@@ -30,10 +30,12 @@ dist-ssr
 .env.test.local
 .env.production.local
 
-# Package manager lockfiles (keep only bun.lockb)
-package-lock.json
+# Package manager lockfiles (for npm consistency)
 yarn.lock
+bun.lockb
 
-# Cloudflare
+# Cloudflare Workers
 .wrangler/
 .dev.vars
+wrangler.json
+.worker-next/
