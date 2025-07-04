@@ -1,0 +1,22 @@
+{
+  "name": "KECC Business Management System",
+  "short_name": "KECC",
+  "description": "Streamlined operations for OXAB mineral water distribution",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#222222",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/lovable-uploads/c3a0a3d3-afb6-478e-a0e8-e043e8b81ea8.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["business", "productivity"],
+  "screenshots": [],
+  "related_applications": [],
+  "prefer_related_applications": false
+}

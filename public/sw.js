@@ -3,7 +3,6 @@ const CACHE_NAME = 'kecc-v1.0.0';
 const STATIC_CACHE_URLS = [
   '/',
   '/index.html',
-  '/manifest.json',
   '/offline.html'
 ];
 
