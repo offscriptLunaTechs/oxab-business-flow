@@ -16,17 +16,37 @@ interface StatementActionsProps {
   openingBalance: number;
 }
 
-// Simplified dynamic import approach
 const loadPdfDependencies = async () => {
   try {
+    // Check if we're in a browser environment
     if (typeof window === 'undefined') {
       throw new Error('PDF generation is only available in browser environment');
     }
 
-    // Import modules individually
-    const reactPdfModule = await import('@react-pdf/renderer');
-    const fileSaverModule = await import('file-saver');
-    const customerStatementPdfModule = await import('./CustomerStatementPDF');
+    // Dynamic imports with proper error handling and timeout
+    const importTimeout = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('PDF import timeout')), 10000)
+    );
+
+    const imports = await Promise.race([
+      Promise.all([
+        import('@react-pdf/renderer').catch(err => {
+          console.error('Failed to load @react-pdf/renderer:', err);
+          throw new Error('PDF library failed to load. Please refresh and try again.');
+        }),
+        import('file-saver').catch(err => {
+          console.error('Failed to load file-saver:', err);
+          throw new Error('File saving library failed to load. Please refresh and try again.');
+        }),
+        import('./CustomerStatementPDF').catch(err => {
+          console.error('Failed to load CustomerStatementPDF:', err);
+          throw new Error('PDF component failed to load. Please refresh and try again.');
+        })
+      ]),
+      importTimeout
+    ]) as [typeof import('@react-pdf/renderer'), typeof import('file-saver'), typeof import('./CustomerStatementPDF')];
+    
+    const [reactPdfModule, fileSaverModule, customerStatementPdfModule] = imports;
     
     return {
       pdf: reactPdfModule.pdf,

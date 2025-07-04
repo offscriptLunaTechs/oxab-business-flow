@@ -48,20 +48,26 @@ export default defineConfig(({ mode }) => ({
           ],
           'routing-vendor': ['react-router-dom'],
           
-          // Feature chunks
-          'invoice-feature': [
-            './src/pages/invoices/CreateInvoice',
-            './src/pages/invoices/InvoicesList',
-            './src/pages/invoices/InvoiceDetail',
-            './src/pages/invoices/EditInvoice'
+          // Feature chunks - using actual existing files
+          'dashboard-feature': [
+            './src/pages/dashboard/Dashboard'
           ],
           'customer-feature': [
             './src/pages/customers/Customers'
           ],
-          'admin-feature': [
+          'inventory-feature': [
+            './src/pages/inventory/Inventory'
+          ],
+          'settings-feature': [
             './src/pages/settings/Settings',
-            './src/pages/settings/Users',
-            './src/components/security/SecurityDashboard'
+            './src/pages/settings/Users'
+          ],
+          'reports-feature': [
+            './src/pages/reports/OutstandingInvoicesReport'
+          ],
+          // PDF chunks - separate heavy PDF dependencies
+          'pdf-vendor': [
+            '@react-pdf/renderer'
           ]
         },
         entryFileNames: (chunkInfo) => {
@@ -76,7 +82,7 @@ export default defineConfig(({ mode }) => ({
         assetFileNames: 'assets/[name]-[hash].[ext]'
       }
     },
-    chunkSizeWarningLimit: 800
+    chunkSizeWarningLimit: 1000
   },
   optimizeDeps: {
     include: [
